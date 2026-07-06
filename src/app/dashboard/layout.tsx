@@ -10,7 +10,8 @@ import {
   Droplets,
   Tags,
   ShieldCheck,
-  UserCog
+  UserCog,
+  Store
 } from "lucide-react"
 
 export default function DashboardLayout({
@@ -59,6 +60,10 @@ export default function DashboardLayout({
           <Link href="/dashboard/roles" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
             <ShieldCheck className="h-5 w-5" />
             Roles & Permissions
+          </Link>
+          <Link href="/dashboard/branches" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
+            <Store className="h-5 w-5" />
+            Branch Management
           </Link>
           <div className="pt-4 pb-1">
             <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Master Data</p>
