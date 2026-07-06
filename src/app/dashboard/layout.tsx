@@ -10,8 +10,7 @@ import {
   Droplets,
   Tags,
   ShieldCheck,
-  UserCog,
-  Store
+  UserCog
 } from "lucide-react"
 
 export default function DashboardLayout({
