@@ -89,9 +89,13 @@ export default function DashboardLayout({
             <Store className="h-5 w-5" />
             Products Inventory
           </Link>
-          <Link href="/dashboard/raw-materials" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
-            <Droplets className="h-5 w-5" />
-            Raw Materials
+          <Link href="/dashboard/raw-materials" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-orange-50 hover:text-orange-600 transition-all">
+            <Package className="h-4 w-4" />
+            Raw Materials (Master)
+          </Link>
+          <Link href="/dashboard/branch-inventory" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-orange-50 hover:text-orange-600 transition-all">
+            <LayoutDashboard className="h-4 w-4" />
+            Branch Inventory
           </Link>
           <Link href="/dashboard/raw-material-inventory" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
             <Package className="h-5 w-5" />
