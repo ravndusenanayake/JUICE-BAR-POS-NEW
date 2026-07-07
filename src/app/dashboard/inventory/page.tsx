@@ -84,7 +84,7 @@ export default function InventoryPage() {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="category">Category</Label>
-                  <Select onValueChange={setNewCategory} required>
+                  <Select onValueChange={(val) => setNewCategory(val || "")} required>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>

@@ -120,7 +120,7 @@ export default function UsersPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="role">Role <span className="text-red-500">*</span></Label>
-                    <Select value={role} onValueChange={setRole} required>
+                    <Select value={role} onValueChange={(val) => setRole(val || "")} required>
                       <SelectTrigger>
                         <SelectValue placeholder="Select role" />
                       </SelectTrigger>
@@ -134,7 +134,7 @@ export default function UsersPage() {
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="branch">Branch</Label>
-                    <Select value={branch} onValueChange={setBranch} disabled={role === 'Super Admin'} required={role !== 'Super Admin'}>
+                    <Select value={branch} onValueChange={(val) => setBranch(val || "")} disabled={role === 'Super Admin'} required={role !== 'Super Admin'}>
                       <SelectTrigger>
                         <SelectValue placeholder={role === 'Super Admin' ? 'All Branches' : 'Select branch'} />
                       </SelectTrigger>

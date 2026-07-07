@@ -10,7 +10,9 @@ import {
   Droplets,
   Tags,
   ShieldCheck,
-  UserCog
+  UserCog,
+  Box,
+  PlusCircle
 } from "lucide-react"
 
 export default function DashboardLayout({
@@ -65,11 +67,47 @@ export default function DashboardLayout({
             Branch Management
           </Link>
           <div className="pt-4 pb-1">
-            <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Master Data</p>
+            <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Products</p>
           </div>
           <Link href="/dashboard/categories" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
             <Tags className="h-5 w-5" />
-            Categories
+            Category
+          </Link>
+          <Link href="/dashboard/units" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
+            <Package className="h-5 w-5" />
+            Units
+          </Link>
+          <Link href="/dashboard/products" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
+            <Box className="h-5 w-5" />
+            All Products
+          </Link>
+          <Link href="/dashboard/add-ons" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
+            <PlusCircle className="h-5 w-5" />
+            Add-Ons
+          </Link>
+          <Link href="/dashboard/inventory" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
+            <Store className="h-5 w-5" />
+            Products Inventory
+          </Link>
+          <Link href="/dashboard/raw-materials" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
+            <Droplets className="h-5 w-5" />
+            Raw Materials
+          </Link>
+          <Link href="/dashboard/raw-material-inventory" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
+            <Package className="h-5 w-5" />
+            Raw Material Inventory
+          </Link>
+          <Link href="/dashboard/recipes" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
+            <Settings className="h-5 w-5" />
+            Recipes
+          </Link>
+          <Link href="/dashboard/stock-alerts" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
+            <ShieldCheck className="h-5 w-5" />
+            Stock Alerts
+          </Link>
+          <Link href="/dashboard/tables" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
+            <LayoutDashboard className="h-5 w-5" />
+            Tables
           </Link>
         </nav>
         <div className="mt-auto border-t p-4">

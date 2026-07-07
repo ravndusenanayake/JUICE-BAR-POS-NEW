@@ -113,7 +113,7 @@ export default function CategoriesPage() {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="status">Status <span className="text-red-500">*</span></Label>
-                  <Select value={newStatus} onValueChange={setNewStatus} required>
+                  <Select value={newStatus} onValueChange={(val) => setNewStatus(val || "")} required>
                     <SelectTrigger>
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>

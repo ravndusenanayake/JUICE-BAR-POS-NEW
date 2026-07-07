@@ -121,7 +121,7 @@ export default function BranchesPage() {
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="status">Status <span className="text-red-500">*</span></Label>
-                    <Select value={status} onValueChange={setStatus} required>
+                    <Select value={status} onValueChange={(val) => setStatus(val || "")} required>
                       <SelectTrigger>
                         <SelectValue placeholder="Select status" />
                       </SelectTrigger>
