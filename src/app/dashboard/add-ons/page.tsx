@@ -78,10 +78,8 @@ export default function AddOnsPage() {
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-              <Plus className="mr-2 h-4 w-4" /> Add New Add-On
-            </Button>
+          <DialogTrigger render={<Button className="bg-orange-500 hover:bg-orange-600 text-white" />}>
+            <Plus className="mr-2 h-4 w-4" /> Add New Add-On
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <form onSubmit={handleAddAddon}>
@@ -115,10 +113,8 @@ export default function AddOnsPage() {
               </div>
               
               <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
-                <DialogClose asChild>
-                  <Button type="button" variant="outline" className="w-full sm:w-auto">
-                    Cancel
-                  </Button>
+                <DialogClose render={<Button type="button" variant="outline" className="w-full sm:w-auto" />}>
+                  Cancel
                 </DialogClose>
                 <Button type="submit" className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white">
                   Create Add-On
