@@ -12,10 +12,10 @@ import { Switch } from "@/components/ui/switch"
 
 // Dummy Data matching the screenshot
 const INITIAL_PRODUCTS = [
-  { id: 1, name: "BLACKFOREST CAKE", sku: "TEZ002", category: "Cakes", type: "Product", outletPrice: 200.00, pickmePrice: 1500.00, uberPrice: 1500.00, status: true },
-  { id: 2, name: "BANANA MILKSHAKE", sku: "TEZ001", category: "Cold Beverages", type: "Recipe Based", outletPrice: 350.00, pickmePrice: 1300.00, uberPrice: 1300.00, status: true },
-  { id: 3, name: "chips", sku: "MA123", category: "Snacks", type: "Product", outletPrice: 150.00, pickmePrice: 1450.00, uberPrice: 1450.00, status: true },
-  { id: 4, name: "coconut", sku: "ES12001", category: "Raw Materials", type: "Product", outletPrice: 15.00, pickmePrice: 18.00, uberPrice: 18.00, status: true },
+  { id: 1, name: "BLACKFOREST CAKE", sku: "TEZ002", category: "Cakes", type: "Product", outletPrice: 200.00, pickmePrice: 1500.00, uberPrice: 1500.00, status: true, hasVariants: false, variants: [] },
+  { id: 2, name: "BANANA MILKSHAKE", sku: "TEZ001", category: "Cold Beverages", type: "Recipe Based", outletPrice: 350.00, pickmePrice: 1300.00, uberPrice: 1300.00, status: true, hasVariants: true, variants: [{ id: 'var-0', name: 'Large', sku: 'TEZ001-L', outletPrice: 450, pickmePrice: 1500, uberPrice: 1500 }] },
+  { id: 3, name: "chips", sku: "MA123", category: "Snacks", type: "Product", outletPrice: 150.00, pickmePrice: 1450.00, uberPrice: 1450.00, status: true, hasVariants: false, variants: [] },
+  { id: 4, name: "coconut", sku: "ES12001", category: "Raw Materials", type: "Product", outletPrice: 15.00, pickmePrice: 18.00, uberPrice: 18.00, status: true, hasVariants: false, variants: [] },
 ]
 
 export default function ProductsPage() {
@@ -36,6 +36,24 @@ export default function ProductsPage() {
   const [uberPrice, setUberPrice] = useState("")
   const [isActive, setIsActive] = useState(true)
   const [selectedAddons, setSelectedAddons] = useState<number[]>([])
+
+  // Variants State
+  const [hasVariants, setHasVariants] = useState(false)
+  const [variants, setVariants] = useState<{name: string, sku: string, outletPrice: string, pickmePrice: string, uberPrice: string}[]>([])
+
+  const addVariant = () => {
+    setVariants([...variants, { name: "", sku: "", outletPrice: "", pickmePrice: "", uberPrice: "" }])
+  }
+
+  const removeVariant = (index: number) => {
+    setVariants(variants.filter((_, i) => i !== index))
+  }
+
+  const updateVariant = (index: number, field: string, value: string) => {
+    const newVariants = [...variants]
+    newVariants[index] = { ...newVariants[index], [field]: value }
+    setVariants(newVariants)
+  }
 
   // Hardcoded Add-ons from the master list (will be fetched from API later)
   const AVAILABLE_ADDONS = [
@@ -74,7 +92,16 @@ export default function ProductsPage() {
       pickmePrice: parseFloat(pickmePrice) || 0,
       uberPrice: parseFloat(uberPrice) || 0,
       status: isActive,
-      addons: selectedAddons
+      addons: selectedAddons,
+      hasVariants,
+      variants: hasVariants ? variants.map((v, idx) => ({
+        id: `var-${idx}`,
+        name: v.name,
+        sku: v.sku.toUpperCase(),
+        outletPrice: parseFloat(v.outletPrice) || 0,
+        pickmePrice: parseFloat(v.pickmePrice) || 0,
+        uberPrice: parseFloat(v.uberPrice) || 0,
+      })) : []
     }
 
     setProducts([newProduct, ...products])
@@ -95,6 +122,8 @@ export default function ProductsPage() {
     setUberPrice("")
     setIsActive(true)
     setSelectedAddons([])
+    setHasVariants(false)
+    setVariants([])
   }
 
   const toggleStatus = (id: number) => {
@@ -216,6 +245,51 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
+                {/* Variants Selection */}
+                <div className="border rounded-md p-4 bg-gray-50/50 mt-2">
+                  <div className="flex items-center justify-between mb-4">
+                    <Label className="text-sm font-medium text-gray-700">Product Variants</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="has-variants" className="text-xs text-gray-500">Has Variants?</Label>
+                      <Switch 
+                        id="has-variants" 
+                        checked={hasVariants} 
+                        onCheckedChange={setHasVariants}
+                        className="data-[state=checked]:bg-orange-500"
+                      />
+                    </div>
+                  </div>
+
+                  {hasVariants && (
+                    <div className="space-y-4">
+                      {variants.map((variant, idx) => (
+                        <div key={idx} className="grid grid-cols-12 gap-2 items-start border-b pb-4 mb-2">
+                          <div className="col-span-12 flex justify-between items-center mb-1">
+                            <span className="text-xs font-semibold text-gray-500">Variant #{idx + 1}</span>
+                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-red-500 hover:bg-red-50" onClick={() => removeVariant(idx)}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <div className="col-span-4">
+                            <Input placeholder="Name (e.g. Small)" value={variant.name} onChange={(e) => updateVariant(idx, 'name', e.target.value)} required className="h-8 text-xs border-gray-300" />
+                          </div>
+                          <div className="col-span-3">
+                            <Input placeholder="SKU" value={variant.sku} onChange={(e) => updateVariant(idx, 'sku', e.target.value)} required className="h-8 text-xs border-gray-300" />
+                          </div>
+                          <div className="col-span-5 grid grid-cols-3 gap-1">
+                            <Input type="number" step="0.01" placeholder="Outlet Rs" value={variant.outletPrice} onChange={(e) => updateVariant(idx, 'outletPrice', e.target.value)} required className="h-8 text-xs border-gray-300" />
+                            <Input type="number" step="0.01" placeholder="PickMe" value={variant.pickmePrice} onChange={(e) => updateVariant(idx, 'pickmePrice', e.target.value)} required className="h-8 text-xs border-gray-300" />
+                            <Input type="number" step="0.01" placeholder="Uber" value={variant.uberPrice} onChange={(e) => updateVariant(idx, 'uberPrice', e.target.value)} required className="h-8 text-xs border-gray-300" />
+                          </div>
+                        </div>
+                      ))}
+                      <Button type="button" variant="outline" size="sm" onClick={addVariant} className="w-full border-dashed border-gray-300 text-gray-500 hover:text-orange-500 hover:border-orange-500">
+                        <Plus className="mr-2 h-4 w-4" /> Add Variant
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
                 {/* Add-ons Selection */}
                 <div className="border rounded-md p-4 bg-gray-50/50 mt-2">
                   <Label className="text-sm font-medium text-gray-700 mb-3 block">Applicable Add-Ons</Label>
@@ -303,7 +377,14 @@ export default function ProductsPage() {
             {filteredProducts.map((p) => (
               <TableRow key={p.id} className="border-b last:border-0 hover:bg-gray-50/50">
                 <TableCell className="py-4">
-                  <div className="font-semibold text-gray-800 uppercase text-sm">{p.name}</div>
+                  <div className="font-semibold text-gray-800 uppercase text-sm">
+                    {p.name}
+                    {p.hasVariants && p.variants && p.variants.length > 0 && (
+                      <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full ml-2 align-middle">
+                        {p.variants.length} Variants
+                      </span>
+                    )}
+                  </div>
                   <div className="text-xs text-gray-400 mt-0.5">{p.sku}</div>
                 </TableCell>
                 <TableCell>
