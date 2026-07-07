@@ -1,0 +1,117 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Settings, Save, AlertCircle } from "lucide-react"
+
+export default function SystemSettingsPage() {
+  const [maxBranches, setMaxBranches] = useState("3")
+  const [maxUsers, setMaxUsers] = useState("10")
+  const [isSaved, setIsSaved] = useState(false)
+
+  // Load from localStorage if available (Mocking DB)
+  useEffect(() => {
+    const storedBranches = localStorage.getItem("maxBranches")
+    const storedUsers = localStorage.getItem("maxUsers")
+    if (storedBranches) setMaxBranches(storedBranches)
+    if (storedUsers) setMaxUsers(storedUsers)
+  }, [])
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    // Validate
+    if (parseInt(maxBranches) < 1 || parseInt(maxUsers) < 1) {
+      alert("Limits must be at least 1")
+      return
+    }
+
+    // Save to localStorage (Mocking DB)
+    localStorage.setItem("maxBranches", maxBranches)
+    localStorage.setItem("maxUsers", maxUsers)
+
+    setIsSaved(true)
+    setTimeout(() => setIsSaved(false), 3000)
+  }
+
+  return (
+    <div className="space-y-6 max-w-2xl mx-auto mt-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <Settings className="h-6 w-6 text-gray-500" />
+            System Settings & Limits
+          </h2>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Configure SaaS licensing limits for the tenant. Restricted to Super Admin only.
+          </p>
+        </div>
+      </div>
+
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
+        <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+        <div className="text-sm text-amber-800">
+          <strong>Super Admin Access Only:</strong> The limits configured here directly affect the Juice Bar Owner (Admin). 
+          They will not be able to create branches or users beyond these limits.
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        <form onSubmit={handleSave} className="space-y-6">
+          
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg text-gray-800 border-b pb-2">Tenant Licensing Limits</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+              <div className="grid gap-2">
+                <Label htmlFor="maxBranches" className="text-sm font-medium text-gray-700">Maximum Branches Allowed</Label>
+                <div className="relative">
+                  <Input 
+                    id="maxBranches" 
+                    type="number" 
+                    min="1"
+                    value={maxBranches} 
+                    onChange={(e) => setMaxBranches(e.target.value)} 
+                    required 
+                    className="border-gray-300 font-semibold" 
+                  />
+                  <div className="absolute right-3 top-2.5 text-xs text-gray-400">Branches</div>
+                </div>
+                <p className="text-xs text-gray-500">The total number of branches the Admin can create.</p>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="maxUsers" className="text-sm font-medium text-gray-700">Maximum Users Allowed</Label>
+                <div className="relative">
+                  <Input 
+                    id="maxUsers" 
+                    type="number" 
+                    min="1"
+                    value={maxUsers} 
+                    onChange={(e) => setMaxUsers(e.target.value)} 
+                    required 
+                    className="border-gray-300 font-semibold" 
+                  />
+                  <div className="absolute right-3 top-2.5 text-xs text-gray-400">Users</div>
+                </div>
+                <p className="text-xs text-gray-500">The total number of staff accounts the Admin can create.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t flex items-center justify-between">
+            <div>
+              {isSaved && <span className="text-sm text-green-600 font-medium bg-green-50 px-3 py-1 rounded">Settings saved successfully!</span>}
+            </div>
+            <Button type="submit" className="bg-gray-900 hover:bg-gray-800 text-white min-w-[120px]">
+              <Save className="mr-2 h-4 w-4" /> Save Settings
+            </Button>
+          </div>
+          
+        </form>
+      </div>
+    </div>
+  )
+}

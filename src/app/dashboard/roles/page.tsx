@@ -18,6 +18,11 @@ const INITIAL_ROLES = [
     permissions: Object.values(PERMISSIONS) // Has everything
   },
   {
+    id: "ROLE-001-A",
+    name: "Admin",
+    permissions: Object.values(PERMISSIONS).filter(p => p !== PERMISSIONS.MANAGE_SYSTEM_SETTINGS) // Has everything except System Settings
+  },
+  {
     id: "ROLE-002",
     name: "Branch Manager",
     permissions: [

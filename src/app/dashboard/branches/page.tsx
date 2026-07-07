@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -20,6 +20,12 @@ export default function BranchesPage() {
   const [branches, setBranches] = useState(INITIAL_BRANCHES)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [maxBranchesLimit, setMaxBranchesLimit] = useState(3) // Default 3
+
+  useEffect(() => {
+    const limit = localStorage.getItem("maxBranches")
+    if (limit) setMaxBranchesLimit(parseInt(limit))
+  }, [])
   
   // Form State
   const [code, setCode] = useState("")
@@ -36,6 +42,12 @@ export default function BranchesPage() {
   const handleAddBranch = (e: React.FormEvent) => {
     e.preventDefault()
     
+    // Check Limits (SaaS License Logic)
+    if (branches.length >= maxBranchesLimit) {
+      alert(`License Limit Reached! You can only create up to ${maxBranchesLimit} branches. Please contact the Super Admin to upgrade your plan.`)
+      return
+    }
+
     if (branches.some(b => b.code.toLowerCase() === code.toLowerCase())) {
       alert("A branch with this code already exists!")
       return
@@ -89,7 +101,7 @@ export default function BranchesPage() {
           <DialogTrigger render={<Button className="bg-primary hover:bg-primary/90 text-primary-foreground" />}>
             <Plus className="mr-2 h-4 w-4" /> Add Branch
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[425px]">
             <form onSubmit={handleAddBranch}>
               <DialogHeader>
                 <DialogTitle>Create New Branch</DialogTitle>

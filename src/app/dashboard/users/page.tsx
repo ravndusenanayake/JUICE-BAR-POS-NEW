@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -21,6 +21,12 @@ export default function UsersPage() {
   const [users, setUsers] = useState(INITIAL_USERS)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [maxUsersLimit, setMaxUsersLimit] = useState(10) // Default 10
+
+  useEffect(() => {
+    const limit = localStorage.getItem("maxUsers")
+    if (limit) setMaxUsersLimit(parseInt(limit))
+  }, [])
   
   // Form State
   const [name, setName] = useState("")
@@ -38,6 +44,12 @@ export default function UsersPage() {
   const handleAddUser = (e: React.FormEvent) => {
     e.preventDefault()
     
+    // Check Limits (SaaS License Logic)
+    if (users.length >= maxUsersLimit) {
+      alert(`License Limit Reached! You can only create up to ${maxUsersLimit} users. Please contact the Super Admin to upgrade your plan.`)
+      return
+    }
+
     if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
       alert("A user with this email already exists!")
       return
@@ -48,7 +60,7 @@ export default function UsersPage() {
       name,
       email,
       role,
-      branch: role === 'Super Admin' ? 'All Branches' : branch,
+      branch: (role === 'Super Admin' || role === 'Admin') ? 'All Branches' : branch,
       status
     }
 
@@ -126,6 +138,7 @@ export default function UsersPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Super Admin">Super Admin</SelectItem>
+                        <SelectItem value="Admin">Admin</SelectItem>
                         <SelectItem value="Branch Manager">Branch Manager</SelectItem>
                         <SelectItem value="Store Keeper">Store Keeper</SelectItem>
                         <SelectItem value="Cashier">Cashier</SelectItem>
@@ -134,9 +147,9 @@ export default function UsersPage() {
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="branch">Branch</Label>
-                    <Select value={branch} onValueChange={(val) => setBranch(val || "")} disabled={role === 'Super Admin'} required={role !== 'Super Admin'}>
+                    <Select value={branch} onValueChange={(val) => setBranch(val || "")} disabled={role === 'Super Admin' || role === 'Admin'} required={role !== 'Super Admin' && role !== 'Admin'}>
                       <SelectTrigger>
-                        <SelectValue placeholder={role === 'Super Admin' ? 'All Branches' : 'Select branch'} />
+                        <SelectValue placeholder={(role === 'Super Admin' || role === 'Admin') ? 'All Branches' : 'Select branch'} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Colombo 07">Colombo 07</SelectItem>

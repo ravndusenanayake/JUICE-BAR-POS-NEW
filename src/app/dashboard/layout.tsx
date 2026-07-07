@@ -119,6 +119,10 @@ export default function DashboardLayout({
             <Settings className="h-5 w-5" />
             Settings
           </Link>
+          <Link href="/dashboard/system-settings" className="flex items-center gap-3 rounded-lg px-3 py-2 text-amber-600 font-semibold hover:bg-amber-50 transition-all mt-4 border-t pt-4">
+            <Settings className="h-5 w-5" />
+            System Settings (Limits)
+          </Link>
           <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-destructive hover:bg-destructive/10 transition-all mt-2">
             <LogOut className="h-5 w-5" />
             Log out
