@@ -1,32 +1,47 @@
 import { NextResponse } from 'next/server';
-import { productService } from '@/services/product.service';
+import connectToDatabase from '@/database/mongoose';
+import Product from '@/database/models/Product';
 
+// GET all products
 export async function GET() {
   try {
-    const products = await productService.getAllProducts();
-    return NextResponse.json(products);
+    await connectToDatabase();
+    
+    // We populate category if it was an ObjectId, but our mock used strings.
+    // So we just fetch all.
+    const products = await Product.find().sort({ createdAt: -1 });
+    
+    return NextResponse.json(products, { status: 200 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('GET Products Error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
-export async function POST(request: Request) {
+// POST new product
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
-    // In a real app, validate 'body' here using Zod
-    const { sku, name, categoryId, sellingPrice, variantName } = body;
+    await connectToDatabase();
+    const body = await req.json();
     
-    if (!sku || !name || !sellingPrice) {
+    // Simple validation
+    if (!body.name || !body.category || !body.basePrice) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const newProduct = await productService.createProductWithVariant(
-      { sku, name, categoryId },
-      { name: variantName || 'Regular', sellingPrice: Number(sellingPrice) }
-    );
-    
+    const newProduct = new Product({
+      name: body.name,
+      category: body.category,
+      basePrice: body.basePrice,
+      status: body.status || 'Active',
+      image: body.image || ''
+    });
+
+    await newProduct.save();
+
     return NextResponse.json(newProduct, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('POST Product Error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
