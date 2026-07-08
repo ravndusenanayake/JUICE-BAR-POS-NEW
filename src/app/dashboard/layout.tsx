@@ -27,26 +27,7 @@ export default function DashboardLayout({
     }
   }, [isAuthenticated, router, isMounted])
 
-  // RBAC Access Control per Route
-  useEffect(() => {
-    if (!isMounted || !role) return;
-    
-    const restrictAccess = (allowedRoles: string[]) => {
-      if (!allowedRoles.includes(role)) {
-        alert("Access Denied: You do not have permission to view this page.")
-        router.push("/dashboard")
-      }
-    }
-
-    if (pathname.includes("/system-settings")) {
-      restrictAccess(["Super Admin"])
-    } else if (pathname.includes("/branches") || pathname.includes("/users") || pathname.includes("/roles")) {
-      restrictAccess(["Super Admin", "Admin"])
-    } else if (pathname.includes("/products") || pathname.includes("/recipes") || pathname.includes("/raw-materials")) {
-      restrictAccess(["Super Admin", "Admin", "Branch Manager"])
-    }
-    // Add more restrictions as needed
-  }, [pathname, role, isMounted, router])
+  // RBAC Access Control per Route is now handled Server-Side by middleware.ts
 
   if (!isMounted || !isAuthenticated) return <div className="h-screen flex items-center justify-center">Loading...</div>
 

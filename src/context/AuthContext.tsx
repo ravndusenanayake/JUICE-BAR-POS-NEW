@@ -47,12 +47,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     setUser(mockUser)
     localStorage.setItem("authUser", JSON.stringify(mockUser))
+    
+    // Set cookie for middleware access (expires in 1 day)
+    document.cookie = `userRole=${selectedRole}; path=/; max-age=86400; SameSite=Lax`
+
     router.push("/dashboard")
   }
 
   const logout = () => {
     setUser(null)
     localStorage.removeItem("authUser")
+    
+    // Remove cookie
+    document.cookie = `userRole=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax`
+    
     router.push("/login")
   }
 
