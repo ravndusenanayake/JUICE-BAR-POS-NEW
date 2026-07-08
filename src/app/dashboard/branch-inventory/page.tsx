@@ -43,6 +43,7 @@ export default function BranchInventoryPage() {
   const [adjustmentQuantity, setAdjustmentQuantity] = useState("")
   const [adjustmentReason, setAdjustmentReason] = useState("")
   const [adjustmentRef, setAdjustmentRef] = useState("")
+  const [lossValue, setLossValue] = useState("")
 
   // Restrict Branch Selection if not Super Admin / Admin
   const canSelectBranch = role === "Super Admin" || role === "Admin"
@@ -69,6 +70,7 @@ export default function BranchInventoryPage() {
     setAdjustmentQuantity("")
     setAdjustmentReason("")
     setAdjustmentRef("")
+    setLossValue("")
     setIsAdjustmentOpen(true)
   }
 
@@ -79,6 +81,12 @@ export default function BranchInventoryPage() {
     const displayQty = parseFloat(adjustmentQuantity)
     if (isNaN(displayQty) || displayQty <= 0) {
       alert("Please enter a valid quantity.")
+      return
+    }
+
+    const isWastageReason = ["Rotten / Expired", "Damaged / Broken", "Spillage"].includes(adjustmentReason)
+    if (adjustmentType === "OUT" && isWastageReason && !lossValue) {
+      alert("Please enter the financial loss amount for the wastage.")
       return
     }
 
@@ -116,7 +124,8 @@ export default function BranchInventoryPage() {
       reason: adjustmentReason,
       quantityChange: qtyInBaseUnit,
       baseUnit: adjustmentItem.baseUnit, 
-      reference: adjustmentRef || "Manual Adjustment"
+      reference: adjustmentRef || "Manual Adjustment",
+      lossValue: adjustmentType === "OUT" && isWastageReason ? parseFloat(lossValue) || 0 : undefined
     }
     
     localStorage.setItem("mock_stock_ledger", JSON.stringify([...ledger, newEntry]))
@@ -306,8 +315,9 @@ export default function BranchInventoryPage() {
                       </>
                     ) : (
                       <>
-                        <SelectItem value="Wastage / Spoilage">Wastage / Spoilage</SelectItem>
-                        <SelectItem value="Damage">Damage</SelectItem>
+                        <SelectItem value="Rotten / Expired">Rotten / Expired</SelectItem>
+                        <SelectItem value="Damaged / Broken">Damaged / Broken</SelectItem>
+                        <SelectItem value="Spillage">Spillage</SelectItem>
                         <SelectItem value="Stock Transfer Out">Stock Transfer Out</SelectItem>
                         <SelectItem value="Physical Count Correction">Physical Count Correction</SelectItem>
                       </>
@@ -315,6 +325,15 @@ export default function BranchInventoryPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Financial Loss Input if Wastage */}
+              {adjustmentType === "OUT" && ["Rotten / Expired", "Damaged / Broken", "Spillage"].includes(adjustmentReason) && (
+                <div className="grid gap-2 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <Label htmlFor="loss" className="text-sm font-bold text-red-700">Financial Loss (Rs.) *</Label>
+                  <p className="text-xs text-red-600 mb-1">Enter the total buying cost of the wasted items. This will be deducted from Net Profit.</p>
+                  <Input id="loss" type="number" step="0.01" placeholder="e.g. 1500.00" value={lossValue} onChange={(e) => setLossValue(e.target.value)} required className="border-red-300 h-11 font-medium bg-white" />
+                </div>
+              )}
 
               <div className="grid gap-2">
                 <Label htmlFor="ref" className="text-sm font-bold text-gray-700">Reference / Bill No. (Optional)</Label>
