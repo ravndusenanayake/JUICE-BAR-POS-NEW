@@ -1,65 +1,168 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { useAuth } from "@/context/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Search, ShoppingCart, ArrowLeft, Trash2, Plus, Minus, CreditCard, User, CheckCircle2 } from "lucide-react"
+import { Search, ShoppingCart, ArrowLeft, Trash2, Plus, Minus, CreditCard, User, CheckCircle2, PauseCircle, PlayCircle, Tag, Printer, Power, Wallet } from "lucide-react"
 
-// --- Mock Data ---
-const CATEGORIES = ["All", "Fresh Juices", "Milkshakes", "Desserts", "Snacks"]
+// --- Mock Data: Products ---
+const CATEGORIES = ["All", "Fresh Juices", "Milkshakes", "Desserts", "Snacks", "Mojitos"]
 
 const MOCK_PRODUCTS = [
-  { id: "P1", name: "Avocado Juice", price: 450, category: "Fresh Juices", color: "bg-green-100 text-green-700 border-green-200" },
+  { id: "P1", name: "Avocado Juice", price: 450, category: "Fresh Juices", color: "bg-green-100 text-green-700 border-green-200", hasVariants: true, variants: [{ name: "Regular", price: 450 }, { name: "Large", price: 600 }] },
   { id: "P2", name: "Mango Juice", price: 400, category: "Fresh Juices", color: "bg-yellow-100 text-yellow-700 border-yellow-200" },
   { id: "P3", name: "Chocolate Milkshake", price: 650, category: "Milkshakes", color: "bg-amber-100 text-amber-800 border-amber-200" },
   { id: "P4", name: "Strawberry Milkshake", price: 600, category: "Milkshakes", color: "bg-pink-100 text-pink-700 border-pink-200" },
-  { id: "P5", name: "Fruit Salad", price: 500, category: "Desserts", color: "bg-orange-100 text-orange-700 border-orange-200", hasVariants: true, variants: [{ name: "Medium", price: 500 }, { name: "Large", price: 750 }], addons: ["Ice Cream (Vanilla)", "Ice Cream (Chocolate)", "Honey"] },
+  { id: "P5", name: "Fruit Salad", price: 500, category: "Desserts", color: "bg-orange-100 text-orange-700 border-orange-200", hasVariants: true, variants: [{ name: "Medium", price: 500 }, { name: "Large", price: 750 }] },
   { id: "P6", name: "Club Sandwich", price: 800, category: "Snacks", color: "bg-blue-100 text-blue-700 border-blue-200" },
   { id: "P7", name: "Papaya Juice", price: 350, category: "Fresh Juices", color: "bg-orange-50 text-orange-600 border-orange-100" },
   { id: "P8", name: "Watalappam", price: 250, category: "Desserts", color: "bg-stone-100 text-stone-700 border-stone-200" },
+  { id: "P9", name: "Virgin Mojito", price: 500, category: "Mojitos", color: "bg-lime-100 text-lime-700 border-lime-200" },
+  { id: "P10", name: "Watermelon Mojito", price: 550, category: "Mojitos", color: "bg-red-100 text-red-700 border-red-200" },
 ]
 
-const ADDON_PRICES: Record<string, number> = {
-  "Ice Cream (Vanilla)": 150,
-  "Ice Cream (Chocolate)": 180,
-  "Honey": 100,
-  "Extra Sugar": 0
+// --- Mock Data: Smart Add-ons mapped by Category ---
+const CATEGORY_ADDONS: Record<string, {name: string, price: number}[]> = {
+  "Fresh Juices": [
+    { name: "Vanilla Ice Cream Scoop", price: 150 },
+    { name: "Chocolate Ice Cream Scoop", price: 180 },
+    { name: "Mint Leaves", price: 50 },
+    { name: "Chia Seeds", price: 80 },
+    { name: "Extra Sugar", price: 0 },
+    { name: "No Sugar", price: 0 },
+    { name: "Honey Instead of Sugar", price: 100 },
+    { name: "Extra Ice", price: 0 },
+    { name: "No Ice", price: 0 },
+    { name: "Lemon Squeeze", price: 50 },
+  ],
+  "Milkshakes": [
+    { name: "Whipped Cream", price: 120 },
+    { name: "Chocolate Syrup", price: 80 },
+    { name: "Caramel Drizzle", price: 80 },
+    { name: "Extra Nuts (Cashews)", price: 200 },
+    { name: "Oreo Crumbs", price: 150 },
+    { name: "Extra Ice Cream Scoop", price: 150 },
+    { name: "Strawberry Syrup", price: 80 },
+    { name: "Protein Powder (1 Scoop)", price: 300 },
+  ],
+  "Desserts": [
+    { name: "Extra Ice Cream (Vanilla)", price: 150 },
+    { name: "Extra Ice Cream (Chocolate)", price: 180 },
+    { name: "Extra Nuts", price: 200 },
+    { name: "Honey", price: 100 },
+    { name: "Condensed Milk", price: 100 },
+    { name: "Jelly Pieces", price: 80 },
+  ],
+  "Mojitos": [
+    { name: "Extra Mint", price: 50 },
+    { name: "Extra Lime", price: 50 },
+    { name: "Sprite Top-up", price: 100 },
+    { name: "Salt Rim", price: 0 },
+    { name: "Sugar Rim", price: 0 },
+    { name: "Passion Fruit Burst", price: 150 },
+  ],
+  "Snacks": [
+    { name: "Extra Cheese", price: 150 },
+    { name: "Extra Chicken", price: 250 },
+    { name: "French Fries (Side)", price: 350 },
+    { name: "Tomato Ketchup", price: 0 },
+    { name: "Chili Paste", price: 50 },
+  ]
 }
 
 interface CartItem {
-  id: string; // Unique for cart (product ID + variant + addons)
-  productId: string;
-  name: string;
-  basePrice: number;
-  variant?: string;
-  addons: string[];
-  quantity: number;
-  totalPrice: number;
+  id: string
+  productId: string
+  name: string
+  basePrice: number
+  variant?: string
+  addons: {name: string, price: number}[]
+  quantity: number
+  totalPrice: number
+}
+
+interface HeldBill {
+  id: string
+  time: string
+  customerName: string
+  cart: CartItem[]
 }
 
 export default function POSPage() {
   const { user } = useAuth()
+  
+  // -- UI States --
   const [activeCategory, setActiveCategory] = useState("All")
   const [searchQuery, setSearchQuery] = useState("")
   
-  // Cart State
+  // -- Cart State --
   const [cart, setCart] = useState<CartItem[]>([])
   
-  // Modal State
+  // -- Product Config Modal --
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
   const [selectedVariant, setSelectedVariant] = useState<any>(null)
-  const [selectedAddons, setSelectedAddons] = useState<string[]>([])
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedAddons, setSelectedAddons] = useState<{name: string, price: number}[]>([])
+  const [isConfigOpen, setIsConfigOpen] = useState(false)
   
-  // Payment Success State
+  // -- Discount State --
+  const [discountType, setDiscountType] = useState<"NONE" | "PERCENT" | "FIXED">("NONE")
+  const [discountValue, setDiscountValue] = useState(0)
+  const [isDiscountOpen, setIsDiscountOpen] = useState(false)
+  
+  // -- Hold Bill State --
+  const [heldBills, setHeldBills] = useState<HeldBill[]>([])
+  const [isHoldOpen, setIsHoldOpen] = useState(false)
+  const [holdCustomerName, setHoldCustomerName] = useState("")
+  const [isRecallOpen, setIsRecallOpen] = useState(false)
+  
+  // -- Shift Management State --
+  const [shiftActive, setShiftActive] = useState(false)
+  const [isShiftOpen, setIsShiftOpen] = useState(false)
+  const [openingBalance, setOpeningBalance] = useState("")
+  const [isCloseShiftOpen, setIsCloseShiftOpen] = useState(false)
+  
+  // -- Payment & KOT --
   const [paymentSuccess, setPaymentSuccess] = useState(false)
   const [deductedMaterials, setDeductedMaterials] = useState<any[]>([])
+  const [lastOrderRef, setLastOrderRef] = useState("")
 
-  // Filtering
+  // --- Initial Setup (Recipes & Shift) ---
+  useEffect(() => {
+    // 1. Check Shift
+    const shift = localStorage.getItem("pos_shift")
+    if (shift) setShiftActive(true)
+    else setIsShiftOpen(true) // Force open shift modal if no shift
+
+    // 2. Seed Mock Recipes for Auto-Deduction testing
+    const existingRecipes = localStorage.getItem("mock_recipes")
+    if (!existingRecipes) {
+      const demoRecipes = [
+        {
+          id: "REC-1", productId: "P2", variant: "Standard", name: "Mango Juice", category: "Fresh Juices", costPerServing: 120, retailPrice: 400,
+          ingredients: [
+            { rawMaterialId: "RM001", name: "Fresh Mango", quantity: 200, unit: "g", cost: 80 },
+            { rawMaterialId: "RM002", name: "Sugar", quantity: 30, unit: "g", cost: 10 },
+            { rawMaterialId: "RM003", name: "Purified Water", quantity: 150, unit: "ml", cost: 5 },
+          ]
+        },
+        {
+          id: "REC-2", productId: "P1", variant: "Regular", name: "Avocado Juice", category: "Fresh Juices", costPerServing: 150, retailPrice: 450,
+          ingredients: [
+            { rawMaterialId: "RM004", name: "Avocado", quantity: 150, unit: "g", cost: 100 },
+            { rawMaterialId: "RM005", name: "Fresh Milk", quantity: 100, unit: "ml", cost: 30 },
+            { rawMaterialId: "RM002", name: "Sugar", quantity: 20, unit: "g", cost: 8 },
+          ]
+        }
+      ]
+      localStorage.setItem("mock_recipes", JSON.stringify(demoRecipes))
+    }
+  }, [])
+
+  // --- Filtering ---
   const filteredProducts = useMemo(() => {
     return MOCK_PRODUCTS.filter(p => {
       const matchCategory = activeCategory === "All" || p.category === activeCategory
@@ -68,43 +171,48 @@ export default function POSPage() {
     })
   }, [activeCategory, searchQuery])
 
-  // Calculations
+  // --- Calculations ---
   const subtotal = cart.reduce((acc, item) => acc + item.totalPrice, 0)
-  const tax = subtotal * 0.05 // 5% tax mock
-  const grandTotal = subtotal + tax
+  
+  let discountAmount = 0
+  if (discountType === "PERCENT") discountAmount = subtotal * (discountValue / 100)
+  if (discountType === "FIXED") discountAmount = discountValue
+  
+  const afterDiscount = Math.max(0, subtotal - discountAmount)
+  const tax = afterDiscount * 0.05 // 5% tax mock
+  const grandTotal = afterDiscount + tax
 
-  // --- Handlers ---
+  // --- Cart Handlers ---
   const handleProductClick = (product: any) => {
-    if (product.hasVariants || (product.addons && product.addons.length > 0)) {
-      // Open Config Modal
+    const addons = CATEGORY_ADDONS[product.category] || []
+    if (product.hasVariants || addons.length > 0) {
       setSelectedProduct(product)
       setSelectedVariant(product.variants ? product.variants[0] : null)
       setSelectedAddons([])
-      setIsModalOpen(true)
+      setIsConfigOpen(true)
     } else {
-      // Add directly to cart
       addToCart(product, null, [])
     }
   }
 
-  const toggleAddon = (addon: string) => {
-    setSelectedAddons(prev => 
-      prev.includes(addon) ? prev.filter(a => a !== addon) : [...prev, addon]
-    )
+  const toggleAddon = (addonObj: {name: string, price: number}) => {
+    setSelectedAddons(prev => {
+      const exists = prev.find(a => a.name === addonObj.name)
+      if (exists) return prev.filter(a => a.name !== addonObj.name)
+      return [...prev, addonObj]
+    })
   }
 
   const handleConfirmConfig = () => {
     addToCart(selectedProduct, selectedVariant, selectedAddons)
-    setIsModalOpen(false)
+    setIsConfigOpen(false)
   }
 
-  const addToCart = (product: any, variant: any, addons: string[]) => {
+  const addToCart = (product: any, variant: any, addons: {name: string, price: number}[]) => {
     let basePrice = variant ? variant.price : product.price
-    let addonsTotal = addons.reduce((acc, a) => acc + (ADDON_PRICES[a] || 0), 0)
+    let addonsTotal = addons.reduce((acc, a) => acc + a.price, 0)
     let unitPrice = basePrice + addonsTotal
-
-    // Generate a unique ID based on selections so same configs stack, different configs don't
-    const cartItemId = `${product.id}-${variant?.name || 'default'}-${addons.sort().join('-')}`
+    const cartItemId = `${product.id}-${variant?.name || 'default'}-${addons.map(a=>a.name).sort().join('-')}`
 
     setCart(prev => {
       const existing = prev.find(item => item.id === cartItemId)
@@ -112,14 +220,9 @@ export default function POSPage() {
         return prev.map(item => item.id === cartItemId ? { ...item, quantity: item.quantity + 1, totalPrice: (item.quantity + 1) * unitPrice } : item)
       }
       return [...prev, {
-        id: cartItemId,
-        productId: product.id,
-        name: product.name,
-        basePrice: unitPrice,
-        variant: variant?.name,
-        addons,
-        quantity: 1,
-        totalPrice: unitPrice
+        id: cartItemId, productId: product.id, name: product.name,
+        basePrice: unitPrice, variant: variant?.name, addons,
+        quantity: 1, totalPrice: unitPrice
       }]
     })
   }
@@ -128,42 +231,62 @@ export default function POSPage() {
     setCart(prev => prev.map(item => {
       if (item.id === cartItemId) {
         const newQ = item.quantity + change
-        if (newQ <= 0) return item // handled by delete
+        if (newQ <= 0) return item
         return { ...item, quantity: newQ, totalPrice: newQ * (item.basePrice) }
       }
       return item
     }))
   }
 
-  const removeFromCart = (cartItemId: string) => {
-    setCart(prev => prev.filter(item => item.id !== cartItemId))
+  const removeFromCart = (cartItemId: string) => setCart(prev => prev.filter(item => item.id !== cartItemId))
+
+  // --- Hold & Recall Bill ---
+  const handleHoldBill = () => {
+    if (cart.length === 0 || !holdCustomerName) return
+    const newHold: HeldBill = {
+      id: `HLD-${Date.now().toString().slice(-4)}`,
+      time: new Date().toLocaleTimeString(),
+      customerName: holdCustomerName,
+      cart: [...cart]
+    }
+    setHeldBills(prev => [...prev, newHold])
+    setCart([])
+    setHoldCustomerName("")
+    setDiscountType("NONE")
+    setDiscountValue(0)
+    setIsHoldOpen(false)
   }
 
+  const handleRecallBill = (billId: string) => {
+    const bill = heldBills.find(b => b.id === billId)
+    if (bill) {
+      setCart(bill.cart)
+      setHeldBills(prev => prev.filter(b => b.id !== billId))
+      setIsRecallOpen(false)
+    }
+  }
+
+  // --- Payment & KOT ---
   const processPayment = () => {
     if (cart.length === 0) return
 
-    // Auto-Deduction Logic Simulation
+    const orderRef = `POS-${Date.now().toString().slice(-6)}`
+    setLastOrderRef(orderRef)
+
     try {
-      const storedRecipes = localStorage.getItem("mock_recipes")
-      const allRecipes = storedRecipes ? JSON.parse(storedRecipes) : []
-      
+      const allRecipes = JSON.parse(localStorage.getItem("mock_recipes") || "[]")
       const deductions: Record<string, {name: string, quantity: number, unit: string}> = {}
 
       cart.forEach(cartItem => {
-        // Find recipe for this item variant
         const recipe = allRecipes.find((r: any) => 
-          r.productId === cartItem.productId && 
-          r.variant === (cartItem.variant || "Standard")
+          r.productId === cartItem.productId && r.variant === (cartItem.variant || "Standard")
         )
 
         if (recipe) {
           recipe.ingredients.forEach((ing: any) => {
             const totalQty = ing.quantity * cartItem.quantity
-            if (deductions[ing.rawMaterialId]) {
-              deductions[ing.rawMaterialId].quantity += totalQty
-            } else {
-              deductions[ing.rawMaterialId] = { name: ing.name, quantity: totalQty, unit: ing.unit }
-            }
+            if (deductions[ing.rawMaterialId]) deductions[ing.rawMaterialId].quantity += totalQty
+            else deductions[ing.rawMaterialId] = { name: ing.name, quantity: totalQty, unit: ing.unit }
           })
         }
       })
@@ -171,39 +294,58 @@ export default function POSPage() {
       const deductedArray = Object.values(deductions)
       setDeductedMaterials(deductedArray)
       
-      // -- NEW: Write to Stock Ledger --
-      const storedLedger = localStorage.getItem("mock_stock_ledger")
-      const ledger = storedLedger ? JSON.parse(storedLedger) : []
-      const orderRef = `POS-${Date.now().toString().slice(-6)}`
+      const ledger = JSON.parse(localStorage.getItem("mock_stock_ledger") || "[]")
       const now = new Date().toISOString()
       
       const newEntries = deductedArray.map((mat: any, idx) => ({
-        id: `LDG-${Date.now()}-${idx}`,
-        timestamp: now,
-        branch: user?.branch || "Unknown Branch",
-        rawMaterialName: mat.name,
-        type: "OUT",
-        reason: "SALE",
-        quantityChange: mat.quantity, // this is in base unit because recipes are saved in base unit
-        baseUnit: mat.unit, 
-        reference: orderRef
+        id: `LDG-${Date.now()}-${idx}`, timestamp: now, branch: user?.branch || "Unknown Branch",
+        rawMaterialName: mat.name, type: "OUT", reason: "SALE",
+        quantityChange: mat.quantity, baseUnit: mat.unit, reference: orderRef
       }))
       
       localStorage.setItem("mock_stock_ledger", JSON.stringify([...ledger, ...newEntries]))
-      // --------------------------------
+      
+      // Save Sale to Cash Drawer (for shift closing)
+      const shiftSales = JSON.parse(localStorage.getItem("shift_sales") || "[]")
+      shiftSales.push(grandTotal)
+      localStorage.setItem("shift_sales", JSON.stringify(shiftSales))
 
       setPaymentSuccess(true)
-      
     } catch (e) {
       console.error(e)
-      alert(`Payment of Rs. ${grandTotal.toFixed(2)} processed successfully! (No recipes found for auto-deduction)`)
-      setCart([])
     }
   }
 
-  const closeSuccessModal = () => {
-    setPaymentSuccess(false)
-    setCart([])
+  const handlePrintKOT = () => {
+    // In a real system, this would trigger a print job to the kitchen printer via a local network service or Electron.
+    alert(`[MOCK PRINTER] Kitchen Order Ticket (KOT) sent for ${lastOrderRef}!\n\nItems to prepare:\n${cart.map(c => `- ${c.quantity}x ${c.name} ${c.variant ? `(${c.variant})` : ''} ${c.addons.length > 0 ? `\n   Add-ons: ${c.addons.map(a=>a.name).join(', ')}` : ''}`).join('\n')}`)
+  }
+
+  // --- Shift Management ---
+  const handleOpenShift = () => {
+    if (!openingBalance) return
+    localStorage.setItem("pos_shift", JSON.stringify({
+      openedAt: new Date().toISOString(),
+      openingBalance: parseFloat(openingBalance)
+    }))
+    localStorage.setItem("shift_sales", JSON.stringify([]))
+    setShiftActive(true)
+    setIsShiftOpen(false)
+  }
+
+  const handleCloseShift = () => {
+    const shift = JSON.parse(localStorage.getItem("pos_shift") || "{}")
+    const sales = JSON.parse(localStorage.getItem("shift_sales") || "[]")
+    const totalSales = sales.reduce((a:number,b:number)=>a+b, 0)
+    const expectedCash = (shift.openingBalance || 0) + totalSales
+    
+    alert(`--- Z-REPORT (SHIFT CLOSED) ---\nOpening Balance: Rs. ${shift.openingBalance?.toFixed(2)}\nTotal Sales: Rs. ${totalSales.toFixed(2)}\nExpected Cash in Drawer: Rs. ${expectedCash.toFixed(2)}`)
+    
+    localStorage.removeItem("pos_shift")
+    localStorage.removeItem("shift_sales")
+    setShiftActive(false)
+    setIsCloseShiftOpen(false)
+    setIsShiftOpen(true) // Force them to open a new one
   }
 
   return (
@@ -211,7 +353,6 @@ export default function POSPage() {
       
       {/* LEFT: Products Area */}
       <div className="flex-1 flex flex-col h-full bg-white shadow-xl z-10 relative">
-        {/* POS Header */}
         <header className="h-16 flex items-center justify-between px-6 border-b bg-white shrink-0">
           <div className="flex items-center gap-4">
             <Link href="/dashboard" className="text-gray-500 hover:text-gray-900 transition-colors">
@@ -219,17 +360,20 @@ export default function POSPage() {
             </Link>
             <h1 className="text-xl font-bold tracking-tight text-gray-900">POS Terminal</h1>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input 
-                type="text" 
-                placeholder="Search products..." 
-                className="pl-9 bg-gray-50 border-gray-200 focus-visible:ring-orange-500 rounded-full h-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+          
+          <div className="flex flex-1 max-w-md mx-6 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input 
+              type="text" placeholder="Search products..." 
+              className="pl-9 bg-gray-50 border-gray-200 focus-visible:ring-orange-500 rounded-full h-10 w-full"
+              value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+             <Button variant="outline" className="border-red-200 text-red-600 hover:bg-red-50" onClick={() => setIsCloseShiftOpen(true)}>
+              <Power className="w-4 h-4 mr-2" /> Close Shift
+            </Button>
             <div className="flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-full border border-orange-100">
               <User className="w-4 h-4 text-orange-600" />
               <span className="text-sm font-semibold text-orange-800">{user?.name} ({user?.branch})</span>
@@ -241,12 +385,9 @@ export default function POSPage() {
         <div className="px-6 py-4 border-b bg-gray-50/50 shrink-0 overflow-x-auto whitespace-nowrap hide-scrollbar flex gap-2">
           {CATEGORIES.map(cat => (
             <button 
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
+              key={cat} onClick={() => setActiveCategory(cat)}
               className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-200 ${
-                activeCategory === cat 
-                  ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20 transform scale-[1.02]' 
-                  : 'bg-white text-gray-600 border border-gray-200 hover:border-orange-300 hover:text-orange-600'
+                activeCategory === cat ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20 transform scale-[1.02]' : 'bg-white text-gray-600 border border-gray-200 hover:border-orange-300 hover:text-orange-600'
               }`}
             >
               {cat}
@@ -256,52 +397,55 @@ export default function POSPage() {
 
         {/* Product Grid */}
         <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {filteredProducts.map(product => (
-              <button 
-                key={product.id}
-                onClick={() => handleProductClick(product)}
-                className={`flex flex-col text-left rounded-2xl border-2 overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1 group bg-white ${product.color.replace('bg-', 'border-').split(' ')[2] || 'border-gray-100'}`}
-              >
-                {/* Product Image Placeholder */}
-                <div className={`h-32 w-full flex items-center justify-center ${product.color.split(' ')[0]} bg-opacity-30`}>
-                  <span className={`text-4xl font-black opacity-20 ${product.color.split(' ')[1]}`}>
-                    {product.name.substring(0,2).toUpperCase()}
-                  </span>
-                </div>
-                {/* Details */}
-                <div className="p-4 flex-1 flex flex-col justify-between w-full">
-                  <h3 className="font-bold text-gray-800 leading-tight mb-2 group-hover:text-orange-600 transition-colors">
-                    {product.name}
-                  </h3>
-                  <div className="flex items-center justify-between mt-auto">
-                    <span className="text-sm font-black text-gray-900">Rs. {product.price.toFixed(2)}</span>
-                    {(product.hasVariants || product.addons) && (
-                      <span className="bg-gray-100 text-gray-500 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">Custom</span>
-                    )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+            {filteredProducts.map(product => {
+              const addons = CATEGORY_ADDONS[product.category] || []
+              return (
+                <button 
+                  key={product.id} onClick={() => handleProductClick(product)}
+                  className={`flex flex-col text-left rounded-2xl border-2 overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1 group bg-white ${product.color.replace('bg-', 'border-').split(' ')[2] || 'border-gray-100'}`}
+                >
+                  <div className={`h-32 w-full flex items-center justify-center ${product.color.split(' ')[0]} bg-opacity-30`}>
+                    <span className={`text-4xl font-black opacity-20 ${product.color.split(' ')[1]}`}>
+                      {product.name.substring(0,2).toUpperCase()}
+                    </span>
                   </div>
-                </div>
-              </button>
-            ))}
-            {filteredProducts.length === 0 && (
-              <div className="col-span-full py-20 text-center text-gray-400">
-                <Search className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                <p className="text-lg font-medium">No products found.</p>
-              </div>
-            )}
+                  <div className="p-4 flex-1 flex flex-col justify-between w-full">
+                    <h3 className="font-bold text-gray-800 leading-tight mb-2 group-hover:text-orange-600 transition-colors">
+                      {product.name}
+                    </h3>
+                    <div className="flex items-center justify-between mt-auto">
+                      <span className="text-sm font-black text-gray-900">Rs. {product.price.toFixed(2)}</span>
+                      {(product.hasVariants || addons.length > 0) && (
+                        <span className="bg-gray-100 text-gray-500 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">Custom</span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>
 
       {/* RIGHT: Cart Sidebar */}
-      <div className="w-96 bg-white flex flex-col h-full shrink-0 relative z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.05)]">
+      <div className="w-[400px] bg-white flex flex-col h-full shrink-0 relative z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.05)]">
         {/* Cart Header */}
         <div className="h-16 flex items-center justify-between px-6 border-b shrink-0 bg-gray-900 text-white">
           <div className="flex items-center gap-2">
             <ShoppingCart className="w-5 h-5 text-orange-400" />
             <h2 className="text-lg font-bold">Current Order</h2>
           </div>
-          <span className="bg-white/20 px-2.5 py-1 rounded-full text-xs font-bold">{cart.reduce((a,b)=>a+b.quantity,0)} Items</span>
+          <div className="flex gap-2">
+            {heldBills.length > 0 && (
+              <Button variant="secondary" size="sm" onClick={() => setIsRecallOpen(true)} className="h-7 text-xs bg-orange-500 text-white hover:bg-orange-600 border-0">
+                Recall ({heldBills.length})
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={() => setIsHoldOpen(true)} disabled={cart.length === 0} className="h-7 text-xs bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white">
+              <PauseCircle className="w-3 h-3 mr-1" /> Hold
+            </Button>
+          </div>
         </div>
 
         {/* Cart Items */}
@@ -320,7 +464,7 @@ export default function POSPage() {
                     {(item.variant || item.addons.length > 0) && (
                       <div className="text-xs text-gray-500 mt-1.5 space-y-0.5 font-medium">
                         {item.variant && <div>Size: {item.variant}</div>}
-                        {item.addons.map(a => <div key={a}>+ {a}</div>)}
+                        {item.addons.map(a => <div key={a.name}>+ {a.name}</div>)}
                       </div>
                     )}
                   </div>
@@ -332,7 +476,7 @@ export default function POSPage() {
                 
                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
                   <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
-                    <button onClick={() => updateQuantity(item.id, -1)} disabled={item.quantity <= 1} className="w-7 h-7 flex items-center justify-center rounded-md bg-white shadow-sm text-gray-600 hover:text-orange-600 disabled:opacity-50 disabled:shadow-none">
+                    <button onClick={() => updateQuantity(item.id, -1)} className="w-7 h-7 flex items-center justify-center rounded-md bg-white shadow-sm text-gray-600 hover:text-orange-600">
                       <Minus className="w-3 h-3" />
                     </button>
                     <span className="w-8 text-center text-sm font-bold text-gray-900">{item.quantity}</span>
@@ -350,46 +494,52 @@ export default function POSPage() {
         </div>
 
         {/* Cart Totals & Pay */}
-        <div className="p-6 border-t bg-white shrink-0">
-          <div className="space-y-3 mb-6">
+        <div className="p-5 border-t bg-white shrink-0 shadow-[0_-5px_15px_rgba(0,0,0,0.03)]">
+          <div className="space-y-2 mb-4">
             <div className="flex justify-between text-sm font-medium text-gray-500">
               <span>Subtotal</span>
               <span>Rs. {subtotal.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-sm font-medium text-gray-500">
+            
+            <div className="flex justify-between items-center text-sm font-medium">
+              <Button variant="ghost" size="sm" onClick={() => setIsDiscountOpen(true)} className="h-6 px-2 text-blue-600 hover:bg-blue-50 -ml-2">
+                <Tag className="w-3 h-3 mr-1" /> {discountType === "NONE" ? "Add Discount" : `${discountType === "PERCENT" ? `${discountValue}%` : `Rs. ${discountValue}`} Discount`}
+              </Button>
+              {discountAmount > 0 && <span className="text-red-500">- Rs. {discountAmount.toFixed(2)}</span>}
+            </div>
+
+            <div className="flex justify-between text-sm font-medium text-gray-500 border-b pb-2">
               <span>Tax (5%)</span>
               <span>Rs. {tax.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between items-end pt-3 border-t">
+            <div className="flex justify-between items-end pt-1">
               <span className="text-base font-bold text-gray-800">Total</span>
               <span className="text-3xl font-black text-orange-600 tracking-tight">Rs. {grandTotal.toFixed(2)}</span>
             </div>
           </div>
           
           <Button 
-            className="w-full h-16 text-lg font-bold rounded-2xl shadow-xl shadow-orange-500/30 bg-orange-500 hover:bg-orange-600 transition-transform active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 disabled:shadow-none"
-            disabled={cart.length === 0}
-            onClick={processPayment}
+            className="w-full h-14 text-lg font-bold rounded-xl shadow-lg shadow-orange-500/20 bg-orange-500 hover:bg-orange-600 transition-transform active:scale-[0.98] disabled:opacity-50"
+            disabled={cart.length === 0} onClick={processPayment}
           >
-            <CreditCard className="w-6 h-6 mr-2" />
-            Process Payment
+            <CreditCard className="w-6 h-6 mr-2" /> Pay Rs. {grandTotal.toFixed(2)}
           </Button>
         </div>
       </div>
 
-      {/* MODAL: Variant & Add-On Selection */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl border-0 shadow-2xl bg-gray-50">
+      {/* --- MODALS --- */}
+
+      {/* 1. Config Modal (Variants & Smart Add-ons) */}
+      <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
+        <DialogContent className="sm:max-w-xl p-0 overflow-hidden rounded-2xl border-0 shadow-2xl bg-gray-50">
           {selectedProduct && (
             <>
-              {/* Header */}
               <div className={`p-6 ${selectedProduct.color.split(' ')[0]} bg-opacity-20 border-b`}>
                 <h2 className="text-2xl font-black text-gray-900">{selectedProduct.name}</h2>
                 <p className="text-sm font-medium text-gray-600 mt-1">Configure your item before adding to cart</p>
               </div>
 
-              <div className="p-6 space-y-8 max-h-[60vh] overflow-y-auto">
-                {/* Variants */}
+              <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
                 {selectedProduct.hasVariants && selectedProduct.variants && (
                   <div className="space-y-3">
                     <Label className="text-base font-bold text-gray-800 flex items-center gap-2">
@@ -398,15 +548,8 @@ export default function POSPage() {
                     </Label>
                     <div className="grid grid-cols-2 gap-3">
                       {selectedProduct.variants.map((v: any) => (
-                        <button
-                          key={v.name}
-                          type="button"
-                          onClick={() => setSelectedVariant(v)}
-                          className={`p-4 rounded-xl border-2 text-left transition-all ${
-                            selectedVariant?.name === v.name 
-                              ? 'border-orange-500 bg-orange-50 shadow-md ring-1 ring-orange-500' 
-                              : 'border-gray-200 bg-white hover:border-orange-200'
-                          }`}
+                        <button key={v.name} type="button" onClick={() => setSelectedVariant(v)}
+                          className={`p-4 rounded-xl border-2 text-left transition-all ${selectedVariant?.name === v.name ? 'border-orange-500 bg-orange-50 shadow-md ring-1 ring-orange-500' : 'border-gray-200 bg-white hover:border-orange-200'}`}
                         >
                           <div className="font-bold text-gray-900">{v.name}</div>
                           <div className="text-sm font-medium text-orange-600 mt-1">Rs. {v.price.toFixed(2)}</div>
@@ -416,32 +559,22 @@ export default function POSPage() {
                   </div>
                 )}
 
-                {/* Add-ons */}
-                {selectedProduct.addons && selectedProduct.addons.length > 0 && (
+                {/* Smart Add-ons specific to category */}
+                {CATEGORY_ADDONS[selectedProduct.category] && CATEGORY_ADDONS[selectedProduct.category].length > 0 && (
                   <div className="space-y-3">
                     <Label className="text-base font-bold text-gray-800 flex items-center gap-2">
                       <span className="bg-orange-100 text-orange-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">{selectedProduct.hasVariants ? '2' : '1'}</span>
-                      Select Add-ons (Optional)
+                      Add-ons for {selectedProduct.category} (Optional)
                     </Label>
-                    <div className="space-y-2">
-                      {selectedProduct.addons.map((addon: string) => {
-                        const price = ADDON_PRICES[addon] || 0
-                        const isSelected = selectedAddons.includes(addon)
+                    <div className="grid grid-cols-2 gap-2">
+                      {CATEGORY_ADDONS[selectedProduct.category].map((addon) => {
+                        const isSelected = selectedAddons.some(a => a.name === addon.name)
                         return (
-                          <button
-                            key={addon}
-                            type="button"
-                            onClick={() => toggleAddon(addon)}
-                            className={`w-full p-4 rounded-xl border-2 flex items-center justify-between transition-all ${
-                              isSelected
-                                ? 'border-orange-500 bg-orange-50'
-                                : 'border-gray-200 bg-white hover:border-orange-200'
-                            }`}
+                          <button key={addon.name} type="button" onClick={() => toggleAddon(addon)}
+                            className={`p-3 rounded-xl border-2 flex flex-col text-left transition-all ${isSelected ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white hover:border-orange-200'}`}
                           >
-                            <span className={`font-semibold ${isSelected ? 'text-orange-900' : 'text-gray-700'}`}>{addon}</span>
-                            <span className={`font-bold ${isSelected ? 'text-orange-600' : 'text-gray-500'}`}>
-                              {price > 0 ? `+ Rs. ${price.toFixed(2)}` : 'Free'}
-                            </span>
+                            <span className={`text-sm font-semibold leading-tight ${isSelected ? 'text-orange-900' : 'text-gray-700'}`}>{addon.name}</span>
+                            <span className={`text-xs font-bold mt-1 ${isSelected ? 'text-orange-600' : 'text-gray-500'}`}>{addon.price > 0 ? `+ Rs. ${addon.price.toFixed(2)}` : 'Free'}</span>
                           </button>
                         )
                       })}
@@ -449,47 +582,135 @@ export default function POSPage() {
                   </div>
                 )}
               </div>
-
-              {/* Footer */}
               <div className="p-6 bg-white border-t flex gap-3 rounded-b-2xl">
-                <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold border-gray-300" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                <Button className="flex-1 h-12 rounded-xl font-bold bg-gray-900 text-white hover:bg-black shadow-lg" onClick={handleConfirmConfig}>
-                  Add to Cart
-                </Button>
+                <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold border-gray-300" onClick={() => setIsConfigOpen(false)}>Cancel</Button>
+                <Button className="flex-1 h-12 rounded-xl font-bold bg-gray-900 text-white hover:bg-black shadow-lg" onClick={handleConfirmConfig}>Add to Cart</Button>
               </div>
             </>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* MODAL: Payment Success & Stock Deduction Summary */}
-      <Dialog open={paymentSuccess} onOpenChange={closeSuccessModal}>
+      {/* 2. Hold Bill Modal */}
+      <Dialog open={isHoldOpen} onOpenChange={setIsHoldOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Hold Current Bill</DialogTitle>
+            <DialogDescription>Enter a reference name to park this sale.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Customer Name / Table / Reference</Label>
+              <Input placeholder="e.g. Table 4 or John" value={holdCustomerName} onChange={e => setHoldCustomerName(e.target.value)} autoFocus />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsHoldOpen(false)}>Cancel</Button>
+            <Button onClick={handleHoldBill} className="bg-orange-500 hover:bg-orange-600 text-white">Hold Bill</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 3. Recall Bill Modal */}
+      <Dialog open={isRecallOpen} onOpenChange={setIsRecallOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Recall Held Bills</DialogTitle>
+            <DialogDescription>Select a parked sale to resume.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4 max-h-[60vh] overflow-y-auto">
+            {heldBills.map(bill => (
+              <div key={bill.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                <div>
+                  <div className="font-bold text-gray-900">{bill.customerName}</div>
+                  <div className="text-xs text-gray-500">{bill.cart.length} items • Parked at {bill.time}</div>
+                </div>
+                <Button onClick={() => handleRecallBill(bill.id)} className="bg-gray-900 text-white hover:bg-black">
+                  <PlayCircle className="w-4 h-4 mr-2" /> Resume
+                </Button>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 4. Discount Modal */}
+      <Dialog open={isDiscountOpen} onOpenChange={setIsDiscountOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Apply Discount</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex gap-2">
+              <Button variant={discountType === "PERCENT" ? "default" : "outline"} className={discountType === "PERCENT" ? "bg-orange-500" : ""} onClick={() => {setDiscountType("PERCENT"); setDiscountValue(0)}}>Percentage (%)</Button>
+              <Button variant={discountType === "FIXED" ? "default" : "outline"} className={discountType === "FIXED" ? "bg-orange-500" : ""} onClick={() => {setDiscountType("FIXED"); setDiscountValue(0)}}>Fixed Amount (Rs)</Button>
+            </div>
+            {discountType !== "NONE" && (
+              <div className="space-y-2">
+                <Label>Discount Value {discountType === "PERCENT" ? "(%)" : "(Rs)"}</Label>
+                <Input type="number" value={discountValue || ""} onChange={e => setDiscountValue(Number(e.target.value))} />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {setDiscountType("NONE"); setDiscountValue(0); setIsDiscountOpen(false)}}>Remove Discount</Button>
+            <Button onClick={() => setIsDiscountOpen(false)} className="bg-gray-900 text-white hover:bg-black">Apply</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 5. Shift Open Modal (Blocking) */}
+      <Dialog open={isShiftOpen} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-sm" showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Wallet className="text-orange-500" /> Open Register</DialogTitle>
+            <DialogDescription>Enter the opening cash balance in the drawer to start your shift.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Opening Balance (Rs.)</Label>
+              <Input type="number" placeholder="5000" value={openingBalance} onChange={e => setOpeningBalance(e.target.value)} autoFocus />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleOpenShift} disabled={!openingBalance} className="w-full bg-orange-500 hover:bg-orange-600 text-white">Start Shift</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 6. Payment Success & KOT Modal */}
+      <Dialog open={paymentSuccess} onOpenChange={() => { setPaymentSuccess(false); setCart([]); setDiscountType("NONE"); setDiscountValue(0) }}>
         <DialogContent className="sm:max-w-md p-6 overflow-hidden rounded-2xl border-0 shadow-2xl bg-white text-center">
           <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
             <CheckCircle2 className="w-10 h-10 text-green-600" />
           </div>
           <h2 className="text-2xl font-black text-gray-900 mb-2">Payment Successful!</h2>
-          <p className="text-gray-500 mb-6">Rs. {grandTotal.toFixed(2)} has been collected.</p>
+          <p className="text-gray-500 mb-6 font-mono text-sm">Ref: {lastOrderRef} • Rs. {grandTotal.toFixed(2)} Collected</p>
           
-          <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 text-left mb-6">
-            <h3 className="font-bold text-orange-800 mb-2 border-b border-orange-200 pb-2">Auto-Deducted from Inventory:</h3>
+          <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-left mb-6 max-h-40 overflow-y-auto">
+            <h3 className="font-bold text-gray-800 mb-2 text-sm border-b pb-2">Inventory Auto-Deductions:</h3>
             {deductedMaterials.length > 0 ? (
-              <ul className="space-y-1.5">
+              <ul className="space-y-1">
                 {deductedMaterials.map((mat, i) => (
-                  <li key={i} className="flex justify-between text-sm">
-                    <span className="font-medium text-gray-700">{mat.name}</span>
-                    <span className="font-bold text-orange-600">-{mat.quantity} {mat.unit}</span>
+                  <li key={i} className="flex justify-between text-xs">
+                    <span className="font-medium text-gray-600">{mat.name}</span>
+                    <span className="font-bold text-red-500">-{mat.quantity} {mat.unit}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-gray-500 italic">No recipe mappings found for these items.</p>
+              <p className="text-xs text-gray-400 italic">No recipes configured for these items. Stock unaffected.</p>
             )}
           </div>
 
-          <Button className="w-full h-12 rounded-xl font-bold bg-gray-900 text-white hover:bg-black shadow-lg" onClick={closeSuccessModal}>
-            New Order
-          </Button>
+          <div className="flex gap-3">
+            <Button className="flex-1 h-12 rounded-xl font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-lg" onClick={handlePrintKOT}>
+              <Printer className="w-4 h-4 mr-2" /> Print KOT
+            </Button>
+            <Button className="flex-1 h-12 rounded-xl font-bold bg-gray-900 text-white hover:bg-black shadow-lg" onClick={() => { setPaymentSuccess(false); setCart([]); setDiscountType("NONE"); setDiscountValue(0) }}>
+              New Order
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
