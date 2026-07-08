@@ -83,6 +83,7 @@ interface CartItem {
   addons: {name: string, price: number}[]
   quantity: number
   totalPrice: number
+  note?: string
 }
 
 interface HeldBill {
@@ -132,9 +133,15 @@ export default function POSPage() {
   const [isCloseShiftOpen, setIsCloseShiftOpen] = useState(false)
   
   // -- Payment & KOT --
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<"Cash" | "Card" | "Bank Transfer" | "Split">("Cash")
+  const [splitCash, setSplitCash] = useState("")
+  const [splitCard, setSplitCard] = useState("")
+
   const [paymentSuccess, setPaymentSuccess] = useState(false)
   const [deductedMaterials, setDeductedMaterials] = useState<any[]>([])
   const [lastOrderRef, setLastOrderRef] = useState("")
+  const [saleDetails, setSaleDetails] = useState<any>(null)
 
   // --- Initial Setup (Recipes & Shift) ---
   useEffect(() => {
@@ -262,6 +269,10 @@ export default function POSPage() {
 
   const removeFromCart = (cartItemId: string) => setCart(prev => prev.filter(item => item.id !== cartItemId))
 
+  const updateItemNote = (cartItemId: string, note: string) => {
+    setCart(prev => prev.map(item => item.id === cartItemId ? { ...item, note } : item))
+  }
+
   // --- Hold & Recall Bill ---
   const handleHoldBill = () => {
     if (cart.length === 0 || !holdCustomerName) return
@@ -289,13 +300,32 @@ export default function POSPage() {
   }
 
   // --- Payment & KOT ---
-  const processPayment = () => {
+  const initiatePayment = () => {
     if (cart.length === 0) return
+    setIsPaymentModalOpen(true)
+    setPaymentMethod("Cash")
+    setSplitCash("")
+    setSplitCard("")
+  }
+
+  const processPayment = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    if (cart.length === 0) return
+
+    if (paymentMethod === "Split") {
+      const cashAmt = parseFloat(splitCash) || 0
+      const cardAmt = parseFloat(splitCard) || 0
+      if (cashAmt + cardAmt < grandTotal) {
+        alert(`Split amounts (Rs.${cashAmt + cardAmt}) do not cover the Grand Total (Rs.${grandTotal.toFixed(2)})!`)
+        return
+      }
+    }
 
     const orderRef = `POS-${Date.now().toString().slice(-6)}`
     setLastOrderRef(orderRef)
 
     try {
+      // 1. Inventory Deduction Logic
       const allRecipes = JSON.parse(localStorage.getItem("mock_recipes") || "[]")
       const deductions: Record<string, {name: string, quantity: number, unit: string}> = {}
 
@@ -327,11 +357,37 @@ export default function POSPage() {
       
       localStorage.setItem("mock_stock_ledger", JSON.stringify([...ledger, ...newEntries]))
       
-      // Save Sale to Cash Drawer (for shift closing)
+      // 2. Save Sale to Cash Drawer (for shift closing)
       const shiftSales = JSON.parse(localStorage.getItem("shift_sales") || "[]")
       shiftSales.push(grandTotal)
       localStorage.setItem("shift_sales", JSON.stringify(shiftSales))
 
+      // 3. Save Full Sale Record for Analytics/Reports
+      const storedSales = JSON.parse(localStorage.getItem("mock_sales") || "[]")
+      
+      // Determine final payment info
+      const paymentInfo = paymentMethod === "Split" 
+        ? `Split (Cash: ${splitCash || 0}, Card: ${splitCard || 0})`
+        : paymentMethod
+
+      const newSale = {
+        id: orderRef,
+        timestamp: now,
+        branch: user?.branch || "Unknown",
+        cashier: user?.name || "System",
+        customer: selectedCustomer || { name: "Walk-In Customer" },
+        items: cart,
+        subtotal,
+        discount: discountAmount,
+        tax,
+        grandTotal,
+        paymentMethod: paymentInfo
+      }
+      
+      localStorage.setItem("mock_sales", JSON.stringify([...storedSales, newSale]))
+      setSaleDetails(newSale)
+
+      setIsPaymentModalOpen(false)
       setPaymentSuccess(true)
     } catch (e) {
       console.error(e)
@@ -512,6 +568,15 @@ export default function POSPage() {
                   </div>
                 </div>
                 
+                <div className="mt-1">
+                  <Input 
+                    placeholder="Add kitchen note (e.g. Less sugar)" 
+                    className="h-7 text-xs bg-gray-50 border-gray-200"
+                    value={item.note || ""}
+                    onChange={(e) => updateItemNote(item.id, e.target.value)}
+                  />
+                </div>
+                
                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
                   <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
                     <button onClick={() => updateQuantity(item.id, -1)} className="w-7 h-7 flex items-center justify-center rounded-md bg-white shadow-sm text-gray-600 hover:text-orange-600">
@@ -558,7 +623,7 @@ export default function POSPage() {
           
           <Button 
             className="w-full h-14 text-lg font-bold rounded-xl shadow-lg shadow-orange-500/20 bg-orange-500 hover:bg-orange-600 transition-transform active:scale-[0.98] disabled:opacity-50"
-            disabled={cart.length === 0} onClick={processPayment}
+            disabled={cart.length === 0} onClick={initiatePayment}
           >
             <CreditCard className="w-6 h-6 mr-2" /> Pay Rs. {grandTotal.toFixed(2)}
           </Button>
@@ -713,6 +778,51 @@ export default function POSPage() {
           <DialogFooter>
             <Button onClick={handleOpenShift} disabled={!openingBalance} className="w-full bg-orange-500 hover:bg-orange-600 text-white">Start Shift</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 6. Payment Methods Modal */}
+      <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl border-0 shadow-2xl bg-gray-50">
+          <form onSubmit={processPayment}>
+            <div className="p-6 bg-white border-b">
+              <DialogTitle className="text-xl font-black text-gray-900">Complete Payment</DialogTitle>
+              <div className="text-3xl font-black text-orange-600 mt-2">Rs. {grandTotal.toFixed(2)}</div>
+            </div>
+            <div className="p-6 space-y-6 bg-gray-50">
+              <div className="grid grid-cols-2 gap-3">
+                {["Cash", "Card", "Bank Transfer", "Split"].map((method) => (
+                  <button
+                    key={method} type="button"
+                    onClick={() => setPaymentMethod(method as any)}
+                    className={`p-4 rounded-xl border-2 font-bold transition-all ${paymentMethod === method ? 'border-orange-500 bg-orange-100 text-orange-700 shadow-sm ring-1 ring-orange-500' : 'border-gray-200 bg-white text-gray-600 hover:border-orange-300'}`}
+                  >
+                    {method}
+                  </button>
+                ))}
+              </div>
+
+              {paymentMethod === "Split" && (
+                <div className="bg-white p-4 rounded-xl border space-y-4">
+                  <div className="grid gap-2">
+                    <Label className="font-bold text-gray-700">Cash Amount (Rs.)</Label>
+                    <Input type="number" step="0.01" value={splitCash} onChange={e => setSplitCash(e.target.value)} placeholder="0.00" className="h-11 font-bold text-lg" required />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label className="font-bold text-gray-700">Card Amount (Rs.)</Label>
+                    <Input type="number" step="0.01" value={splitCard} onChange={e => setSplitCard(e.target.value)} placeholder="0.00" className="h-11 font-bold text-lg" required />
+                  </div>
+                  <div className="text-sm font-bold text-gray-500 text-right">
+                    Total Entered: <span className="text-gray-900">Rs. {((parseFloat(splitCash)||0) + (parseFloat(splitCard)||0)).toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="p-6 bg-white border-t flex gap-3">
+              <Button type="button" variant="outline" className="flex-1 h-12 font-bold rounded-xl" onClick={() => setIsPaymentModalOpen(false)}>Cancel</Button>
+              <Button type="submit" className="flex-1 h-12 font-bold rounded-xl bg-orange-500 hover:bg-orange-600 text-white shadow-lg">Confirm Payment</Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
 

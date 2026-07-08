@@ -13,7 +13,8 @@ import {
   FileText, 
   ArrowRightLeft,
   Wallet,
-  PlusCircle
+  PlusCircle,
+  BarChart3
 } from "lucide-react"
 
 export default function DashboardLayout({
@@ -153,11 +154,15 @@ export default function DashboardLayout({
           {hasAccess(["Super Admin", "Admin", "Branch Manager"]) && (
             <>
               <div className="pt-4 pb-1">
-                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Finance</p>
+                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Finance & Reports</p>
               </div>
               <Link href="/dashboard/expenses" className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all ${isActive('/dashboard/expenses') ? 'bg-primary/10 text-primary' : ''}`}>
                 <Wallet className="h-5 w-5" />
                 Expenses
+              </Link>
+              <Link href="/dashboard/reports" className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all ${isActive('/dashboard/reports') ? 'bg-primary/10 text-primary' : ''}`}>
+                <BarChart3 className="h-5 w-5 text-orange-500" />
+                Reports & Analytics
               </Link>
             </>
           )}
