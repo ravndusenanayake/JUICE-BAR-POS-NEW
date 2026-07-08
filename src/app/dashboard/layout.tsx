@@ -6,7 +6,7 @@ import { useEffect, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { 
   LayoutDashboard, ShoppingCart, Package, Users, Settings, LogOut, Store,
-  Droplets, Tags, ShieldCheck, UserCog, Box, PlusCircle
+  Droplets, Tags, ShieldCheck, UserCog, Box, PlusCircle, History
 } from "lucide-react"
 
 export default function DashboardLayout({
@@ -111,6 +111,10 @@ export default function DashboardLayout({
               <Link href="/dashboard/recipes" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
                 <Settings className="h-5 w-5" />
                 Recipes
+              </Link>
+              <Link href="/dashboard/stock-ledger" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
+                <History className="h-5 w-5" />
+                Stock Ledger
               </Link>
             </>
           )}

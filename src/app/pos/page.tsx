@@ -170,6 +170,28 @@ export default function POSPage() {
 
       const deductedArray = Object.values(deductions)
       setDeductedMaterials(deductedArray)
+      
+      // -- NEW: Write to Stock Ledger --
+      const storedLedger = localStorage.getItem("mock_stock_ledger")
+      const ledger = storedLedger ? JSON.parse(storedLedger) : []
+      const orderRef = `POS-${Date.now().toString().slice(-6)}`
+      const now = new Date().toISOString()
+      
+      const newEntries = deductedArray.map((mat: any, idx) => ({
+        id: `LDG-${Date.now()}-${idx}`,
+        timestamp: now,
+        branch: user?.branch || "Unknown Branch",
+        rawMaterialName: mat.name,
+        type: "OUT",
+        reason: "SALE",
+        quantityChange: mat.quantity, // this is in base unit because recipes are saved in base unit
+        baseUnit: mat.unit, 
+        reference: orderRef
+      }))
+      
+      localStorage.setItem("mock_stock_ledger", JSON.stringify([...ledger, ...newEntries]))
+      // --------------------------------
+
       setPaymentSuccess(true)
       
     } catch (e) {
