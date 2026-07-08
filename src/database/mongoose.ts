@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { seedInitialData } from './seed';
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
@@ -36,6 +37,8 @@ async function connectToDatabase() {
   
   try {
     cached.conn = await cached.promise;
+    // Run seeders asynchronously so it doesn't block
+    seedInitialData().catch(console.error);
   } catch (e) {
     cached.promise = null;
     throw e;

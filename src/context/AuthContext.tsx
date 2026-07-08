@@ -1,14 +1,13 @@
 "use client"
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 
 type Role = "Super Admin" | "Admin" | "Branch Manager" | "Store Keeper" | "Cashier" | null
 
 interface User {
   id: string
   name: string
-  email: string
   role: Role
   branch: string
 }
@@ -16,56 +15,58 @@ interface User {
 interface AuthContextType {
   user: User | null
   role: Role
-  login: (selectedRole: Role, branch?: string) => void
-  logout: () => void
+  refreshAuth: () => Promise<void>
+  logout: () => Promise<void>
   isAuthenticated: boolean
+  isLoading: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
+  const pathname = usePathname()
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("authUser")
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
+  const refreshAuth = async () => {
+    try {
+      setIsLoading(true)
+      const res = await fetch('/api/auth/me')
+      if (res.ok) {
+        const data = await res.json()
+        if (data.authenticated && data.user) {
+          setUser(data.user)
+        } else {
+          setUser(null)
+        }
+      } else {
+        setUser(null)
+      }
+    } catch (error) {
+      console.error("Auth check failed", error)
+      setUser(null)
+    } finally {
+      setIsLoading(false)
     }
-  }, [])
-
-  const login = (selectedRole: Role, branch: string = "Colombo 07") => {
-    if (!selectedRole) return
-
-    const mockUser: User = {
-      id: "USR-MOCK-001",
-      name: `${selectedRole} User`,
-      email: `${selectedRole.replace(/\s+/g, '').toLowerCase()}@juicebar.com`,
-      role: selectedRole,
-      branch: (selectedRole === "Super Admin" || selectedRole === "Admin") ? "All Branches" : branch
-    }
-
-    setUser(mockUser)
-    localStorage.setItem("authUser", JSON.stringify(mockUser))
-    
-    // Set cookie for middleware access (expires in 1 day)
-    document.cookie = `userRole=${selectedRole}; path=/; max-age=86400; SameSite=Lax`
-
-    router.push("/dashboard")
   }
 
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem("authUser")
-    
-    // Remove cookie
-    document.cookie = `userRole=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax`
-    
-    router.push("/login")
+  useEffect(() => {
+    refreshAuth()
+  }, [pathname])
+
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+      setUser(null)
+      router.push("/login")
+    } catch (error) {
+      console.error("Logout failed", error)
+    }
   }
 
   return (
-    <AuthContext.Provider value={{ user, role: user?.role || null, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, role: user?.role || null, refreshAuth, logout, isAuthenticated: !!user, isLoading }}>
       {children}
     </AuthContext.Provider>
   )

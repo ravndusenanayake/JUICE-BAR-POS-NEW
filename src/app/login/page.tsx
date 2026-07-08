@@ -1,21 +1,46 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Droplets, UserCircle } from "lucide-react"
+import { Droplets, Lock, User } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 
-type Role = "Super Admin" | "Admin" | "Branch Manager" | "Store Keeper" | "Cashier" | null
-
 export default function LoginPage() {
-  const { login } = useAuth()
-  const [selectedRole, setSelectedRole] = useState<Role>(null)
+  const router = useRouter()
+  const { refreshAuth } = useAuth()
+  
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
-  const handleLogin = () => {
-    if (selectedRole) {
-      login(selectedRole)
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError("")
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      })
+
+      const data = await res.json()
+
+      if (res.ok) {
+        await refreshAuth()
+        router.push("/dashboard")
+      } else {
+        setError(data.error || "Login failed")
+      }
+    } catch (err) {
+      setError("An unexpected error occurred.")
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -35,42 +60,63 @@ export default function LoginPage() {
             Sign in to your account
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6 mt-4">
-          <div className="bg-orange-50 border border-orange-100 rounded-lg p-4 mb-4">
-            <p className="text-sm text-orange-800 font-medium flex items-center gap-2">
-              <UserCircle className="w-5 h-5" /> Test Mode: Select your role below
+        
+        <form onSubmit={handleLogin}>
+          <CardContent className="space-y-4 mt-2">
+            {error && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm font-semibold text-center border border-red-100">
+                {error}
+              </div>
+            )}
+            
+            <div className="space-y-2 relative">
+              <label className="text-sm font-semibold text-gray-700 leading-none">
+                Username (Email)
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Input 
+                  type="text"
+                  placeholder="admin"
+                  className="pl-10 h-12 bg-white"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2 relative">
+              <label className="text-sm font-semibold text-gray-700 leading-none">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Input 
+                  type="password"
+                  placeholder="••••••••"
+                  className="pl-10 h-12 bg-white"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+          </CardContent>
+          
+          <CardFooter className="flex flex-col space-y-4 mt-4 pb-8">
+            <Button 
+              type="submit"
+              className="w-full text-lg h-14 bg-orange-500 hover:bg-orange-600 text-white shadow-lg transition-transform hover:scale-[1.02] rounded-xl font-bold"
+              disabled={loading || !username || !password}
+            >
+              {loading ? "Authenticating..." : "Enter System"}
+            </Button>
+            <p className="text-sm text-center text-gray-500">
+              Default Super Admin: <span className="font-semibold text-gray-700">admin</span> / <span className="font-semibold text-gray-700">admin123</span>
             </p>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-700 leading-none">
-              Login As
-            </label>
-            <Select onValueChange={(value) => setSelectedRole(value as Role)}>
-              <SelectTrigger className="w-full h-12 bg-white text-base">
-                <SelectValue placeholder="Select a role..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Super Admin">Super Admin (All Access + Settings)</SelectItem>
-                <SelectItem value="Admin">Admin (Full Access)</SelectItem>
-                <SelectItem value="Branch Manager">Branch Manager</SelectItem>
-                <SelectItem value="Store Keeper">Store Keeper</SelectItem>
-                <SelectItem value="Cashier">Cashier</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-4 mt-2 pb-8">
-          <Button 
-            className="w-full text-lg h-14 bg-orange-500 hover:bg-orange-600 text-white shadow-lg transition-transform hover:scale-[1.02] rounded-xl font-bold"
-            disabled={!selectedRole}
-            onClick={handleLogin}
-          >
-            Enter System
-          </Button>
-          <p className="text-sm text-center text-gray-500">
-            Role-Based Access Control Simulation
-          </p>
-        </CardFooter>
+          </CardFooter>
+        </form>
       </Card>
     </div>
   )
