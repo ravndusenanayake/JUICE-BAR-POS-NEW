@@ -132,6 +132,10 @@ export default function DashboardLayout({
                 <Truck className="h-5 w-5" />
                 Purchase Orders
               </Link>
+              <Link href="/dashboard/grn" className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all ${isActive('/dashboard/grn') ? 'bg-primary/10 text-primary' : ''}`}>
+                <FileText className="h-5 w-5" />
+                All GRNs
+              </Link>
             </>
           )}
 

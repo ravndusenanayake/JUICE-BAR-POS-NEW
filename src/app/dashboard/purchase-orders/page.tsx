@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, CheckCircle, PackageOpen, X, FileText, Download, Truck, AlertTriangle } from "lucide-react"
+import { Search, Plus, CheckCircle, PackageOpen, X, FileText, Download, Truck, AlertTriangle, User } from "lucide-react"
 
 export interface POItem {
   id: string
@@ -17,6 +17,8 @@ export interface POItem {
   quantity: number
   unitCost: number
   totalCost: number
+  // For partial receives tracking on the PO level
+  receivedQuantity?: number 
 }
 
 export interface PurchaseOrder {
@@ -30,7 +32,7 @@ export interface PurchaseOrder {
   itemType: "Raw Materials" | "Finished Products"
   items: POItem[]
   totalCost: number
-  status: "Draft" | "Submitted" | "Approved" | "Received" | "Closed"
+  status: "Draft" | "Submitted" | "Approved" | "Partially Received" | "Fully Received" | "Closed"
   createdBy: string
 }
 
@@ -64,6 +66,10 @@ export default function PurchaseOrdersPage() {
   const [isGrnOpen, setIsGrnOpen] = useState(false)
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null)
   const [grnItems, setGrnItems] = useState<{ id: string, receivedQty: string, damagedQty: string }[]>([])
+  
+  // New GRN Fields based on Expert Analysis
+  const [receivedBy, setReceivedBy] = useState("")
+  const [grnNotes, setGrnNotes] = useState("")
 
   useEffect(() => {
     const storedPOs = localStorage.getItem("mock_purchase_orders")
@@ -88,7 +94,8 @@ export default function PurchaseOrdersPage() {
 
     const newItem: POItem = {
       id: `ITEM-${Date.now()}`, name: itemName, unit: itemUnit,
-      quantity: qty, unitCost: cost, totalCost: qty * cost
+      quantity: qty, unitCost: cost, totalCost: qty * cost,
+      receivedQuantity: 0 // Initialize at 0 for tracking
     }
     setItems([...items, newItem])
     setItemName(""); setItemQty(""); setItemCost("")
@@ -132,12 +139,18 @@ export default function PurchaseOrdersPage() {
   // --- GRN Logic ---
   const openGrnModal = (po: PurchaseOrder) => {
     setSelectedPO(po)
-    // Initialize GRN inputs with default Ordered Qty and 0 damaged
-    setGrnItems(po.items.map(item => ({
-      id: item.id,
-      receivedQty: item.quantity.toString(),
-      damagedQty: "0"
-    })))
+    setReceivedBy(user?.name || "")
+    setGrnNotes("")
+    
+    // Initialize GRN inputs. We only want them to receive what is LEFT to be received.
+    setGrnItems(po.items.map(item => {
+      const remainingQty = item.quantity - (item.receivedQuantity || 0)
+      return {
+        id: item.id,
+        receivedQty: remainingQty > 0 ? remainingQty.toString() : "0",
+        damagedQty: "0"
+      }
+    }))
     setIsGrnOpen(true)
   }
 
@@ -149,14 +162,75 @@ export default function PurchaseOrdersPage() {
     e.preventDefault()
     if (!selectedPO) return
 
-    const grnNumber = `GRN-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`
+    const grnNumber = `GRN-${new Date().getFullYear()}-${Date.now().toString().slice(-5)}`
+    let isCompletelyReceived = true
+    let atLeastOneItemReceived = false
 
-    // 1. Update PO Status
-    const updatedPOs = pos.map(p => p.id === selectedPO.id ? { ...p, status: "Received" as const } : p)
-    setPos(updatedPOs)
+    // To save the GRN Document
+    const grnDocument = {
+      id: `GRNID-${Date.now()}`,
+      grnNumber,
+      poNumber: selectedPO.poNumber,
+      supplierName: selectedPO.supplierName,
+      branch: selectedPO.branch,
+      receivedDate: new Date().toISOString(),
+      receivedBy,
+      notes: grnNotes,
+      items: [] as any[]
+    }
+
+    // Update PO Items with new received quantities
+    const updatedPOItems = selectedPO.items.map(poItem => {
+      const grnState = grnItems.find(g => g.id === poItem.id)
+      if (!grnState) return poItem
+
+      const newlyReceived = parseFloat(grnState.receivedQty) || 0
+      const newlyDamaged = parseFloat(grnState.damagedQty) || 0
+      
+      const totalNewlyProcessed = newlyReceived + newlyDamaged
+      const prevReceived = poItem.receivedQuantity || 0
+      
+      const newTotalReceived = prevReceived + totalNewlyProcessed
+
+      if (totalNewlyProcessed > 0) {
+        atLeastOneItemReceived = true
+        // Add to GRN Document
+        grnDocument.items.push({
+          itemName: poItem.name,
+          unit: poItem.unit,
+          orderedQty: poItem.quantity,
+          receivedGoodQty: newlyReceived,
+          damagedQty: newlyDamaged
+        })
+      }
+
+      if (newTotalReceived < poItem.quantity) {
+        isCompletelyReceived = false // We still haven't received everything
+      }
+
+      return { ...poItem, receivedQuantity: newTotalReceived }
+    })
+
+    if (!atLeastOneItemReceived) {
+      alert("Please enter at least some received quantity.")
+      return
+    }
+
+    // 1. Update PO Status (Partial vs Fully Received)
+    const newPOStatus = isCompletelyReceived ? "Fully Received" : "Partially Received"
+    
+    const updatedPOs = pos.map(p => p.id === selectedPO.id ? 
+      { ...p, status: newPOStatus, items: updatedPOItems } : p
+    )
+    setPos(updatedPOs as PurchaseOrder[])
     localStorage.setItem("mock_purchase_orders", JSON.stringify(updatedPOs))
 
-    // 2. Inject into Stock Ledger & Inventory
+    // 2. Save GRN Document
+    const storedGRNs = localStorage.getItem("mock_grns")
+    const grnList = storedGRNs ? JSON.parse(storedGRNs) : []
+    localStorage.setItem("mock_grns", JSON.stringify([grnDocument, ...grnList]))
+
+    // 3. Inject into Stock Ledger & Inventory
     const storedInv = localStorage.getItem("mock_branch_inventory")
     let inventory = storedInv ? JSON.parse(storedInv) : []
     
@@ -172,48 +246,42 @@ export default function PurchaseOrdersPage() {
 
       const rQty = parseFloat(grnState.receivedQty) || 0
       const dQty = parseFloat(grnState.damagedQty) || 0
-      const goodQty = rQty - dQty
+      const goodQty = rQty
 
-      if (goodQty <= 0) return // Nothing good to add to inventory
+      if (goodQty <= 0 && dQty <= 0) return // Nothing processed
 
-      // Unit conversion for mock (simplified)
-      let baseQty = goodQty
       let baseUnit = item.unit
-      if (item.unit === "Kg") { baseQty = goodQty * 1000; baseUnit = "g" }
-      if (item.unit === "L") { baseQty = goodQty * 1000; baseUnit = "ml" }
+      let goodBaseQty = goodQty
+      if (item.unit === "Kg") { goodBaseQty = goodQty * 1000; baseUnit = "g" }
+      if (item.unit === "L") { goodBaseQty = goodQty * 1000; baseUnit = "ml" }
 
-      // Update Branch Inventory
-      const existingIdx = inventory.findIndex((i:any) => i.rawMaterialName.toLowerCase() === item.name.toLowerCase() && i.branchId === selectedPO.branch)
-      if (existingIdx >= 0) {
-        inventory[existingIdx].currentStock += baseQty
-      } else {
-        inventory.push({
-          id: `RM-${Date.now()}-${idx}`,
-          branchId: (BRANCHES.indexOf(selectedPO.branch) + 1).toString().replace(/^/, 'B'), // B1, B2
-          rawMaterialName: item.name,
-          sku: `SKU-PO-${Date.now().toString().slice(-4)}`,
-          baseUnit: baseUnit,
-          currentStock: baseQty,
-          minimumStock: 5000,
-          maxCapacity: baseQty * 2,
-          status: "Active"
+      if (goodQty > 0) {
+        // Update Branch Inventory
+        const existingIdx = inventory.findIndex((i:any) => i.rawMaterialName.toLowerCase() === item.name.toLowerCase() && i.branchId === selectedPO.branch)
+        if (existingIdx >= 0) {
+          inventory[existingIdx].currentStock += goodBaseQty
+        } else {
+          inventory.push({
+            id: `RM-${Date.now()}-${idx}`,
+            branchId: (BRANCHES.indexOf(selectedPO.branch) + 1).toString().replace(/^/, 'B'),
+            rawMaterialName: item.name,
+            sku: `SKU-PO-${Date.now().toString().slice(-4)}`,
+            baseUnit: baseUnit,
+            currentStock: goodBaseQty,
+            minimumStock: 5000,
+            maxCapacity: goodBaseQty * 2,
+            status: "Active"
+          })
+        }
+
+        // Add Ledger Entry for Good Qty
+        newLedgerEntries.push({
+          id: `LDG-${grnNumber}-${idx}`,
+          timestamp: now, branch: selectedPO.branch, rawMaterialName: item.name, type: "IN",
+          reason: "GRN Received", quantityChange: goodBaseQty, baseUnit: baseUnit, reference: grnNumber
         })
       }
 
-      // Add Ledger Entry for Good Qty
-      newLedgerEntries.push({
-        id: `LDG-${grnNumber}-${idx}`,
-        timestamp: now,
-        branch: selectedPO.branch,
-        rawMaterialName: item.name,
-        type: "IN",
-        reason: "GRN Received",
-        quantityChange: baseQty,
-        baseUnit: baseUnit,
-        reference: grnNumber // GRN Number as reference
-      })
-
-      // Optionally log damaged qty to ledger as "Rejected" (Not strictly required for inventory logic, but good for audit)
       if (dQty > 0) {
         let damagedBaseQty = dQty
         if (item.unit === "Kg") damagedBaseQty = dQty * 1000
@@ -221,14 +289,8 @@ export default function PurchaseOrdersPage() {
 
         newLedgerEntries.push({
           id: `LDG-${grnNumber}-REJ-${idx}`,
-          timestamp: now,
-          branch: selectedPO.branch,
-          rawMaterialName: item.name,
-          type: "INFO", // Or OUT if tracking reject bins
-          reason: "GRN Damaged/Rejected",
-          quantityChange: 0, // Doesn't affect inventory
-          baseUnit: baseUnit,
-          reference: grnNumber,
+          timestamp: now, branch: selectedPO.branch, rawMaterialName: item.name, type: "INFO",
+          reason: "GRN Damaged/Rejected", quantityChange: 0, baseUnit: baseUnit, reference: grnNumber,
           notes: `${damagedBaseQty} ${baseUnit} rejected`
         })
       }
@@ -238,14 +300,15 @@ export default function PurchaseOrdersPage() {
     localStorage.setItem("mock_stock_ledger", JSON.stringify([...ledger, ...newLedgerEntries]))
     
     setIsGrnOpen(false)
-    alert(`Success! Goods Received Note (${grnNumber}) processed. Inventory updated automatically.`)
+    alert(`Success! GRN (${grnNumber}) generated. PO Status: ${newPOStatus}.`)
   }
 
   const getStatusBadge = (status: string) => {
     switch(status) {
       case "Submitted": return <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-bold border border-yellow-200">Awaiting Approval</span>
       case "Approved": return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-bold border border-blue-200">Approved</span>
-      case "Received": return <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-bold border border-green-200">Received (GRN)</span>
+      case "Partially Received": return <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-bold border border-purple-200">Partially Received</span>
+      case "Fully Received": return <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-bold border border-green-200">Fully Received</span>
       default: return <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-bold">{status}</span>
     }
   }
@@ -333,12 +396,11 @@ export default function PurchaseOrdersPage() {
                         <CheckCircle className="w-4 h-4 mr-1.5" /> Approve
                       </Button>
                     )}
-                    {po.status === "Approved" && (
+                    {(po.status === "Approved" || po.status === "Partially Received") && (
                       <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white font-bold h-8" onClick={() => openGrnModal(po)}>
-                        <Download className="w-4 h-4 mr-1.5" /> Receive Goods (GRN)
+                        <Download className="w-4 h-4 mr-1.5" /> Receive GRN
                       </Button>
                     )}
-                    <Button variant="outline" size="sm" className="h-8">View</Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -350,6 +412,7 @@ export default function PurchaseOrdersPage() {
       {/* CREATE PO MODAL */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden border-0 shadow-2xl rounded-2xl">
+          {/* ... existing Create PO content (identical) ... */}
           <form onSubmit={handleSubmitPO}>
             <div className="p-6 border-b bg-orange-50">
               <DialogTitle className="text-xl font-black text-gray-900 flex items-center gap-2">
@@ -361,17 +424,12 @@ export default function PurchaseOrdersPage() {
             </div>
             
             <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
-              {/* Header Details */}
               <div className="grid grid-cols-2 gap-4 bg-white">
                 <div className="grid gap-2">
                   <Label className="font-bold text-gray-700">Supplier *</Label>
                   <Select value={supplierId} onValueChange={setSupplierId} required>
-                    <SelectTrigger className="border-gray-300 h-10">
-                      <SelectValue placeholder="Select Supplier" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                    </SelectContent>
+                    <SelectTrigger className="border-gray-300 h-10"><SelectValue placeholder="Select Supplier" /></SelectTrigger>
+                    <SelectContent>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="grid gap-2">
@@ -381,20 +439,14 @@ export default function PurchaseOrdersPage() {
                 <div className="grid gap-2">
                   <Label className="font-bold text-gray-700">Branch *</Label>
                   <Select value={branch} onValueChange={setBranch} disabled={user?.branch !== "All Branches"}>
-                    <SelectTrigger className="border-gray-300 h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {BRANCHES.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-                    </SelectContent>
+                    <SelectTrigger className="border-gray-300 h-10"><SelectValue /></SelectTrigger>
+                    <SelectContent>{BRANCHES.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="grid gap-2">
                   <Label className="font-bold text-gray-700">Item Type</Label>
                   <Select value={itemType} onValueChange={(val: any) => setItemType(val)}>
-                    <SelectTrigger className="border-gray-300 h-10 font-semibold text-orange-700">
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger className="border-gray-300 h-10 font-semibold text-orange-700"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Raw Materials">Raw Materials (Fruits, Milk, etc)</SelectItem>
                       <SelectItem value="Finished Products">Finished Products (Bottled Water)</SelectItem>
@@ -403,11 +455,8 @@ export default function PurchaseOrdersPage() {
                 </div>
               </div>
 
-              {/* Items Section */}
               <div className="border rounded-xl overflow-hidden">
-                <div className="bg-gray-100 px-4 py-2 font-bold text-sm text-gray-700 border-b">
-                  Add Items to Order
-                </div>
+                <div className="bg-gray-100 px-4 py-2 font-bold text-sm text-gray-700 border-b">Add Items to Order</div>
                 <div className="p-4 space-y-4 bg-gray-50/50">
                   <div className="flex gap-2 items-end">
                     <div className="grid gap-1.5 flex-1">
@@ -432,7 +481,6 @@ export default function PurchaseOrdersPage() {
                     <Button type="button" onClick={handleAddItem} className="h-9 bg-gray-900 text-white">Add</Button>
                   </div>
 
-                  {/* Items List */}
                   {items.length > 0 && (
                     <div className="border rounded-lg bg-white overflow-hidden">
                       <Table>
@@ -477,7 +525,7 @@ export default function PurchaseOrdersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* GRN MODAL */}
+      {/* ENHANCED GRN MODAL */}
       <Dialog open={isGrnOpen} onOpenChange={setIsGrnOpen}>
         <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden border-0 shadow-2xl rounded-2xl">
           <form onSubmit={handleSubmitGRN}>
@@ -485,7 +533,7 @@ export default function PurchaseOrdersPage() {
               <div className="flex justify-between items-start">
                 <div>
                   <DialogTitle className="text-xl font-black text-gray-900 flex items-center gap-2">
-                    <Truck className="text-green-600" /> Goods Received Note (GRN)
+                    <Truck className="text-green-600" /> Create Goods Received Note (GRN)
                   </DialogTitle>
                   <DialogDescription className="text-gray-600 mt-2 font-medium">
                     Receiving items for <strong className="text-gray-900">{selectedPO?.poNumber}</strong> from <strong className="text-gray-900">{selectedPO?.supplierName}</strong>.
@@ -499,10 +547,33 @@ export default function PurchaseOrdersPage() {
             </div>
 
             <div className="p-6 max-h-[60vh] overflow-y-auto bg-gray-50/30">
+              {/* New Fields Area */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="grid gap-2">
+                  <Label className="font-bold flex items-center gap-2"><User className="w-4 h-4 text-gray-500"/> Received By *</Label>
+                  <Input 
+                    required 
+                    value={receivedBy} 
+                    onChange={e => setReceivedBy(e.target.value)} 
+                    className="bg-white"
+                    placeholder="Store Keeper Name"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label className="font-bold text-gray-700">Notes / Remarks</Label>
+                  <Input 
+                    value={grnNotes} 
+                    onChange={e => setGrnNotes(e.target.value)} 
+                    className="bg-white"
+                    placeholder="Any damages, delays, etc..."
+                  />
+                </div>
+              </div>
+
               <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-6 flex gap-3">
                 <AlertTriangle className="text-blue-500 w-5 h-5 shrink-0" />
                 <p className="text-sm text-blue-900 font-medium leading-relaxed">
-                  Please verify the physical stock received. Enter the exact <strong>Received Qty</strong>. If any items are damaged or spoiled, enter them in the <strong>Damaged Qty</strong> column. Only good stock will be added to inventory.
+                  Enter the exact <strong>Received Good Qty</strong>. Damaged stock will be ignored from inventory. If you receive less than ordered, the PO will become <strong>Partially Received</strong>.
                 </p>
               </div>
 
@@ -511,7 +582,7 @@ export default function PurchaseOrdersPage() {
                   <TableHeader>
                     <TableRow className="bg-gray-100 text-xs">
                       <TableHead className="py-3">Product Name</TableHead>
-                      <TableHead>Ordered Qty</TableHead>
+                      <TableHead>Expected Qty (Remaining)</TableHead>
                       <TableHead className="w-32 bg-green-50/50">Received Qty</TableHead>
                       <TableHead className="w-32 bg-red-50/50">Damaged Qty</TableHead>
                       <TableHead className="text-right">Good Stock Added</TableHead>
@@ -519,24 +590,31 @@ export default function PurchaseOrdersPage() {
                   </TableHeader>
                   <TableBody>
                     {selectedPO?.items.map((item) => {
+                      const previouslyReceived = item.receivedQuantity || 0
+                      const remainingToReceive = item.quantity - previouslyReceived
+
+                      // If already fully received, don't show or show as disabled
+                      if (remainingToReceive <= 0) return null
+
                       const grnState = grnItems.find(g => g.id === item.id)
                       const rQty = parseFloat(grnState?.receivedQty || "0") || 0
                       const dQty = parseFloat(grnState?.damagedQty || "0") || 0
-                      const goodQty = rQty - dQty
+                      const goodQty = rQty
 
                       return (
                         <TableRow key={item.id} className="text-sm">
-                          <TableCell className="font-bold py-3 text-gray-900">{item.name}</TableCell>
-                          <TableCell className="text-gray-500 font-medium">{item.quantity} {item.unit}</TableCell>
+                          <TableCell className="font-bold py-3 text-gray-900">
+                            {item.name}
+                            {previouslyReceived > 0 && <div className="text-xs text-purple-600 font-semibold mt-1">Already received: {previouslyReceived} {item.unit}</div>}
+                          </TableCell>
+                          <TableCell className="text-gray-500 font-bold">{remainingToReceive} {item.unit}</TableCell>
                           <TableCell className="bg-green-50/20">
-                            <div className="flex items-center gap-2">
-                              <Input 
-                                type="number" step="0.01"
-                                className="h-8 w-20 border-green-200 focus-visible:ring-green-500 font-bold"
-                                value={grnState?.receivedQty}
-                                onChange={e => updateGrnItem(item.id, 'receivedQty', e.target.value)}
-                              />
-                            </div>
+                            <Input 
+                              type="number" step="0.01" max={remainingToReceive}
+                              className="h-8 w-20 border-green-200 focus-visible:ring-green-500 font-bold"
+                              value={grnState?.receivedQty}
+                              onChange={e => updateGrnItem(item.id, 'receivedQty', e.target.value)}
+                            />
                           </TableCell>
                           <TableCell className="bg-red-50/20">
                             <Input 
