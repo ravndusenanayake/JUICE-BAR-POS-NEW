@@ -102,6 +102,12 @@ export default function POSPage() {
   // -- Cart State --
   const [cart, setCart] = useState<CartItem[]>([])
   
+  // -- Customer Selection State --
+  const [customers, setCustomers] = useState<any[]>([])
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
+  const [isCustomerSelectOpen, setIsCustomerSelectOpen] = useState(false)
+  const [customerSearch, setCustomerSearch] = useState("")
+
   // -- Product Config Modal --
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
   const [selectedVariant, setSelectedVariant] = useState<any>(null)
@@ -136,6 +142,22 @@ export default function POSPage() {
     const shift = localStorage.getItem("pos_shift")
     if (shift) setShiftActive(true)
     else setIsShiftOpen(true) // Force open shift modal if no shift
+
+    // 1.5 Load Customers
+    const storedCustomers = localStorage.getItem("mock_customers")
+    if (storedCustomers) {
+      const parsed = JSON.parse(storedCustomers)
+      setCustomers(parsed)
+      // Default to Walk-In Customer
+      const walkIn = parsed.find((c: any) => c.name === "Walk-In Customer")
+      if (walkIn) setSelectedCustomer(walkIn)
+    } else {
+      // Fallback if they haven't visited the customers page yet
+      const fallback = [{ id: "CUST-001", name: "Walk-In Customer", mobile: "N/A" }]
+      setCustomers(fallback)
+      setSelectedCustomer(fallback[0])
+      localStorage.setItem("mock_customers", JSON.stringify(fallback))
+    }
 
     // 2. Seed Mock Recipes for Auto-Deduction testing
     const existingRecipes = localStorage.getItem("mock_recipes")
@@ -448,6 +470,22 @@ export default function POSPage() {
           </div>
         </div>
 
+        {/* Customer Selector */}
+        <div className="px-4 py-3 bg-white border-b flex justify-between items-center shadow-sm z-10 cursor-pointer hover:bg-orange-50 transition-colors" onClick={() => setIsCustomerSelectOpen(true)}>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
+              <User className="w-4 h-4" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Customer</span>
+              <span className="text-sm font-black text-gray-900 leading-tight">
+                {selectedCustomer?.name || "Select Customer"}
+              </span>
+            </div>
+          </div>
+          <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-full">Change</span>
+        </div>
+
         {/* Cart Items */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
           {cart.length === 0 ? (
@@ -678,6 +716,52 @@ export default function POSPage() {
         </DialogContent>
       </Dialog>
 
+      {/* 7. Customer Select Modal */}
+      <Dialog open={isCustomerSelectOpen} onOpenChange={setIsCustomerSelectOpen}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl border-0 shadow-2xl bg-gray-50">
+          <div className="p-4 bg-white border-b">
+            <DialogTitle className="text-lg font-black text-gray-900 flex items-center gap-2">
+              <User className="text-orange-500" /> Select Customer
+            </DialogTitle>
+          </div>
+          <div className="p-4">
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input 
+                autoFocus
+                placeholder="Search by name or mobile..." 
+                className="pl-9 h-11 border-gray-300 bg-white"
+                value={customerSearch} onChange={e => setCustomerSearch(e.target.value)}
+              />
+            </div>
+            <div className="max-h-[50vh] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+              {customers
+                .filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || (c.mobile && c.mobile.includes(customerSearch)))
+                .map(c => (
+                <button 
+                  key={c.id} 
+                  onClick={() => { setSelectedCustomer(c); setIsCustomerSelectOpen(false) }}
+                  className={`w-full text-left p-3 rounded-xl border transition-all ${selectedCustomer?.id === c.id ? 'border-orange-500 bg-orange-50 shadow-sm' : 'border-gray-200 bg-white hover:border-orange-300'}`}
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-gray-900">{c.name}</span>
+                    {c.status === "VIP" && <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold">VIP</span>}
+                  </div>
+                  <div className="text-xs font-medium text-gray-500 mt-1">{c.mobile}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="p-4 bg-white border-t">
+            <Link href="/dashboard/customers" target="_blank" className="w-full">
+              <Button variant="outline" className="w-full border-orange-200 text-orange-600 hover:bg-orange-50 font-bold">
+                <Plus className="w-4 h-4 mr-2" /> Add New Customer in Dashboard
+              </Button>
+            </Link>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* 6. Payment Success & KOT Modal */}
       <Dialog open={paymentSuccess} onOpenChange={() => { setPaymentSuccess(false); setCart([]); setDiscountType("NONE"); setDiscountValue(0) }}>
         <DialogContent className="sm:max-w-md p-6 overflow-hidden rounded-2xl border-0 shadow-2xl bg-white text-center">
@@ -686,6 +770,7 @@ export default function POSPage() {
           </div>
           <h2 className="text-2xl font-black text-gray-900 mb-2">Payment Successful!</h2>
           <p className="text-gray-500 mb-6 font-mono text-sm">Ref: {lastOrderRef} • Rs. {grandTotal.toFixed(2)} Collected</p>
+          <p className="text-xs font-bold text-orange-600 mb-4 uppercase tracking-wider">Customer: {selectedCustomer?.name}</p>
           
           <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-left mb-6 max-h-40 overflow-y-auto">
             <h3 className="font-bold text-gray-800 mb-2 text-sm border-b pb-2">Inventory Auto-Deductions:</h3>
