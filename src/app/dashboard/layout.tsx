@@ -14,7 +14,8 @@ import {
   ArrowRightLeft,
   Wallet,
   PlusCircle,
-  BarChart3
+  BarChart3,
+  Activity
 } from "lucide-react"
 
 export default function DashboardLayout({
@@ -91,6 +92,10 @@ export default function DashboardLayout({
               <Link href="/dashboard/branches" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
                 <Store className="h-5 w-5" />
                 Branch Management
+              </Link>
+              <Link href="/dashboard/audit-logs" className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all ${isActive('/dashboard/audit-logs') ? 'bg-primary/10 text-primary' : ''}`}>
+                <Activity className="h-5 w-5" />
+                System Logs
               </Link>
             </>
           )}

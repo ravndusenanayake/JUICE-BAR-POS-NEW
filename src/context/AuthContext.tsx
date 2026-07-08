@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react"
 import { useRouter } from "next/navigation"
+import { logAudit } from "@/lib/auditLogger"
 
 type Role = "Super Admin" | "Admin" | "Branch Manager" | "Store Keeper" | "Cashier" | null
 
@@ -48,6 +49,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(mockUser)
     localStorage.setItem("authUser", JSON.stringify(mockUser))
     
+    logAudit(mockUser.name, mockUser.branch, "Logged into the system successfully.", "Login")
+    
     // Set cookie for middleware access (expires in 1 day)
     document.cookie = `userRole=${selectedRole}; path=/; max-age=86400; SameSite=Lax`
 
@@ -55,6 +58,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const logout = () => {
+    if (user) {
+      logAudit(user.name, user.branch, "Logged out of the system.", "Logout")
+    }
     setUser(null)
     localStorage.removeItem("authUser")
     

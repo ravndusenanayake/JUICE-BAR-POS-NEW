@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Search, ShoppingCart, ArrowLeft, Trash2, Plus, Minus, CreditCard, User, CheckCircle2, PauseCircle, PlayCircle, Tag, Printer, Power, Wallet } from "lucide-react"
+import { logAudit } from "@/lib/auditLogger"
 
 // --- Mock Data: Products ---
 const CATEGORIES = ["All", "Fresh Juices", "Milkshakes", "Desserts", "Snacks", "Mojitos"]
@@ -267,7 +268,11 @@ export default function POSPage() {
     }))
   }
 
-  const removeFromCart = (cartItemId: string) => setCart(prev => prev.filter(item => item.id !== cartItemId))
+  const removeFromCart = (cartItemId: string) => {
+    const item = cart.find(i => i.id === cartItemId)
+    setCart(prev => prev.filter(i => i.id !== cartItemId))
+    if (item) logAudit(user?.name || "System", user?.branch || "Unknown", `Removed item from cart: ${item.name}`, "Sales")
+  }
 
   const updateItemNote = (cartItemId: string, note: string) => {
     setCart(prev => prev.map(item => item.id === cartItemId ? { ...item, note } : item))

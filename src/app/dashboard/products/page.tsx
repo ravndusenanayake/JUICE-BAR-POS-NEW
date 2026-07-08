@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Search, Edit, Trash2, Box, X } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
+import { logAudit } from "@/lib/auditLogger"
+import { useAuth } from "@/context/AuthContext"
 
 // Dummy Data matching the screenshot
 const INITIAL_PRODUCTS = [
@@ -19,6 +21,7 @@ const INITIAL_PRODUCTS = [
 ]
 
 export default function ProductsPage() {
+  const { user } = useAuth()
   const [products, setProducts] = useState(INITIAL_PRODUCTS)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
@@ -105,6 +108,7 @@ export default function ProductsPage() {
     }
 
     setProducts([newProduct, ...products])
+    logAudit(user?.name || "System", user?.branch || "Unknown", `Created new product: ${name}`, "Product")
     setIsDialogOpen(false)
     resetForm()
   }
@@ -133,8 +137,10 @@ export default function ProductsPage() {
   }
 
   const deleteProduct = (id: number) => {
+    const prod = products.find(p => p.id === id)
     if(confirm("Are you sure you want to delete this product?")) {
       setProducts(products.filter(p => p.id !== id))
+      if (prod) logAudit(user?.name || "System", user?.branch || "Unknown", `Deleted product: ${prod.name}`, "Product")
     }
   }
 
