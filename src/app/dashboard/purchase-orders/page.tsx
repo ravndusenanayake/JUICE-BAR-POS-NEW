@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, CheckCircle, PackageOpen, X, FileText, Download } from "lucide-react"
+import { Search, Plus, CheckCircle, PackageOpen, X, FileText, Download, Truck, AlertTriangle } from "lucide-react"
 
 export interface POItem {
   id: string
@@ -48,19 +48,22 @@ export default function PurchaseOrdersPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState<"ALL" | "PENDING">("ALL")
 
-  // Modal State
+  // Create PO Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [supplierId, setSupplierId] = useState("")
   const [branch, setBranch] = useState(defaultBranch)
   const [expectedDate, setExpectedDate] = useState("")
   const [itemType, setItemType] = useState<"Raw Materials" | "Finished Products">("Raw Materials")
   const [items, setItems] = useState<POItem[]>([])
-  
-  // Item Entry State
   const [itemName, setItemName] = useState("")
   const [itemUnit, setItemUnit] = useState("Kg")
   const [itemQty, setItemQty] = useState("")
   const [itemCost, setItemCost] = useState("")
+
+  // GRN Modal State
+  const [isGrnOpen, setIsGrnOpen] = useState(false)
+  const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null)
+  const [grnItems, setGrnItems] = useState<{ id: string, receivedQty: string, damagedQty: string }[]>([])
 
   useEffect(() => {
     const storedPOs = localStorage.getItem("mock_purchase_orders")
@@ -76,7 +79,7 @@ export default function PurchaseOrdersPage() {
     return matchSearch
   })
 
-  // Add Item to current PO draft
+  // --- Create PO Logic ---
   const handleAddItem = () => {
     if (!itemName || !itemQty || !itemCost) return
     const qty = parseFloat(itemQty)
@@ -84,22 +87,14 @@ export default function PurchaseOrdersPage() {
     if (qty <= 0 || cost < 0) return
 
     const newItem: POItem = {
-      id: `ITEM-${Date.now()}`,
-      name: itemName,
-      unit: itemUnit,
-      quantity: qty,
-      unitCost: cost,
-      totalCost: qty * cost
+      id: `ITEM-${Date.now()}`, name: itemName, unit: itemUnit,
+      quantity: qty, unitCost: cost, totalCost: qty * cost
     }
     setItems([...items, newItem])
-    setItemName("")
-    setItemQty("")
-    setItemCost("")
+    setItemName(""); setItemQty(""); setItemCost("")
   }
 
-  const handleRemoveItem = (id: string) => {
-    setItems(items.filter(i => i.id !== id))
-  }
+  const handleRemoveItem = (id: string) => setItems(items.filter(i => i.id !== id))
 
   const handleSubmitPO = (e: React.FormEvent) => {
     e.preventDefault()
@@ -112,31 +107,19 @@ export default function PurchaseOrdersPage() {
     const poNumber = `PO-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`
     const totalCost = items.reduce((acc, item) => acc + item.totalCost, 0)
     
-    // Auto-Approve logic: If Admin creates it, it's Approved. If Manager, it's Submitted.
     const initialStatus = canApprove ? "Approved" : "Submitted"
 
     const newPO: PurchaseOrder = {
-      id: `POID-${Date.now()}`,
-      poNumber, supplierId, supplierName, branch,
-      createdDate: new Date().toISOString().split('T')[0],
-      expectedDate, itemType, items, totalCost,
-      status: initialStatus,
-      createdBy: user?.name || "System"
+      id: `POID-${Date.now()}`, poNumber, supplierId, supplierName, branch,
+      createdDate: new Date().toISOString().split('T')[0], expectedDate, itemType, items, totalCost,
+      status: initialStatus, createdBy: user?.name || "System"
     }
 
     const updated = [newPO, ...pos]
     setPos(updated)
     localStorage.setItem("mock_purchase_orders", JSON.stringify(updated))
     setIsCreateOpen(false)
-    resetForm()
-  }
-
-  const resetForm = () => {
-    setSupplierId("")
-    setBranch(defaultBranch)
-    setExpectedDate("")
-    setItems([])
-    setItemType("Raw Materials")
+    setSupplierId(""); setBranch(defaultBranch); setExpectedDate(""); setItems([]); setItemType("Raw Materials")
   }
 
   const handleApprove = (poId: string) => {
@@ -146,72 +129,116 @@ export default function PurchaseOrdersPage() {
     localStorage.setItem("mock_purchase_orders", JSON.stringify(updated))
   }
 
-  const handleReceiveGoods = (po: PurchaseOrder) => {
-    if (confirm(`Are you sure you want to receive goods for ${po.poNumber}? This will inject stock into the inventory.`)) {
-      // 1. Update PO Status
-      const updatedPOs = pos.map(p => p.id === po.id ? { ...p, status: "Received" as const } : p)
-      setPos(updatedPOs)
-      localStorage.setItem("mock_purchase_orders", JSON.stringify(updatedPOs))
+  // --- GRN Logic ---
+  const openGrnModal = (po: PurchaseOrder) => {
+    setSelectedPO(po)
+    // Initialize GRN inputs with default Ordered Qty and 0 damaged
+    setGrnItems(po.items.map(item => ({
+      id: item.id,
+      receivedQty: item.quantity.toString(),
+      damagedQty: "0"
+    })))
+    setIsGrnOpen(true)
+  }
 
-      // 2. Inject into Stock Ledger & Inventory
-      // Note: We need a mapping for real rawMaterial IDs. Since PO allows manual typing, we do a best-effort match or create new.
-      // For this mock, we just inject raw ledger entries. The Inventory page calculates based on ledger or stores its own.
-      // Since Branch Inventory uses its own array in our mock, we update it here:
-      
-      const storedInv = localStorage.getItem("mock_branch_inventory")
-      let inventory = storedInv ? JSON.parse(storedInv) : []
-      
-      const storedLedger = localStorage.getItem("mock_stock_ledger")
-      const ledger = storedLedger ? JSON.parse(storedLedger) : []
-      const now = new Date().toISOString()
-      
-      const newLedgerEntries = []
+  const updateGrnItem = (id: string, field: 'receivedQty' | 'damagedQty', value: string) => {
+    setGrnItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item))
+  }
 
-      po.items.forEach((item, idx) => {
-        // We will assume Base Unit conversion is 1:1 if they selected 'g' or 'ml'. If they selected 'Kg', we multiply by 1000.
-        // This is a simplified mock conversion.
-        let baseQty = item.quantity
-        let baseUnit = item.unit
-        if (item.unit === "Kg") { baseQty = item.quantity * 1000; baseUnit = "g" }
-        if (item.unit === "L") { baseQty = item.quantity * 1000; baseUnit = "ml" }
+  const handleSubmitGRN = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedPO) return
 
-        // Find existing inventory item or create dummy
-        const existingIdx = inventory.findIndex((i:any) => i.rawMaterialName.toLowerCase() === item.name.toLowerCase() && i.branchId === po.branch)
-        if (existingIdx >= 0) {
-          inventory[existingIdx].currentStock += baseQty
-        } else {
-          inventory.push({
-            id: `RM-${Date.now()}-${idx}`,
-            branchId: (BRANCHES.indexOf(po.branch) + 1).toString().replace(/^/, 'B'), // B1, B2
-            rawMaterialName: item.name,
-            sku: `SKU-PO-${Date.now().toString().slice(-4)}`,
-            baseUnit: baseUnit,
-            currentStock: baseQty,
-            minimumStock: 5000,
-            maxCapacity: baseQty * 2,
-            status: "Active"
-          })
-        }
+    const grnNumber = `GRN-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`
 
-        // Add Ledger Entry
-        newLedgerEntries.push({
-          id: `LDG-PO-${Date.now()}-${idx}`,
-          timestamp: now,
-          branch: po.branch,
+    // 1. Update PO Status
+    const updatedPOs = pos.map(p => p.id === selectedPO.id ? { ...p, status: "Received" as const } : p)
+    setPos(updatedPOs)
+    localStorage.setItem("mock_purchase_orders", JSON.stringify(updatedPOs))
+
+    // 2. Inject into Stock Ledger & Inventory
+    const storedInv = localStorage.getItem("mock_branch_inventory")
+    let inventory = storedInv ? JSON.parse(storedInv) : []
+    
+    const storedLedger = localStorage.getItem("mock_stock_ledger")
+    const ledger = storedLedger ? JSON.parse(storedLedger) : []
+    const now = new Date().toISOString()
+    
+    const newLedgerEntries: any[] = []
+
+    selectedPO.items.forEach((item, idx) => {
+      const grnState = grnItems.find(g => g.id === item.id)
+      if (!grnState) return
+
+      const rQty = parseFloat(grnState.receivedQty) || 0
+      const dQty = parseFloat(grnState.damagedQty) || 0
+      const goodQty = rQty - dQty
+
+      if (goodQty <= 0) return // Nothing good to add to inventory
+
+      // Unit conversion for mock (simplified)
+      let baseQty = goodQty
+      let baseUnit = item.unit
+      if (item.unit === "Kg") { baseQty = goodQty * 1000; baseUnit = "g" }
+      if (item.unit === "L") { baseQty = goodQty * 1000; baseUnit = "ml" }
+
+      // Update Branch Inventory
+      const existingIdx = inventory.findIndex((i:any) => i.rawMaterialName.toLowerCase() === item.name.toLowerCase() && i.branchId === selectedPO.branch)
+      if (existingIdx >= 0) {
+        inventory[existingIdx].currentStock += baseQty
+      } else {
+        inventory.push({
+          id: `RM-${Date.now()}-${idx}`,
+          branchId: (BRANCHES.indexOf(selectedPO.branch) + 1).toString().replace(/^/, 'B'), // B1, B2
           rawMaterialName: item.name,
-          type: "IN",
-          reason: "Purchase Received",
-          quantityChange: baseQty,
+          sku: `SKU-PO-${Date.now().toString().slice(-4)}`,
           baseUnit: baseUnit,
-          reference: po.poNumber
+          currentStock: baseQty,
+          minimumStock: 5000,
+          maxCapacity: baseQty * 2,
+          status: "Active"
         })
+      }
+
+      // Add Ledger Entry for Good Qty
+      newLedgerEntries.push({
+        id: `LDG-${grnNumber}-${idx}`,
+        timestamp: now,
+        branch: selectedPO.branch,
+        rawMaterialName: item.name,
+        type: "IN",
+        reason: "GRN Received",
+        quantityChange: baseQty,
+        baseUnit: baseUnit,
+        reference: grnNumber // GRN Number as reference
       })
 
-      localStorage.setItem("mock_branch_inventory", JSON.stringify(inventory))
-      localStorage.setItem("mock_stock_ledger", JSON.stringify([...ledger, ...newLedgerEntries]))
-      
-      alert(`Success! Goods received and Inventory updated automatically.`)
-    }
+      // Optionally log damaged qty to ledger as "Rejected" (Not strictly required for inventory logic, but good for audit)
+      if (dQty > 0) {
+        let damagedBaseQty = dQty
+        if (item.unit === "Kg") damagedBaseQty = dQty * 1000
+        if (item.unit === "L") damagedBaseQty = dQty * 1000
+
+        newLedgerEntries.push({
+          id: `LDG-${grnNumber}-REJ-${idx}`,
+          timestamp: now,
+          branch: selectedPO.branch,
+          rawMaterialName: item.name,
+          type: "INFO", // Or OUT if tracking reject bins
+          reason: "GRN Damaged/Rejected",
+          quantityChange: 0, // Doesn't affect inventory
+          baseUnit: baseUnit,
+          reference: grnNumber,
+          notes: `${damagedBaseQty} ${baseUnit} rejected`
+        })
+      }
+    })
+
+    localStorage.setItem("mock_branch_inventory", JSON.stringify(inventory))
+    localStorage.setItem("mock_stock_ledger", JSON.stringify([...ledger, ...newLedgerEntries]))
+    
+    setIsGrnOpen(false)
+    alert(`Success! Goods Received Note (${grnNumber}) processed. Inventory updated automatically.`)
   }
 
   const getStatusBadge = (status: string) => {
@@ -307,7 +334,7 @@ export default function PurchaseOrdersPage() {
                       </Button>
                     )}
                     {po.status === "Approved" && (
-                      <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white font-bold h-8" onClick={() => handleReceiveGoods(po)}>
+                      <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white font-bold h-8" onClick={() => openGrnModal(po)}>
                         <Download className="w-4 h-4 mr-1.5" /> Receive Goods (GRN)
                       </Button>
                     )}
@@ -445,6 +472,96 @@ export default function PurchaseOrdersPage() {
             <DialogFooter className="p-6 border-t bg-white flex gap-3 sm:justify-end">
               <Button type="button" variant="outline" className="h-11 px-6 font-bold" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
               <Button type="submit" className="h-11 px-6 font-bold bg-orange-500 text-white hover:bg-orange-600 shadow-lg">Submit Purchase Order</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* GRN MODAL */}
+      <Dialog open={isGrnOpen} onOpenChange={setIsGrnOpen}>
+        <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden border-0 shadow-2xl rounded-2xl">
+          <form onSubmit={handleSubmitGRN}>
+            <div className="p-6 border-b bg-green-50">
+              <div className="flex justify-between items-start">
+                <div>
+                  <DialogTitle className="text-xl font-black text-gray-900 flex items-center gap-2">
+                    <Truck className="text-green-600" /> Goods Received Note (GRN)
+                  </DialogTitle>
+                  <DialogDescription className="text-gray-600 mt-2 font-medium">
+                    Receiving items for <strong className="text-gray-900">{selectedPO?.poNumber}</strong> from <strong className="text-gray-900">{selectedPO?.supplierName}</strong>.
+                  </DialogDescription>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-bold text-gray-500">GRN Date</div>
+                  <div className="font-black text-gray-900">{new Date().toLocaleDateString()}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 max-h-[60vh] overflow-y-auto bg-gray-50/30">
+              <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-6 flex gap-3">
+                <AlertTriangle className="text-blue-500 w-5 h-5 shrink-0" />
+                <p className="text-sm text-blue-900 font-medium leading-relaxed">
+                  Please verify the physical stock received. Enter the exact <strong>Received Qty</strong>. If any items are damaged or spoiled, enter them in the <strong>Damaged Qty</strong> column. Only good stock will be added to inventory.
+                </p>
+              </div>
+
+              <div className="border rounded-xl bg-white overflow-hidden shadow-sm">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-100 text-xs">
+                      <TableHead className="py-3">Product Name</TableHead>
+                      <TableHead>Ordered Qty</TableHead>
+                      <TableHead className="w-32 bg-green-50/50">Received Qty</TableHead>
+                      <TableHead className="w-32 bg-red-50/50">Damaged Qty</TableHead>
+                      <TableHead className="text-right">Good Stock Added</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedPO?.items.map((item) => {
+                      const grnState = grnItems.find(g => g.id === item.id)
+                      const rQty = parseFloat(grnState?.receivedQty || "0") || 0
+                      const dQty = parseFloat(grnState?.damagedQty || "0") || 0
+                      const goodQty = rQty - dQty
+
+                      return (
+                        <TableRow key={item.id} className="text-sm">
+                          <TableCell className="font-bold py-3 text-gray-900">{item.name}</TableCell>
+                          <TableCell className="text-gray-500 font-medium">{item.quantity} {item.unit}</TableCell>
+                          <TableCell className="bg-green-50/20">
+                            <div className="flex items-center gap-2">
+                              <Input 
+                                type="number" step="0.01"
+                                className="h-8 w-20 border-green-200 focus-visible:ring-green-500 font-bold"
+                                value={grnState?.receivedQty}
+                                onChange={e => updateGrnItem(item.id, 'receivedQty', e.target.value)}
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell className="bg-red-50/20">
+                            <Input 
+                              type="number" step="0.01"
+                              className="h-8 w-20 border-red-200 focus-visible:ring-red-500 font-bold text-red-600"
+                              value={grnState?.damagedQty}
+                              onChange={e => updateGrnItem(item.id, 'damagedQty', e.target.value)}
+                            />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span className={`font-black ${goodQty > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                              {goodQty > 0 ? '+' : ''}{goodQty} {item.unit}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            <DialogFooter className="p-6 border-t bg-white flex gap-3 sm:justify-end">
+              <Button type="button" variant="outline" className="h-11 px-6 font-bold" onClick={() => setIsGrnOpen(false)}>Cancel</Button>
+              <Button type="submit" className="h-11 px-6 font-bold bg-green-600 text-white hover:bg-green-700 shadow-lg">Submit GRN & Update Stock</Button>
             </DialogFooter>
           </form>
         </DialogContent>
