@@ -6,7 +6,7 @@ import { useEffect, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { 
   LayoutDashboard, ShoppingCart, Package, Users, Settings, LogOut, Store,
-  Droplets, Tags, ShieldCheck, UserCog, Box, PlusCircle, History
+  Droplets, Tags, ShieldCheck, UserCog, Box, PlusCircle, History, Truck, Building2
 } from "lucide-react"
 
 export default function DashboardLayout({
@@ -115,6 +115,22 @@ export default function DashboardLayout({
               <Link href="/dashboard/stock-ledger" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
                 <History className="h-5 w-5" />
                 Stock Ledger
+              </Link>
+            </>
+          )}
+
+          {hasAccess(["Super Admin", "Admin", "Branch Manager", "Store Keeper"]) && (
+            <>
+              <div className="pt-4 pb-1">
+                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Procurement</p>
+              </div>
+              <Link href="/dashboard/suppliers" className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all ${isActive('/dashboard/suppliers') ? 'bg-primary/10 text-primary' : ''}`}>
+                <Building2 className="h-5 w-5" />
+                Suppliers
+              </Link>
+              <Link href="/dashboard/purchase-orders" className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all ${isActive('/dashboard/purchase-orders') ? 'bg-primary/10 text-primary' : ''}`}>
+                <Truck className="h-5 w-5" />
+                Purchase Orders
               </Link>
             </>
           )}
