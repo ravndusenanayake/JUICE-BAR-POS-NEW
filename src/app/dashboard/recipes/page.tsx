@@ -3,298 +3,276 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Edit, Trash2, X, ChefHat } from "lucide-react"
+import { Settings, Plus, Trash2, Box, Beaker, Save, ChefHat } from "lucide-react"
 
-// Dummy Data
+// --- Mock Data ---
+const PRODUCTS = [
+  { id: "P5", name: "Fruit Salad", variants: ["Medium", "Large"] },
+  { id: "P1", name: "Avocado Juice", variants: ["Standard"] },
+  { id: "P3", name: "Chocolate Milkshake", variants: ["Standard"] },
+]
+
 const RAW_MATERIALS = [
-  { id: 1, name: "Sugar", unit: "g" },
-  { id: 2, name: "Milk", unit: "ml" },
-  { id: 3, name: "Mango", unit: "g" },
-  { id: 4, name: "Pineapple", unit: "g" },
-  { id: 5, name: "Ice", unit: "g" },
-  { id: 6, name: "Banana", unit: "Nos" },
+  { id: "RM1", name: "Pineapple", unit: "g" },
+  { id: "RM2", name: "Mango", unit: "g" },
+  { id: "RM3", name: "Papaya", unit: "g" },
+  { id: "RM4", name: "Sugar", unit: "g" },
+  { id: "RM5", name: "Avocado", unit: "Pieces" },
+  { id: "RM6", name: "Milk", unit: "ml" },
+  { id: "RM7", name: "Chocolate Syrup", unit: "ml" },
 ]
 
-const PRODUCTS_VARIANTS = [
-  { id: "p1", name: "Banana Milkshake - Large" },
-  { id: "p2", name: "Banana Milkshake - Medium" },
-  { id: "p3", name: "Fruit Salad - Large" },
-  { id: "p4", name: "Fruit Salad - Medium" },
-]
-
+// Simulating saved recipes database
 const INITIAL_RECIPES = [
-  { 
-    id: 1, 
-    productName: "Banana Milkshake - Large", 
+  {
+    id: "REC1",
+    productId: "P5",
+    productName: "Fruit Salad",
+    variant: "Large",
     ingredients: [
-      { rawMaterialId: 6, name: "Banana", quantity: 2, unit: "Nos" },
-      { rawMaterialId: 2, name: "Milk", quantity: 250, unit: "ml" },
-      { rawMaterialId: 1, name: "Sugar", quantity: 50, unit: "g" }
-    ] 
+      { rawMaterialId: "RM1", name: "Pineapple", quantity: 150, unit: "g" },
+      { rawMaterialId: "RM2", name: "Mango", quantity: 100, unit: "g" },
+      { rawMaterialId: "RM3", name: "Papaya", quantity: 100, unit: "g" },
+      { rawMaterialId: "RM4", name: "Sugar", quantity: 20, unit: "g" },
+    ]
   },
-  { 
-    id: 2, 
-    productName: "Fruit Salad - Medium", 
+  {
+    id: "REC2",
+    productId: "P1",
+    productName: "Avocado Juice",
+    variant: "Standard",
     ingredients: [
-      { rawMaterialId: 3, name: "Mango", quantity: 100, unit: "g" },
-      { rawMaterialId: 4, name: "Pineapple", quantity: 150, unit: "g" },
-      { rawMaterialId: 1, name: "Sugar", quantity: 30, unit: "g" }
-    ] 
+      { rawMaterialId: "RM5", name: "Avocado", quantity: 1, unit: "Pieces" },
+      { rawMaterialId: "RM6", name: "Milk", quantity: 200, unit: "ml" },
+      { rawMaterialId: "RM4", name: "Sugar", quantity: 30, unit: "g" },
+    ]
   }
 ]
 
 export default function RecipesPage() {
   const [recipes, setRecipes] = useState(INITIAL_RECIPES)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
   
-  // Form State
-  const [selectedProduct, setSelectedProduct] = useState("")
-  const [ingredients, setIngredients] = useState<{rawMaterialId: number, name: string, quantity: string, unit: string}[]>([])
+  // Builder State
+  const [selectedProductId, setSelectedProductId] = useState("")
+  const [selectedVariant, setSelectedVariant] = useState("")
+  const [currentIngredients, setCurrentIngredients] = useState<any[]>([])
 
-  const filteredRecipes = recipes.filter(r => 
-    r.productName.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Form selections
+  const [selectedRawMaterialId, setSelectedRawMaterialId] = useState("")
+  const [quantity, setQuantity] = useState("")
 
-  const handleAddIngredient = () => {
-    setIngredients([...ingredients, { rawMaterialId: 0, name: "", quantity: "", unit: "" }])
-  }
+  const selectedProduct = PRODUCTS.find(p => p.id === selectedProductId)
+  const selectedRawMaterial = RAW_MATERIALS.find(r => r.id === selectedRawMaterialId)
 
-  const handleRemoveIngredient = (index: number) => {
-    setIngredients(ingredients.filter((_, i) => i !== index))
-  }
-
-  const handleIngredientChange = (index: number, rawMaterialIdStr: string) => {
-    const rawMatId = parseInt(rawMaterialIdStr);
-    const rawMat = RAW_MATERIALS.find(rm => rm.id === rawMatId);
-    if (rawMat) {
-      const newIngredients = [...ingredients]
-      newIngredients[index] = { 
-        ...newIngredients[index], 
-        rawMaterialId: rawMat.id, 
-        name: rawMat.name, 
-        unit: rawMat.unit 
-      }
-      setIngredients(newIngredients)
+  // Handlers
+  const handleProductChange = (val: string) => {
+    setSelectedProductId(val)
+    const prod = PRODUCTS.find(p => p.id === val)
+    if (prod && prod.variants.length > 0) {
+      setSelectedVariant(prod.variants[0])
+    }
+    // Check if recipe exists
+    const existing = recipes.find(r => r.productId === val && r.variant === (prod?.variants[0] || "Standard"))
+    if (existing) {
+      setCurrentIngredients([...existing.ingredients])
+    } else {
+      setCurrentIngredients([])
     }
   }
 
-  const handleQuantityChange = (index: number, value: string) => {
-    const newIngredients = [...ingredients]
-    newIngredients[index].quantity = value
-    setIngredients(newIngredients)
+  const handleVariantChange = (val: string) => {
+    setSelectedVariant(val)
+    const existing = recipes.find(r => r.productId === selectedProductId && r.variant === val)
+    if (existing) {
+      setCurrentIngredients([...existing.ingredients])
+    } else {
+      setCurrentIngredients([])
+    }
   }
 
-  const handleSaveRecipe = (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!selectedProduct) {
-      alert("Please select a Product / Variant.")
-      return
+  const addIngredient = () => {
+    if (!selectedRawMaterial || !quantity) return
+    const newIng = {
+      rawMaterialId: selectedRawMaterial.id,
+      name: selectedRawMaterial.name,
+      quantity: Number(quantity),
+      unit: selectedRawMaterial.unit
     }
-    if (ingredients.length === 0) {
-      alert("Please add at least one ingredient.")
-      return
-    }
+    setCurrentIngredients([...currentIngredients, newIng])
+    setSelectedRawMaterialId("")
+    setQuantity("")
+  }
 
-    const prodName = PRODUCTS_VARIANTS.find(p => p.id === selectedProduct)?.name || "Unknown Product"
+  const removeIngredient = (id: string) => {
+    setCurrentIngredients(currentIngredients.filter(i => i.rawMaterialId !== id))
+  }
 
-    if (recipes.some(r => r.productName === prodName)) {
-      alert("A recipe for this product already exists! Please edit it instead.")
+  const saveRecipe = () => {
+    if (!selectedProduct || currentIngredients.length === 0) {
+      alert("Please select a product and add ingredients.")
       return
     }
 
     const newRecipe = {
-      id: recipes.length + 1,
-      productName: prodName,
-      ingredients: ingredients.map(i => ({
-        ...i,
-        quantity: parseFloat(i.quantity) || 0
-      }))
+      id: `REC${Date.now()}`,
+      productId: selectedProduct.id,
+      productName: selectedProduct.name,
+      variant: selectedVariant,
+      ingredients: currentIngredients
     }
 
-    setRecipes([newRecipe, ...recipes])
-    setIsDialogOpen(false)
-    resetForm()
-  }
-
-  const resetForm = () => {
-    setSelectedProduct("")
-    setIngredients([])
-  }
-
-  const deleteRecipe = (id: number) => {
-    if(confirm("Are you sure you want to delete this recipe?")) {
-      setRecipes(recipes.filter(r => r.id !== id))
-    }
+    // Remove old if exists
+    const filtered = recipes.filter(r => !(r.productId === selectedProduct.id && r.variant === selectedVariant))
+    setRecipes([...filtered, newRecipe])
+    alert("Recipe saved successfully! This will be used for auto-deduction at the POS.")
+    
+    // In a real app, we would save this to the database/global context so POS can read it.
+    // For this prototype, we will hardcode the recipe logic in POS to match this.
+    localStorage.setItem("mock_recipes", JSON.stringify([...filtered, newRecipe]))
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Recipe Management</h2>
-          <p className="text-muted-foreground">Define raw materials required for products to automate inventory deduction.</p>
-        </div>
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
+          <ChefHat className="text-orange-500 w-6 h-6" /> Recipe Management
+        </h2>
+        <p className="text-gray-500">Define the exact raw materials required to produce each product for automatic stock deduction.</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }}>
-          <DialogTrigger render={<Button className="bg-orange-500 hover:bg-orange-600 text-white" />}>
-            <Plus className="mr-2 h-4 w-4" /> Create Recipe
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
-            <form onSubmit={handleSaveRecipe}>
-              <DialogHeader>
-                <DialogTitle>Recipe Builder</DialogTitle>
-                <DialogDescription>
-                  Select a product or variant and add the exact ingredients required.
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="grid gap-6 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="product" className="text-sm font-medium text-gray-700">Product / Variant *</Label>
-                  <Select value={selectedProduct} onValueChange={(val) => setSelectedProduct(val || "")} required>
-                    <SelectTrigger className="border-gray-300 border-orange-400 focus:ring-orange-400">
-                      <SelectValue placeholder="Select Product Variant" />
+        {/* Recipe Builder Form */}
+        <div className="lg:col-span-1 space-y-6">
+          <div className="bg-white p-6 rounded-xl shadow-sm border">
+            <h3 className="font-bold text-lg mb-4 text-gray-800 border-b pb-2">1. Select Product</h3>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Product Name</Label>
+                <Select value={selectedProductId} onValueChange={handleProductChange}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a product" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRODUCTS.map(p => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedProduct && selectedProduct.variants.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Variant (Size)</Label>
+                  <Select value={selectedVariant} onValueChange={handleVariantChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select size" />
                     </SelectTrigger>
                     <SelectContent>
-                      {PRODUCTS_VARIANTS.map(p => (
-                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      {selectedProduct.variants.map(v => (
+                        <SelectItem key={v} value={v}>{v}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                
-                <div className="border rounded-md p-4 bg-gray-50/50">
-                  <div className="flex justify-between items-center mb-4">
-                    <Label className="text-sm font-medium text-gray-700">Ingredients</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={handleAddIngredient} className="border-orange-500 text-orange-500 hover:bg-orange-50">
-                      <Plus className="mr-2 h-3 w-3" /> Add Ingredient
-                    </Button>
-                  </div>
+              )}
+            </div>
+          </div>
 
-                  {ingredients.length === 0 ? (
-                    <div className="text-center py-6 text-sm text-gray-400 italic bg-white border border-dashed rounded">
-                      No ingredients added yet.
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {ingredients.map((ing, idx) => (
-                        <div key={idx} className="flex items-center gap-3 bg-white p-2 border rounded shadow-sm">
-                          <div className="flex-1">
-                            <Select value={ing.rawMaterialId.toString()} onValueChange={(val) => handleIngredientChange(idx, val || "")} required>
-                              <SelectTrigger className="h-8 text-xs border-gray-300">
-                                <SelectValue placeholder="Select Raw Material" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {RAW_MATERIALS.map(rm => (
-                                  <SelectItem key={rm.id} value={rm.id.toString()}>{rm.name} ({rm.unit})</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="w-24">
-                            <Input 
-                              type="number" 
-                              step="0.01" 
-                              placeholder="Qty" 
-                              value={ing.quantity} 
-                              onChange={(e) => handleQuantityChange(idx, e.target.value)} 
-                              required 
-                              className="h-8 text-xs border-gray-300" 
-                            />
-                          </div>
-                          <div className="w-10 text-xs text-gray-500 font-medium">
-                            {ing.unit || "-"}
-                          </div>
-                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-50" onClick={() => handleRemoveIngredient(idx)}>
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+          <div className="bg-white p-6 rounded-xl shadow-sm border opacity-100 transition-opacity" style={{ opacity: selectedProductId ? 1 : 0.5, pointerEvents: selectedProductId ? 'auto' : 'none' }}>
+            <h3 className="font-bold text-lg mb-4 text-gray-800 border-b pb-2">2. Add Ingredients</h3>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Raw Material</Label>
+                <Select value={selectedRawMaterialId} onValueChange={setSelectedRawMaterialId}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select raw material" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {RAW_MATERIALS.map(r => (
+                      <SelectItem key={r.id} value={r.id}>{r.name} ({r.unit})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               
-              <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
-                <DialogClose render={<Button type="button" variant="outline" className="w-full sm:w-auto" />}>
-                  Cancel
-                </DialogClose>
-                <Button type="submit" className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white">
-                  Save Recipe
+              <div className="flex gap-2 items-end">
+                <div className="space-y-2 flex-1">
+                  <Label>Quantity ({selectedRawMaterial?.unit || '-'})</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="e.g. 50" 
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                  />
+                </div>
+                <Button onClick={addIngredient} className="bg-orange-500 hover:bg-orange-600 text-white shadow-md">
+                  <Plus className="w-4 h-4 mr-1" /> Add
                 </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="bg-white rounded-lg shadow-sm border p-4">
-        <div className="flex items-center gap-4 mb-6 pb-4 border-b">
-          <div className="relative w-full max-w-md">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-            <Input 
-              type="search" 
-              placeholder="Search recipes by product..." 
-              className="pl-9 bg-gray-50 border-none"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+              </div>
+            </div>
           </div>
         </div>
 
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-              <TableHead className="py-3">Product Variant</TableHead>
-              <TableHead>Ingredients</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredRecipes.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
-                  No recipes found.
-                </TableCell>
-              </TableRow>
-            )}
-            {filteredRecipes.map((r) => (
-              <TableRow key={r.id} className="border-b last:border-0 hover:bg-gray-50/50">
-                <TableCell className="py-4">
-                  <div className="font-semibold text-gray-800 flex items-center gap-2">
-                    <ChefHat className="h-4 w-4 text-orange-400" />
-                    {r.productName}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {r.ingredients.map((ing, idx) => (
-                      <span key={idx} className="inline-flex items-center text-[10px] px-2 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-100">
-                        {ing.name}: {ing.quantity}{ing.unit}
-                      </span>
+        {/* Current Recipe View */}
+        <div className="lg:col-span-2">
+          <div className="bg-white p-6 rounded-xl shadow-sm border h-full flex flex-col">
+            <div className="flex items-center justify-between mb-4 border-b pb-2">
+              <h3 className="font-bold text-lg text-gray-800">
+                {selectedProduct ? `Recipe for ${selectedProduct.name} (${selectedVariant})` : "Select a product to view recipe"}
+              </h3>
+              {currentIngredients.length > 0 && (
+                <Button onClick={saveRecipe} className="bg-gray-900 text-white hover:bg-black shadow-md rounded-lg">
+                  <Save className="w-4 h-4 mr-2" /> Save Recipe
+                </Button>
+              )}
+            </div>
+
+            {currentIngredients.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-gray-400 py-12">
+                <Beaker className="w-16 h-16 opacity-20 mb-4" />
+                <p className="font-medium text-lg">No ingredients added yet.</p>
+                <p className="text-sm">Select a raw material and quantity to build this recipe.</p>
+              </div>
+            ) : (
+              <div className="flex-1 overflow-auto rounded-lg border">
+                <Table>
+                  <TableHeader className="bg-gray-50">
+                    <TableRow>
+                      <TableHead>Raw Material</TableHead>
+                      <TableHead>Quantity Required</TableHead>
+                      <TableHead className="w-[100px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {currentIngredients.map(ing => (
+                      <TableRow key={ing.rawMaterialId}>
+                        <TableCell className="font-semibold text-gray-800 flex items-center gap-2">
+                          <Box className="w-4 h-4 text-orange-400" />
+                          {ing.name}
+                        </TableCell>
+                        <TableCell>
+                          <span className="bg-gray-100 px-2 py-1 rounded-md font-bold text-gray-700">
+                            {ing.quantity} {ing.unit}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => removeIngredient(ing.rawMaterialId)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon" title="Edit">
-                      <Edit className="h-4 w-4 text-gray-400 hover:text-blue-500" />
-                    </Button>
-                    <Button variant="ghost" size="icon" title="Delete" onClick={() => deleteRecipe(r.id)}>
-                      <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        </div>
+        
       </div>
     </div>
   )

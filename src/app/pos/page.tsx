@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Search, ShoppingCart, ArrowLeft, Trash2, Plus, Minus, CreditCard, User } from "lucide-react"
+import { Search, ShoppingCart, ArrowLeft, Trash2, Plus, Minus, CreditCard, User, CheckCircle2 } from "lucide-react"
 
 // --- Mock Data ---
 const CATEGORIES = ["All", "Fresh Juices", "Milkshakes", "Desserts", "Snacks"]
@@ -54,6 +54,10 @@ export default function POSPage() {
   const [selectedVariant, setSelectedVariant] = useState<any>(null)
   const [selectedAddons, setSelectedAddons] = useState<string[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
+  
+  // Payment Success State
+  const [paymentSuccess, setPaymentSuccess] = useState(false)
+  const [deductedMaterials, setDeductedMaterials] = useState<any[]>([])
 
   // Filtering
   const filteredProducts = useMemo(() => {
@@ -137,7 +141,46 @@ export default function POSPage() {
 
   const processPayment = () => {
     if (cart.length === 0) return
-    alert(`Payment of Rs. ${grandTotal.toFixed(2)} processed successfully!`)
+
+    // Auto-Deduction Logic Simulation
+    try {
+      const storedRecipes = localStorage.getItem("mock_recipes")
+      const allRecipes = storedRecipes ? JSON.parse(storedRecipes) : []
+      
+      const deductions: Record<string, {name: string, quantity: number, unit: string}> = {}
+
+      cart.forEach(cartItem => {
+        // Find recipe for this item variant
+        const recipe = allRecipes.find((r: any) => 
+          r.productId === cartItem.productId && 
+          r.variant === (cartItem.variant || "Standard")
+        )
+
+        if (recipe) {
+          recipe.ingredients.forEach((ing: any) => {
+            const totalQty = ing.quantity * cartItem.quantity
+            if (deductions[ing.rawMaterialId]) {
+              deductions[ing.rawMaterialId].quantity += totalQty
+            } else {
+              deductions[ing.rawMaterialId] = { name: ing.name, quantity: totalQty, unit: ing.unit }
+            }
+          })
+        }
+      })
+
+      const deductedArray = Object.values(deductions)
+      setDeductedMaterials(deductedArray)
+      setPaymentSuccess(true)
+      
+    } catch (e) {
+      console.error(e)
+      alert(`Payment of Rs. ${grandTotal.toFixed(2)} processed successfully! (No recipes found for auto-deduction)`)
+      setCart([])
+    }
+  }
+
+  const closeSuccessModal = () => {
+    setPaymentSuccess(false)
     setCart([])
   }
 
@@ -394,6 +437,37 @@ export default function POSPage() {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL: Payment Success & Stock Deduction Summary */}
+      <Dialog open={paymentSuccess} onOpenChange={closeSuccessModal}>
+        <DialogContent className="sm:max-w-md p-6 overflow-hidden rounded-2xl border-0 shadow-2xl bg-white text-center">
+          <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+            <CheckCircle2 className="w-10 h-10 text-green-600" />
+          </div>
+          <h2 className="text-2xl font-black text-gray-900 mb-2">Payment Successful!</h2>
+          <p className="text-gray-500 mb-6">Rs. {grandTotal.toFixed(2)} has been collected.</p>
+          
+          <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 text-left mb-6">
+            <h3 className="font-bold text-orange-800 mb-2 border-b border-orange-200 pb-2">Auto-Deducted from Inventory:</h3>
+            {deductedMaterials.length > 0 ? (
+              <ul className="space-y-1.5">
+                {deductedMaterials.map((mat, i) => (
+                  <li key={i} className="flex justify-between text-sm">
+                    <span className="font-medium text-gray-700">{mat.name}</span>
+                    <span className="font-bold text-orange-600">-{mat.quantity} {mat.unit}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-gray-500 italic">No recipe mappings found for these items.</p>
+            )}
+          </div>
+
+          <Button className="w-full h-12 rounded-xl font-bold bg-gray-900 text-white hover:bg-black shadow-lg" onClick={closeSuccessModal}>
+            New Order
+          </Button>
         </DialogContent>
       </Dialog>
     </div>
