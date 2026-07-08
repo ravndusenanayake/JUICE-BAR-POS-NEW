@@ -6,8 +6,14 @@ import { useEffect, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { 
   LayoutDashboard, ShoppingCart, Package, Users, Settings, LogOut, Store,
-  Droplets, Tags, ShieldCheck, UserCog, Box, PlusCircle, History, Truck, Building2,
-  FileText, ArrowRightLeft
+  Droplets, Tags, ShieldCheck, UserCog, Box,  ListOrdered,
+  History,
+  Truck,
+  Building2,
+  FileText, 
+  ArrowRightLeft,
+  Wallet,
+  PlusCircle
 } from "lucide-react"
 
 export default function DashboardLayout({
@@ -140,6 +146,18 @@ export default function DashboardLayout({
               <Link href="/dashboard/stock-transfers" className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all ${isActive('/dashboard/stock-transfers') ? 'bg-primary/10 text-primary' : ''}`}>
                 <ArrowRightLeft className="h-5 w-5" />
                 Stock Transfers
+              </Link>
+            </>
+          )}
+
+          {hasAccess(["Super Admin", "Admin", "Branch Manager"]) && (
+            <>
+              <div className="pt-4 pb-1">
+                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Finance</p>
+              </div>
+              <Link href="/dashboard/expenses" className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all ${isActive('/dashboard/expenses') ? 'bg-primary/10 text-primary' : ''}`}>
+                <Wallet className="h-5 w-5" />
+                Expenses
               </Link>
             </>
           )}
