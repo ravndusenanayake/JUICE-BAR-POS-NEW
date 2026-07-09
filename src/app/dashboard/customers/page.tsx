@@ -142,7 +142,7 @@ export default function CustomersPage() {
                 <TableCell className="font-mono text-gray-600">{customer.mobile}</TableCell>
                 <TableCell className="text-gray-500">{customer.email || "-"}</TableCell>
                 <TableCell className="text-gray-500">{customer.birthday || "-"}</TableCell>
-                <TableCell className="text-right font-black text-gray-900">{customer.totalSpend.toFixed(2)}</TableCell>
+                <TableCell className="text-right font-black text-gray-900">{(customer.totalSpend || 0).toFixed(2)}</TableCell>
                 <TableCell className="text-right font-black text-orange-600">{customer.points}</TableCell>
                 <TableCell className="text-center">
                   <span className={`px-2.5 py-1 rounded-full text-xs font-bold shadow-sm ${customer.status === 'VIP' ? 'bg-purple-100 text-purple-700 border border-purple-200' : 'bg-blue-100 text-blue-700 border border-blue-200'}`}>

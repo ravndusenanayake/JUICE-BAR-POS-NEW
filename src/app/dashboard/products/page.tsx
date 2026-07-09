@@ -22,9 +22,10 @@ const INITIAL_PRODUCTS = [
 
 export default function ProductsPage() {
   const { user } = useAuth()
-  const [products, setProducts] = useState<Product[]>([])
+  const [products, setProducts] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<any>(null)
   
   useEffect(() => {
     fetchProducts()
@@ -110,21 +111,6 @@ export default function ProductsPage() {
     p.sku.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const handleAddProduct = (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (products.some(p => p.sku.toLowerCase() === sku.toLowerCase())) {
-      alert("A product with this SKU already exists!")
-      return
-    }
-
-    const newProduct = {
-      id: products.length + 1,
-      name,
-      sku: sku.toUpperCase(),
-      category,
-    p.sku?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
 
   const saveProduct = async () => {
     if(!name || !category || !outletPrice) return alert("Please fill all required fields")
