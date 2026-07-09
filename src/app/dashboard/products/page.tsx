@@ -187,18 +187,16 @@ export default function ProductsPage() {
           <p className="text-muted-foreground">Manage your products, pricing, and variants.</p>
         </div>
         
+        <Button onClick={() => setIsDialogOpen(true)} className="bg-orange-500 hover:bg-orange-600 text-white">
+          <Plus className="mr-2 h-4 w-4" /> Add Product
+        </Button>
         <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-              <Plus className="mr-2 h-4 w-4" /> Add Product
-            </Button>
-          </DialogTrigger>
           <DialogContent className="sm:max-w-[700px]">
             <DialogHeader>
               <DialogTitle className="text-xl">{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
             </DialogHeader>
               
-              <div className="grid gap-6 py-4">
+              <div className="grid gap-6 py-4 max-h-[65vh] overflow-y-auto px-2">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label className="text-sm font-medium text-gray-700">Product Name *</Label>

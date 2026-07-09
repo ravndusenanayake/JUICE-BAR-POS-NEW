@@ -2,10 +2,14 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IProduct extends Document {
   sku: string;
-  categoryId?: mongoose.Types.ObjectId;
   name: string;
-  image?: string;
-  description?: string;
+  category: string;
+  type: string;
+  unit: string;
+  cost: number;
+  outletPrice: number;
+  pickmePrice: number;
+  uberPrice: number;
   status: 'Active' | 'Inactive';
   createdAt: Date;
   updatedAt: Date;
@@ -14,16 +18,18 @@ export interface IProduct extends Document {
 const ProductSchema = new Schema<IProduct>(
   {
     sku: { type: String, required: true, unique: true },
-    categoryId: { type: Schema.Types.ObjectId, ref: 'Category' },
     name: { type: String, required: true },
-    image: { type: String },
-    description: { type: String },
+    category: { type: String, default: 'General' },
+    type: { type: String, default: 'Product' },
+    unit: { type: String, default: 'Nos' },
+    cost: { type: Number, default: 0 },
+    outletPrice: { type: Number, default: 0 },
+    pickmePrice: { type: Number, default: 0 },
+    uberPrice: { type: Number, default: 0 },
     status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
   },
   { timestamps: true }
 );
-
-ProductSchema.index({ categoryId: 1 });
 
 const Product = mongoose.models.Product || mongoose.model<IProduct>('Product', ProductSchema);
 

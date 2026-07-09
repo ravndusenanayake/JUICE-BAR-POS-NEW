@@ -313,7 +313,7 @@ export default function POSPage() {
     setSplitCard("")
   }
 
-  const processPayment = (e?: React.FormEvent) => {
+  const processPayment = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     if (cart.length === 0) return
 
@@ -330,7 +330,37 @@ export default function POSPage() {
     setLastOrderRef(orderRef)
 
     try {
-      // 1. Inventory Deduction Logic
+      // Determine final payment info
+      const paymentInfo = paymentMethod === "Split" 
+        ? `Split (Cash: ${splitCash || 0}, Card: ${splitCard || 0})`
+        : paymentMethod
+
+      // Save Sale to API
+      const salePayload = {
+        receiptNumber: orderRef,
+        branch: user?.branch || "Colombo 07",
+        cashier: user?.name || "System",
+        customer: selectedCustomer?.name || "Walk-In Customer",
+        subTotal: subtotal,
+        discount: discountAmount,
+        total: grandTotal,
+        paymentMethod: paymentInfo,
+        items: cart
+      }
+
+      const res = await fetch('/api/sales', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(salePayload)
+      })
+
+      if (!res.ok) {
+        throw new Error('Failed to save sale to API')
+      }
+      
+      const newSale = await res.json()
+
+      // 1. Inventory Deduction Logic (UI state & API)
       const allRecipes = JSON.parse(localStorage.getItem("mock_recipes") || "[]")
       const deductions: Record<string, {name: string, quantity: number, unit: string}> = {}
 
@@ -345,57 +375,44 @@ export default function POSPage() {
             if (deductions[ing.rawMaterialId]) deductions[ing.rawMaterialId].quantity += totalQty
             else deductions[ing.rawMaterialId] = { name: ing.name, quantity: totalQty, unit: ing.unit }
           })
+        } else {
+          // If it's a direct product (not recipe based), we might deduct the product itself
+          // Assuming product ID is the SKU for now if it's a direct product
+          if (deductions[cartItem.productId]) deductions[cartItem.productId].quantity += cartItem.quantity
+          else deductions[cartItem.productId] = { name: cartItem.name, quantity: cartItem.quantity, unit: 'Nos' }
         }
       })
 
       const deductedArray = Object.values(deductions)
       setDeductedMaterials(deductedArray)
       
-      const ledger = JSON.parse(localStorage.getItem("mock_stock_ledger") || "[]")
-      const now = new Date().toISOString()
-      
-      const newEntries = deductedArray.map((mat: any, idx) => ({
-        id: `LDG-${Date.now()}-${idx}`, timestamp: now, branch: user?.branch || "Unknown Branch",
-        rawMaterialName: mat.name, type: "OUT", reason: "SALE",
-        quantityChange: mat.quantity, baseUnit: mat.unit, reference: orderRef
-      }))
-      
-      localStorage.setItem("mock_stock_ledger", JSON.stringify([...ledger, ...newEntries]))
+      // Send deductions to Inventory API
+      for (const [sku, mat] of Object.entries(deductions)) {
+        await fetch('/api/inventory/adjust', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            branch: user?.branch || "Colombo 07",
+            sku: sku, // We are using rawMaterialId or productId as SKU in this mock mapping
+            quantity: mat.quantity,
+            type: 'OUT',
+            reference: orderRef,
+            remarks: 'SALE'
+          })
+        }).catch(err => console.error("Failed to deduct stock:", err))
+      }
       
       // 2. Save Sale to Cash Drawer (for shift closing)
       const shiftSales = JSON.parse(localStorage.getItem("shift_sales") || "[]")
       shiftSales.push(grandTotal)
       localStorage.setItem("shift_sales", JSON.stringify(shiftSales))
 
-      // 3. Save Full Sale Record for Analytics/Reports
-      const storedSales = JSON.parse(localStorage.getItem("mock_sales") || "[]")
-      
-      // Determine final payment info
-      const paymentInfo = paymentMethod === "Split" 
-        ? `Split (Cash: ${splitCash || 0}, Card: ${splitCard || 0})`
-        : paymentMethod
-
-      const newSale = {
-        id: orderRef,
-        timestamp: now,
-        branch: user?.branch || "Unknown",
-        cashier: user?.name || "System",
-        customer: selectedCustomer || { name: "Walk-In Customer" },
-        items: cart,
-        subtotal,
-        discount: discountAmount,
-        tax,
-        grandTotal,
-        paymentMethod: paymentInfo
-      }
-      
-      localStorage.setItem("mock_sales", JSON.stringify([...storedSales, newSale]))
       setSaleDetails(newSale)
-
       setIsPaymentModalOpen(false)
       setPaymentSuccess(true)
     } catch (e) {
       console.error(e)
+      alert("Error processing payment via API")
     }
   }
 
