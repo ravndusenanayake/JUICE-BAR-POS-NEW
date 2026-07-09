@@ -35,26 +35,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [])
 
-  const login = (selectedRole: Role, branch: string = "Colombo 07") => {
+  const login = async (selectedRole: Role, branch: string = "Colombo 07") => {
     if (!selectedRole) return
 
-    const mockUser: User = {
-      id: "USR-MOCK-001",
-      name: `${selectedRole} User`,
-      email: `${selectedRole.replace(/\s+/g, '').toLowerCase()}@juicebar.com`,
-      role: selectedRole,
-      branch: (selectedRole === "Super Admin" || selectedRole === "Admin") ? "All Branches" : branch
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: selectedRole })
+      })
+
+      if (!response.ok) {
+        throw new Error('Login failed')
+      }
+
+      const data = await response.json()
+      
+      const realUser: User = {
+        id: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        role: data.user.role,
+        branch: (data.user.role === "Super Admin" || data.user.role === "Admin") ? "All Branches" : branch
+      }
+
+      setUser(realUser)
+      localStorage.setItem("authUser", JSON.stringify(realUser))
+      localStorage.setItem("token", data.token)
+      
+      logAudit(realUser.name, realUser.branch, "Logged into the system successfully.", "Login")
+      
+      // Set cookie for middleware access (expires in 1 day)
+      document.cookie = `userRole=${selectedRole}; path=/; max-age=86400; SameSite=Lax`
+
+      router.push("/dashboard")
+    } catch (error) {
+      console.error("Login error:", error)
+      alert("Failed to connect to backend for login.")
     }
-
-    setUser(mockUser)
-    localStorage.setItem("authUser", JSON.stringify(mockUser))
-    
-    logAudit(mockUser.name, mockUser.branch, "Logged into the system successfully.", "Login")
-    
-    // Set cookie for middleware access (expires in 1 day)
-    document.cookie = `userRole=${selectedRole}; path=/; max-age=86400; SameSite=Lax`
-
-    router.push("/dashboard")
   }
 
   const logout = () => {
