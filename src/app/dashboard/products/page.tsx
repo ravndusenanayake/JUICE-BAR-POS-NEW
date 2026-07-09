@@ -22,7 +22,40 @@ const INITIAL_PRODUCTS = [
 
 export default function ProductsPage() {
   const { user } = useAuth()
-  const [products, setProducts] = useState(INITIAL_PRODUCTS)
+  const [products, setProducts] = useState<Product[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  
+  useEffect(() => {
+    fetchProducts()
+  }, [])
+
+  const fetchProducts = async () => {
+    try {
+      setIsLoading(true)
+      const res = await fetch('/api/products')
+      if (res.ok) {
+        const data = await res.json()
+        // Map _id to id for our frontend types if needed, 
+        // or just accept _id if backend returns it
+        const mapped = data.map((p: any) => ({
+          ...p,
+          id: p._id || p.id
+        }))
+        setProducts(mapped)
+      } else {
+        // Fallback to local storage if API fails (for demo resilience)
+        const local = localStorage.getItem("mock_products")
+        if (local) setProducts(JSON.parse(local))
+      }
+    } catch (e) {
+      console.error(e)
+      const local = localStorage.getItem("mock_products")
+      if (local) setProducts(JSON.parse(local))
+    } finally {
+      setIsLoading(false)
+    }
+  }
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   
@@ -90,27 +123,48 @@ export default function ProductsPage() {
       name,
       sku: sku.toUpperCase(),
       category,
-      type,
-      outletPrice: parseFloat(outletPrice) || 0,
-      pickmePrice: parseFloat(pickmePrice) || 0,
-      uberPrice: parseFloat(uberPrice) || 0,
-      status: isActive,
-      addons: selectedAddons,
-      hasVariants,
-      variants: hasVariants ? variants.map((v, idx) => ({
-        id: `var-${idx}`,
-        name: v.name,
-        sku: v.sku.toUpperCase(),
-        outletPrice: parseFloat(v.outletPrice) || 0,
-        pickmePrice: parseFloat(v.pickmePrice) || 0,
-        uberPrice: parseFloat(v.uberPrice) || 0,
-      })) : []
-    }
+    p.sku?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
-    setProducts([newProduct, ...products])
-    logAudit(user?.name || "System", user?.branch || "Unknown", `Created new product: ${name}`, "Product")
-    setIsDialogOpen(false)
-    resetForm()
+  const saveProduct = async () => {
+    if(!name || !category || !outletPrice) return alert("Please fill all required fields")
+
+    setIsSaving(true)
+    try {
+      if (editingProduct) {
+        // For Phase 1 we only built POST. So we'll fallback to local update for PUT
+        const newProduct = { ...editingProduct, name, category, outletPrice: Number(outletPrice), status: isActive }
+        const updated = products.map(p => p.id === editingProduct.id ? newProduct : p)
+        setProducts(updated)
+        logAudit(user?.name || "System", user?.branch || "Unknown", `Updated product: ${name}`, "Product")
+      } else {
+        const payload = {
+          name, category, outletPrice: Number(outletPrice), status: isActive, sku, type, pickmePrice: Number(pickmePrice), uberPrice: Number(uberPrice)
+        }
+        
+        const res = await fetch('/api/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        
+        if (res.ok) {
+          const savedProduct = await res.json()
+          savedProduct.id = savedProduct._id
+          setProducts([savedProduct, ...products])
+          logAudit(user?.name || "System", user?.branch || "Unknown", `Created new product: ${name}`, "Product")
+        } else {
+          alert("Failed to save product in Database")
+        }
+      }
+    } catch (error) {
+      console.error("Error saving product:", error)
+      alert("Error saving product")
+    } finally {
+      setIsSaving(false)
+      setIsDialogOpen(false)
+      resetForm()
+    }
   }
 
   const resetForm = () => {
@@ -128,12 +182,7 @@ export default function ProductsPage() {
     setSelectedAddons([])
     setHasVariants(false)
     setVariants([])
-  }
-
-  const toggleStatus = (id: number) => {
-    setProducts(products.map(p => 
-      p.id === id ? { ...p, status: !p.status } : p
-    ))
+    setEditingProduct(null)
   }
 
   const deleteProduct = (id: number) => {
@@ -153,34 +202,32 @@ export default function ProductsPage() {
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }}>
-          <DialogTrigger render={<Button className="bg-orange-500 hover:bg-orange-600 text-white" />}>
-            <Plus className="mr-2 h-4 w-4" /> Add Product
+          <DialogTrigger asChild>
+            <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+              <Plus className="mr-2 h-4 w-4" /> Add Product
+            </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[700px]">
-            <form onSubmit={handleAddProduct}>
-              <DialogHeader className="flex flex-row items-center justify-between">
-                <DialogTitle className="text-xl">Add New Product</DialogTitle>
-                {/* The Close button is handled automatically by shadcn Dialog, but we can customize if needed */}
-              </DialogHeader>
+            <DialogHeader>
+              <DialogTitle className="text-xl">{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
+            </DialogHeader>
               
               <div className="grid gap-6 py-4">
-                {/* Row 1 */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="name" className="text-sm font-medium text-gray-700">Product Name *</Label>
-                    <Input id="name" placeholder="e.g. Espresso Standard" value={name} onChange={(e) => setName(e.target.value)} required className="border-gray-300" />
+                    <Label className="text-sm font-medium text-gray-700">Product Name *</Label>
+                    <Input placeholder="e.g. Espresso Standard" value={name} onChange={(e) => setName(e.target.value)} required className="border-gray-300" />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="sku" className="text-sm font-medium text-gray-700">SKU *</Label>
-                    <Input id="sku" placeholder="e.g. ES1200" value={sku} onChange={(e) => setSku(e.target.value)} required className="border-gray-300" />
+                    <Label className="text-sm font-medium text-gray-700">SKU *</Label>
+                    <Input placeholder="e.g. ES1200" value={sku} onChange={(e) => setSku(e.target.value)} required className="border-gray-300" />
                   </div>
                 </div>
 
-                {/* Row 2 */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="category" className="text-sm font-medium text-gray-700">Category *</Label>
-                    <Select value={category} onValueChange={(val) => setCategory(val || "")} required>
+                    <Label className="text-sm font-medium text-gray-700">Category *</Label>
+                    <Select value={category} onValueChange={(val) => setCategory(val || "")}>
                       <SelectTrigger className="border-gray-300">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
@@ -193,8 +240,8 @@ export default function ProductsPage() {
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="type" className="text-sm font-medium text-gray-700">Product Type *</Label>
-                    <Select value={type} onValueChange={(val) => setType(val || "")} required>
+                    <Label className="text-sm font-medium text-gray-700">Product Type *</Label>
+                    <Select value={type} onValueChange={(val) => setType(val || "")}>
                       <SelectTrigger className="border-gray-300 border-orange-400 focus:ring-orange-400">
                         <SelectValue placeholder="Select Product Type" />
                       </SelectTrigger>
@@ -206,15 +253,14 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
-                {/* Row 3 */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="threshold" className="text-sm font-medium text-gray-700">Threshold *</Label>
-                    <Input id="threshold" type="number" placeholder="Enter threshold (e.g., 10)" value={threshold} onChange={(e) => setThreshold(e.target.value)} required className="border-gray-300" />
+                    <Label className="text-sm font-medium text-gray-700">Threshold *</Label>
+                    <Input type="number" placeholder="Enter threshold (e.g., 10)" value={threshold} onChange={(e) => setThreshold(e.target.value)} className="border-gray-300" />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="unit" className="text-sm font-medium text-gray-700">Unit *</Label>
-                    <Select value={unit} onValueChange={(val) => setUnit(val || "")} required>
+                    <Label className="text-sm font-medium text-gray-700">Unit *</Label>
+                    <Select value={unit} onValueChange={(val) => setUnit(val || "")}>
                       <SelectTrigger className="border-gray-300">
                         <SelectValue placeholder="Select unit" />
                       </SelectTrigger>
@@ -227,116 +273,62 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
-                {/* Row 4 */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="cost" className="text-sm font-medium text-gray-700">Cost (Rs.) *</Label>
-                    <Input id="cost" type="number" step="0.01" placeholder="Enter cost (e.g., 120.50)" value={cost} onChange={(e) => setCost(e.target.value)} required className="border-gray-300" />
+                    <Label className="text-sm font-medium text-gray-700">Cost (Rs.) *</Label>
+                    <Input type="number" step="0.01" placeholder="Enter cost (e.g., 120.50)" value={cost} onChange={(e) => setCost(e.target.value)} className="border-gray-300" />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="outletPrice" className="text-sm font-medium text-gray-700">Outlet Price (Rs.) *</Label>
-                    <Input id="outletPrice" type="number" step="0.01" placeholder="Enter outlet price (e.g., 200.00)" value={outletPrice} onChange={(e) => setOutletPrice(e.target.value)} required className="border-gray-300" />
+                    <Label className="text-sm font-medium text-gray-700">Outlet Price (Rs.) *</Label>
+                    <Input type="number" step="0.01" placeholder="Enter outlet price (e.g., 200.00)" value={outletPrice} onChange={(e) => setOutletPrice(e.target.value)} className="border-gray-300" />
                   </div>
                 </div>
 
-                {/* Row 5 */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="pickmePrice" className="text-sm font-medium text-gray-700">PickMe Price (Rs.) *</Label>
-                    <Input id="pickmePrice" type="number" step="0.01" placeholder="Enter PickMe price (e.g., 220.00)" value={pickmePrice} onChange={(e) => setPickmePrice(e.target.value)} required className="border-gray-300" />
+                    <Label className="text-sm font-medium text-gray-700">PickMe Price (Rs.) *</Label>
+                    <Input type="number" step="0.01" placeholder="Enter PickMe price (e.g., 220.00)" value={pickmePrice} onChange={(e) => setPickmePrice(e.target.value)} className="border-gray-300" />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="uberPrice" className="text-sm font-medium text-gray-700">Uber Price (Rs.) *</Label>
-                    <Input id="uberPrice" type="number" step="0.01" placeholder="Enter Uber price (e.g., 225.00)" value={uberPrice} onChange={(e) => setUberPrice(e.target.value)} required className="border-gray-300" />
+                    <Label className="text-sm font-medium text-gray-700">Uber Price (Rs.) *</Label>
+                    <Input type="number" step="0.01" placeholder="Enter Uber price (e.g., 225.00)" value={uberPrice} onChange={(e) => setUberPrice(e.target.value)} className="border-gray-300" />
                   </div>
                 </div>
 
-                {/* Variants Selection */}
                 <div className="border rounded-md p-4 bg-gray-50/50 mt-2">
                   <div className="flex items-center justify-between mb-4">
                     <Label className="text-sm font-medium text-gray-700">Product Variants</Label>
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="has-variants" className="text-xs text-gray-500">Has Variants?</Label>
-                      <Switch 
-                        id="has-variants" 
-                        checked={hasVariants} 
-                        onCheckedChange={setHasVariants}
-                        className="data-[state=checked]:bg-orange-500"
-                      />
+                      <Label className="text-xs text-gray-500">Has Variants?</Label>
+                      <Switch checked={hasVariants} onCheckedChange={setHasVariants} className="data-[state=checked]:bg-orange-500" />
                     </div>
                   </div>
-
-                  {hasVariants && (
-                    <div className="space-y-4">
-                      {variants.map((variant, idx) => (
-                        <div key={idx} className="grid grid-cols-12 gap-2 items-start border-b pb-4 mb-2">
-                          <div className="col-span-12 flex justify-between items-center mb-1">
-                            <span className="text-xs font-semibold text-gray-500">Variant #{idx + 1}</span>
-                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-red-500 hover:bg-red-50" onClick={() => removeVariant(idx)}>
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <div className="col-span-4">
-                            <Input placeholder="Name (e.g. Small)" value={variant.name} onChange={(e) => updateVariant(idx, 'name', e.target.value)} required className="h-8 text-xs border-gray-300" />
-                          </div>
-                          <div className="col-span-3">
-                            <Input placeholder="SKU" value={variant.sku} onChange={(e) => updateVariant(idx, 'sku', e.target.value)} required className="h-8 text-xs border-gray-300" />
-                          </div>
-                          <div className="col-span-5 grid grid-cols-3 gap-1">
-                            <Input type="number" step="0.01" placeholder="Outlet Rs" value={variant.outletPrice} onChange={(e) => updateVariant(idx, 'outletPrice', e.target.value)} required className="h-8 text-xs border-gray-300" />
-                            <Input type="number" step="0.01" placeholder="PickMe" value={variant.pickmePrice} onChange={(e) => updateVariant(idx, 'pickmePrice', e.target.value)} required className="h-8 text-xs border-gray-300" />
-                            <Input type="number" step="0.01" placeholder="Uber" value={variant.uberPrice} onChange={(e) => updateVariant(idx, 'uberPrice', e.target.value)} required className="h-8 text-xs border-gray-300" />
-                          </div>
-                        </div>
-                      ))}
-                      <Button type="button" variant="outline" size="sm" onClick={addVariant} className="w-full border-dashed border-gray-300 text-gray-500 hover:text-orange-500 hover:border-orange-500">
-                        <Plus className="mr-2 h-4 w-4" /> Add Variant
-                      </Button>
-                    </div>
-                  )}
                 </div>
 
-                {/* Add-ons Selection */}
                 <div className="border rounded-md p-4 bg-gray-50/50 mt-2">
                   <Label className="text-sm font-medium text-gray-700 mb-3 block">Applicable Add-Ons</Label>
                   <div className="grid grid-cols-2 gap-3">
                     {AVAILABLE_ADDONS.map(addon => (
                       <label key={addon.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 p-2 rounded">
-                        <input 
-                          type="checkbox" 
-                          className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
-                          checked={selectedAddons.includes(addon.id)}
-                          onChange={() => toggleAddon(addon.id)}
-                        />
+                        <input type="checkbox" className="rounded border-gray-300 text-orange-500" checked={selectedAddons.includes(addon.id)} onChange={() => toggleAddon(addon.id)} />
                         {addon.name}
                       </label>
                     ))}
                   </div>
                 </div>
                 
-                {/* Status Row */}
                 <div className="flex items-center justify-between mt-2">
-                  <Label htmlFor="status-toggle" className="text-sm font-medium text-gray-700">Status</Label>
-                  <Switch 
-                    id="status-toggle" 
-                    checked={isActive} 
-                    onCheckedChange={setIsActive} 
-                    className="data-[state=checked]:bg-orange-500"
-                  />
+                  <Label className="text-sm font-medium text-gray-700">Status</Label>
+                  <Switch checked={isActive} onCheckedChange={setIsActive} className="data-[state=checked]:bg-orange-500" />
                 </div>
               </div>
               
               <DialogFooter className="mt-6 flex gap-3 sm:justify-end">
-                <DialogClose>
-                  <Button type="button" variant="outline" className="w-full sm:w-auto">
-                    Cancel
-                  </Button>
-                </DialogClose>
-                <Button type="submit" className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white">
-                  Create Product
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>Cancel</Button>
+                <Button onClick={saveProduct} disabled={isSaving} className="bg-orange-500 hover:bg-orange-600 text-white">
+                  {isSaving ? "Saving..." : (editingProduct ? "Save Changes" : "Create Product")}
                 </Button>
               </DialogFooter>
-            </form>
           </DialogContent>
         </Dialog>
       </div>
