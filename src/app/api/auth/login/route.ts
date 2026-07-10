@@ -31,18 +31,23 @@ export async function POST(req: Request) {
        }
     } else if (role) {
        // Transition path for our current UI mock buttons
-       user = await User.findOne({ role });
+       const mockEmail = `${role.replace(/\s+/g, '').toLowerCase()}@juicebar.com`;
+       user = await User.findOne({ email: mockEmail });
        
        // If no user exists in DB for this role, we create a dummy one on the fly for testing
        if (!user) {
          user = new User({
            name: `${role} User`,
-           email: `${role.replace(/\s+/g, '').toLowerCase()}@juicebar.com`,
+           email: mockEmail,
            password: 'hashed_password', // Mock
            role: role,
            branch: 'Colombo 07',
            status: 'Active'
          });
+         await user.save();
+       } else if (!user.role) {
+         // Fix legacy users that had roleId instead of role string
+         user.role = role;
          await user.save();
        }
     } else {
