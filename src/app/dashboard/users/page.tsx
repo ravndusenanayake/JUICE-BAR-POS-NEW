@@ -129,11 +129,11 @@ export default function UsersPage() {
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }}>
-          <DialogTrigger asChild>
+          <DialogTrigger render={
             <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
               <Plus className="mr-2 h-4 w-4" /> Add User
             </Button>
-          </DialogTrigger>
+          } />
           <DialogContent className="sm:max-w-[500px]">
             <form onSubmit={handleAddUser}>
               <DialogHeader>

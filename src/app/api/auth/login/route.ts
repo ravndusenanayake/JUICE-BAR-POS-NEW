@@ -36,15 +36,24 @@ export async function POST(req: Request) {
        
        // If no user exists in DB for this role, we create a dummy one on the fly for testing
        if (!user) {
-         user = new User({
-           name: `${role} User`,
-           email: mockEmail,
-           password: 'hashed_password', // Mock
-           role: role,
-           branch: 'Colombo 07',
-           status: 'Active'
-         });
-         await user.save();
+         try {
+           user = new User({
+             name: `${role} User`,
+             email: mockEmail,
+             password: 'hashed_password', // Mock
+             role: role,
+             branch: 'Colombo 07',
+             status: 'Active'
+           });
+           await user.save();
+         } catch (err: any) {
+           if (err.code === 11000) {
+             // Duplicate key error: another request might have created it concurrently
+             user = await User.findOne({ email: mockEmail });
+           } else {
+             throw err;
+           }
+         }
        } else if (!user.role) {
          // Fix legacy users that had roleId instead of role string
          user.role = role;
