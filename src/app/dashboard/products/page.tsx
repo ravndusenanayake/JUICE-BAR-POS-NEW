@@ -54,17 +54,15 @@ export default function ProductsPage() {
   const [unit, setUnit] = useState("")
   const [cost, setCost] = useState("")
   const [outletPrice, setOutletPrice] = useState("")
-  const [pickmePrice, setPickmePrice] = useState("")
-  const [uberPrice, setUberPrice] = useState("")
   const [isActive, setIsActive] = useState(true)
   const [selectedAddons, setSelectedAddons] = useState<number[]>([])
 
   // Variants State
   const [hasVariants, setHasVariants] = useState(false)
-  const [variants, setVariants] = useState<{name: string, sku: string, outletPrice: string, pickmePrice: string, uberPrice: string}[]>([])
+  const [variants, setVariants] = useState<{name: string, sku: string, outletPrice: string}[]>([])
 
   const addVariant = () => {
-    setVariants([...variants, { name: "", sku: "", outletPrice: "", pickmePrice: "", uberPrice: "" }])
+    setVariants([...variants, { name: "", sku: "", outletPrice: "" }])
   }
 
   const removeVariant = (index: number) => {
@@ -103,7 +101,7 @@ export default function ProductsPage() {
       if (editingProduct) {
         const payload = {
           id: editingProduct.id, name, category, outletPrice: Number(outletPrice), 
-          status: isActive, sku, type, pickmePrice: Number(pickmePrice), uberPrice: Number(uberPrice)
+          status: isActive, sku, type
         }
         
         const res = await fetch('/api/products', {
@@ -121,7 +119,7 @@ export default function ProductsPage() {
         }
       } else {
         const payload = {
-          name, category, outletPrice: Number(outletPrice), status: isActive, sku, type, pickmePrice: Number(pickmePrice), uberPrice: Number(uberPrice)
+          name, category, outletPrice: Number(outletPrice), status: isActive, sku, type
         }
         
         const res = await fetch('/api/products', {
@@ -156,8 +154,6 @@ export default function ProductsPage() {
     setUnit("")
     setCost("")
     setOutletPrice("")
-    setPickmePrice("")
-    setUberPrice("")
     setIsActive(true)
     setSelectedAddons([])
     setHasVariants(false)
@@ -172,8 +168,6 @@ export default function ProductsPage() {
     setCategory(p.category)
     setType(p.type)
     setOutletPrice(p.outletPrice?.toString() || "")
-    setPickmePrice(p.pickmePrice?.toString() || "")
-    setUberPrice(p.uberPrice?.toString() || "")
     setIsActive(p.status === 'Active')
     setIsDialogOpen(true)
   }
@@ -282,17 +276,6 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label className="text-sm font-medium text-gray-700">PickMe Price (Rs.) *</Label>
-                    <Input type="number" step="0.01" placeholder="Enter PickMe price (e.g., 220.00)" value={pickmePrice} onChange={(e) => setPickmePrice(e.target.value)} className="border-gray-300" />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label className="text-sm font-medium text-gray-700">Uber Price (Rs.) *</Label>
-                    <Input type="number" step="0.01" placeholder="Enter Uber price (e.g., 225.00)" value={uberPrice} onChange={(e) => setUberPrice(e.target.value)} className="border-gray-300" />
-                  </div>
-                </div>
-
                 <div className="border rounded-md p-4 bg-gray-50/50 mt-2">
                   <div className="flex items-center justify-between mb-4">
                     <Label className="text-sm font-medium text-gray-700">Product Variants</Label>
@@ -357,7 +340,6 @@ export default function ProductsPage() {
               <TableHead>Category</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Outlet Price</TableHead>
-              <TableHead>Delivery Prices</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -365,11 +347,11 @@ export default function ProductsPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading products...</TableCell>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading products...</TableCell>
               </TableRow>
             ) : filteredProducts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   No products found.
                 </TableCell>
               </TableRow>
@@ -397,10 +379,6 @@ export default function ProductsPage() {
                 </TableCell>
                 <TableCell>
                   <span className="text-sm font-medium">LKR {p.outletPrice?.toFixed(2)}</span>
-                </TableCell>
-                <TableCell>
-                  <div className="text-xs text-gray-500">Pick Me: LKR {p.pickmePrice?.toFixed(2) || p.outletPrice?.toFixed(2)}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">Uber: LKR {p.uberPrice?.toFixed(2) || p.outletPrice?.toFixed(2)}</div>
                 </TableCell>
                 <TableCell>
                   <span className={`text-xs font-medium ${p.status === 'Active' ? 'text-green-500' : 'text-gray-400'}`}>

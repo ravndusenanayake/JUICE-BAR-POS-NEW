@@ -8,15 +8,23 @@ const RBAC_MATRIX = [
     allowedRoles: ["Super Admin"]
   },
   {
-    pathPattern: /^\/dashboard\/(branches|users|roles)(\/.*)?$/,
+    pathPattern: /^\/dashboard\/(branches|users|roles|audit-logs)(\/.*)?$/,
     allowedRoles: ["Super Admin", "Admin"]
   },
   {
-    pathPattern: /^\/dashboard\/(products|categories|units|add-ons|inventory|raw-materials|branch-inventory|raw-material-inventory|recipes)(\/.*)?$/,
+    pathPattern: /^\/dashboard\/(products|categories|units|add-ons|recipes)(\/.*)?$/,
+    allowedRoles: ["Super Admin", "Admin"]
+  },
+  {
+    pathPattern: /^\/dashboard\/(inventory|branch-inventory|raw-material-inventory|stock-ledger|stock-transfers|suppliers|purchase-orders|grn|wastage)(\/.*)?$/,
+    allowedRoles: ["Super Admin", "Admin", "Branch Manager", "Store Keeper"]
+  },
+  {
+    pathPattern: /^\/dashboard\/(expenses|reports)(\/.*)?$/,
     allowedRoles: ["Super Admin", "Admin", "Branch Manager"]
   },
   {
-    pathPattern: /^\/dashboard\/sales(\/.*)?$/,
+    pathPattern: /^\/dashboard\/(sales|customers)(\/.*)?$/,
     allowedRoles: ["Super Admin", "Admin", "Branch Manager", "Cashier"]
   },
   {

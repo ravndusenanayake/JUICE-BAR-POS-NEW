@@ -69,8 +69,8 @@ export default function DashboardLayout({
             Sales
           </Link>
 
-          {(hasAccess(["Super Admin", "Admin", "Branch Manager"])) && (
-            <Link href="/dashboard/customers" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
+          {(hasAccess(["Super Admin", "Admin", "Branch Manager", "Cashier"])) && (
+            <Link href="/dashboard/customers" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/customers') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}>
               <Users className="h-5 w-5" />
               Customers
             </Link>
@@ -100,10 +100,10 @@ export default function DashboardLayout({
             </>
           )}
 
-          {hasAccess(["Super Admin", "Admin", "Branch Manager"]) && (
+          {hasAccess(["Super Admin", "Admin"]) && (
             <>
               <div className="pt-4 pb-1">
-                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Products & Inventory</p>
+                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Products & Recipes</p>
               </div>
               <Link href="/dashboard/categories" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
                 <Tags className="h-5 w-5" />
@@ -117,15 +117,23 @@ export default function DashboardLayout({
                 <PlusCircle className="h-5 w-5" />
                 Add-Ons
               </Link>
-              <Link href="/dashboard/branch-inventory" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-orange-50 hover:text-orange-600 transition-all">
-                <LayoutDashboard className="h-4 w-4" />
-                Branch Inventory
-              </Link>
               <Link href="/dashboard/recipes" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
                 <Settings className="h-5 w-5" />
                 Recipes
               </Link>
-              <Link href="/dashboard/stock-ledger" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
+            </>
+          )}
+
+          {hasAccess(["Super Admin", "Admin", "Branch Manager", "Store Keeper"]) && (
+            <>
+              <div className="pt-4 pb-1">
+                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Inventory & Stock</p>
+              </div>
+              <Link href="/dashboard/branch-inventory" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/branch-inventory') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-orange-50 hover:text-orange-600'}`}>
+                <LayoutDashboard className="h-4 w-4" />
+                Branch Inventory
+              </Link>
+              <Link href="/dashboard/stock-ledger" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/stock-ledger') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}>
                 <History className="h-5 w-5" />
                 Stock Ledger
               </Link>
