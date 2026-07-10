@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Search, Plus, Edit, Trash2, Building2 } from "lucide-react"
 
 export interface Supplier {
-  id: string
+  _id: string
+  id: string // mapping for UI ease
   name: string
   contactPerson: string
   mobile: string
@@ -17,14 +18,10 @@ export interface Supplier {
   address: string
 }
 
-const INITIAL_SUPPLIERS: Supplier[] = [
-  { id: "SUP-001", name: "Fresh Farms Ltd", contactPerson: "Kamal Perera", mobile: "0771234567", email: "kamal@freshfarms.lk", address: "123, Kandy Road, Colombo" },
-  { id: "SUP-002", name: "Lanka Dairy Co", contactPerson: "Sunil Silva", mobile: "0719876543", email: "sunil@lankadairy.lk", address: "45, Highlevel Road, Nugegoda" },
-]
-
 export default function SuppliersPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [searchQuery, setSearchQuery] = useState("")
+  const [isLoading, setIsLoading] = useState(true)
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -37,28 +34,38 @@ export default function SuppliersPage() {
   const [address, setAddress] = useState("")
 
   useEffect(() => {
-    const stored = localStorage.getItem("mock_suppliers")
-    if (stored) {
-      setSuppliers(JSON.parse(stored))
-    } else {
-      localStorage.setItem("mock_suppliers", JSON.stringify(INITIAL_SUPPLIERS))
-      setSuppliers(INITIAL_SUPPLIERS)
-    }
+    fetchSuppliers()
   }, [])
+
+  const fetchSuppliers = async () => {
+    setIsLoading(true)
+    try {
+      const res = await fetch('/api/suppliers')
+      if (res.ok) {
+        const data = await res.json()
+        const mapped = data.map((s: any) => ({ ...s, id: s._id }))
+        setSuppliers(mapped)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const filteredSuppliers = suppliers.filter(s => 
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.contactPerson.toLowerCase().includes(searchQuery.toLowerCase())
+    (s.contactPerson && s.contactPerson.toLowerCase().includes(searchQuery.toLowerCase()))
   )
 
   const handleOpenModal = (supplier?: Supplier) => {
     if (supplier) {
       setEditingId(supplier.id)
       setName(supplier.name)
-      setContactPerson(supplier.contactPerson)
-      setMobile(supplier.mobile)
-      setEmail(supplier.email)
-      setAddress(supplier.address)
+      setContactPerson(supplier.contactPerson || "")
+      setMobile(supplier.mobile || "")
+      setEmail(supplier.email || "")
+      setAddress(supplier.address || "")
     } else {
       setEditingId(null)
       setName("")
@@ -70,30 +77,55 @@ export default function SuppliersPage() {
     setIsModalOpen(true)
   }
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    let updated: Supplier[]
     
-    if (editingId) {
-      updated = suppliers.map(s => s.id === editingId ? { id: s.id, name, contactPerson, mobile, email, address } : s)
-    } else {
-      const newSup: Supplier = {
-        id: `SUP-${Date.now().toString().slice(-4)}`,
-        name, contactPerson, mobile, email, address
+    try {
+      if (editingId) {
+        const payload = { id: editingId, name, contactPerson, mobile, email, address }
+        const res = await fetch('/api/suppliers', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        if (res.ok) {
+          fetchSuppliers()
+          setIsModalOpen(false)
+        } else {
+          alert("Failed to update supplier")
+        }
+      } else {
+        const payload = { name, contactPerson, mobile, email, address }
+        const res = await fetch('/api/suppliers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        if (res.ok) {
+          fetchSuppliers()
+          setIsModalOpen(false)
+        } else {
+          alert("Failed to create supplier")
+        }
       }
-      updated = [...suppliers, newSup]
+    } catch (err) {
+      console.error(err)
+      alert("Error saving supplier")
     }
-    
-    setSuppliers(updated)
-    localStorage.setItem("mock_suppliers", JSON.stringify(updated))
-    setIsModalOpen(false)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this supplier?")) {
-      const updated = suppliers.filter(s => s.id !== id)
-      setSuppliers(updated)
-      localStorage.setItem("mock_suppliers", JSON.stringify(updated))
+      try {
+        const res = await fetch(`/api/suppliers?id=${id}`, { method: 'DELETE' })
+        if (res.ok) {
+          fetchSuppliers()
+        } else {
+          alert("Failed to delete supplier")
+        }
+      } catch (err) {
+        console.error(err)
+      }
     }
   }
 
@@ -131,80 +163,88 @@ export default function SuppliersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredSuppliers.length === 0 && (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-12 text-gray-400">Loading suppliers...</TableCell>
+              </TableRow>
+            ) : filteredSuppliers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center py-12 text-gray-400">
                   <Building2 className="w-8 h-8 mx-auto mb-3 opacity-20" />
                   <p className="font-medium">No suppliers found.</p>
                 </TableCell>
               </TableRow>
+            ) : (
+              filteredSuppliers.map((sup) => (
+                <TableRow key={sup.id} className="border-b last:border-0 hover:bg-gray-50/50">
+                  <TableCell className="py-4">
+                    <div className="font-bold text-gray-900">{sup.name}</div>
+                    <div className="text-xs font-medium text-gray-400 mt-0.5 font-mono">{sup._id.substring(0, 8).toUpperCase()}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm font-semibold text-gray-700">{sup.contactPerson || "N/A"}</div>
+                    <div className="text-xs text-gray-500 mt-0.5 flex flex-col">
+                      <span>{sup.mobile || "-"}</span>
+                      <span>{sup.email || "-"}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm text-gray-600 max-w-xs truncate" title={sup.address}>
+                      {sup.address || "N/A"}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => handleOpenModal(sup)}>
+                        <Edit className="w-4 h-4 text-gray-400 hover:text-blue-600" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(sup.id)}>
+                        <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-600" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
-            {filteredSuppliers.map((sup) => (
-              <TableRow key={sup.id} className="border-b last:border-0 hover:bg-gray-50/50">
-                <TableCell className="py-4">
-                  <div className="font-bold text-gray-900">{sup.name}</div>
-                  <div className="text-xs font-medium text-gray-400 mt-0.5 font-mono">{sup.id}</div>
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm font-semibold text-gray-700">{sup.contactPerson}</div>
-                  <div className="text-xs text-gray-500 mt-0.5 flex flex-col">
-                    <span>{sup.mobile}</span>
-                    <span>{sup.email}</span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm text-gray-600 max-w-xs truncate">{sup.address}</div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50" onClick={() => handleOpenModal(sup)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:bg-red-50" onClick={() => handleDelete(sup.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
           </TableBody>
         </Table>
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <form onSubmit={handleSave}>
-            <DialogHeader>
-              <DialogTitle>{editingId ? 'Edit Supplier' : 'Add New Supplier'}</DialogTitle>
-              <DialogDescription>Fill in the supplier details below.</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label>Supplier Name *</Label>
-                <Input value={name} onChange={e => setName(e.target.value)} required placeholder="e.g. Fresh Farms" />
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle>{editingId ? "Edit Supplier" : "Add New Supplier"}</DialogTitle>
+            <DialogDescription>
+              {editingId ? "Update supplier details." : "Enter details for the new supplier."}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSave} className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label>Supplier Name *</Label>
+              <Input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Fresh Farms Ltd" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Contact Person</Label>
+                <Input value={contactPerson} onChange={e => setContactPerson(e.target.value)} placeholder="e.g. Kamal" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label>Contact Person *</Label>
-                  <Input value={contactPerson} onChange={e => setContactPerson(e.target.value)} required placeholder="e.g. Nimal" />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Mobile Number *</Label>
-                  <Input value={mobile} onChange={e => setMobile(e.target.value)} required placeholder="07XXXXXXXX" />
-                </div>
-              </div>
-              <div className="grid gap-2">
-                <Label>Email</Label>
-                <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="supplier@example.com" />
-              </div>
-              <div className="grid gap-2">
-                <Label>Address *</Label>
-                <Input value={address} onChange={e => setAddress(e.target.value)} required placeholder="Full Address" />
+              <div className="space-y-2">
+                <Label>Mobile Number</Label>
+                <Input value={mobile} onChange={e => setMobile(e.target.value)} placeholder="e.g. 0771234567" />
               </div>
             </div>
-            <DialogFooter>
+            <div className="space-y-2">
+              <Label>Email Address</Label>
+              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="e.g. supplier@domain.com" />
+            </div>
+            <div className="space-y-2">
+              <Label>Physical Address</Label>
+              <Input value={address} onChange={e => setAddress(e.target.value)} placeholder="e.g. 123, Kandy Road" />
+            </div>
+
+            <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-              <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white">Save Supplier</Button>
+              <Button type="submit" className="bg-orange-600 hover:bg-orange-700">Save Supplier</Button>
             </DialogFooter>
           </form>
         </DialogContent>

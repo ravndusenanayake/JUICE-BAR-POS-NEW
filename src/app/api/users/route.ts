@@ -27,3 +27,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json();
+    const { id, ...data } = body;
+    if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+    
+    const updatedUser = await userService.updateUser(id, data);
+    return NextResponse.json(updatedUser);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+    
+    await userService.deleteUser(id);
+    return NextResponse.json({ message: 'User deleted successfully' });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

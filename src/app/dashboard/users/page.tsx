@@ -7,26 +7,33 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Edit, Trash2, PowerOff, Power } from "lucide-react"
-
-// Dummy Data
-const INITIAL_USERS = [
-  { id: "USR-001", name: "Admin User", email: "admin@juicebar.com", role: "Super Admin", branch: "All Branches", status: "Active" },
-  { id: "USR-002", name: "Sarah Smith", email: "sarah@juicebar.com", role: "Branch Manager", branch: "Colombo 07", status: "Active" },
-  { id: "USR-003", name: "Mike Johnson", email: "mike@juicebar.com", role: "Cashier", branch: "Colombo 07", status: "Active" },
-  { id: "USR-004", name: "David Brown", email: "david@juicebar.com", role: "Store Keeper", branch: "Nugegoda", status: "Inactive" },
-]
+import { Plus, Search, Trash2, PowerOff, Power } from "lucide-react"
 
 export default function UsersPage() {
-  const [users, setUsers] = useState(INITIAL_USERS)
+  const [users, setUsers] = useState<any[]>([])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [maxUsersLimit, setMaxUsersLimit] = useState(10) // Default 10
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const limit = localStorage.getItem("maxUsers")
-    if (limit) setMaxUsersLimit(parseInt(limit))
+    fetchUsers()
   }, [])
+
+  const fetchUsers = async () => {
+    setIsLoading(true)
+    try {
+      const res = await fetch('/api/users')
+      if (res.ok) {
+        const data = await res.json()
+        setUsers(data)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsLoading(false)
+    }
+  }
   
   // Form State
   const [name, setName] = useState("")
@@ -41,7 +48,7 @@ export default function UsersPage() {
     user.email.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const handleAddUser = (e: React.FormEvent) => {
+  const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault()
     
     // Check Limits (SaaS License Logic)
@@ -50,23 +57,34 @@ export default function UsersPage() {
       return
     }
 
-    if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
-      alert("A user with this email already exists!")
-      return
-    }
-
-    const newUser = {
-      id: `USR-00${users.length + 1}`,
+    const payload = {
       name,
       email,
+      password,
       role,
       branch: (role === 'Super Admin' || role === 'Admin') ? 'All Branches' : branch,
       status
     }
 
-    setUsers([newUser, ...users])
-    setIsDialogOpen(false)
-    resetForm()
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+
+      if (res.ok) {
+        fetchUsers()
+        setIsDialogOpen(false)
+        resetForm()
+      } else {
+        const err = await res.json()
+        alert("Failed to create user: " + (err.error || ""))
+      }
+    } catch (error) {
+      console.error("Error creating user:", error)
+      alert("Error creating user")
+    }
   }
 
   const resetForm = () => {
@@ -78,17 +96,27 @@ export default function UsersPage() {
     setStatus("Active")
   }
 
-  const toggleStatus = (id: string, currentStatus: string) => {
-    setUsers(users.map(user => 
-      user.id === id 
-        ? { ...user, status: currentStatus === 'Active' ? 'Inactive' : 'Active' }
-        : user
-    ))
+  const toggleStatus = async (id: string, currentStatus: string) => {
+    try {
+      const res = await fetch('/api/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: currentStatus === 'Active' ? 'Inactive' : 'Active' })
+      })
+      if (res.ok) fetchUsers()
+    } catch (e) {
+      console.error(e)
+    }
   }
 
-  const deleteUser = (id: string) => {
+  const deleteUser = async (id: string) => {
     if(confirm("Are you sure you want to delete this user?")) {
-      setUsers(users.filter(user => user.id !== id))
+      try {
+        const res = await fetch(`/api/users?id=${id}`, { method: 'DELETE' })
+        if (res.ok) fetchUsers()
+      } catch (e) {
+        console.error(e)
+      }
     }
   }
 
@@ -101,8 +129,10 @@ export default function UsersPage() {
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }}>
-          <DialogTrigger render={<Button className="bg-primary hover:bg-primary/90 text-primary-foreground" />}>
-            <Plus className="mr-2 h-4 w-4" /> Add User
+          <DialogTrigger asChild>
+            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              <Plus className="mr-2 h-4 w-4" /> Add User
+            </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <form onSubmit={handleAddUser}>
@@ -153,8 +183,8 @@ export default function UsersPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Colombo 07">Colombo 07</SelectItem>
-                        <SelectItem value="Nugegoda">Nugegoda</SelectItem>
-                        <SelectItem value="Mount Lavinia">Mount Lavinia</SelectItem>
+                        <SelectItem value="Kandy Branch">Kandy Branch</SelectItem>
+                        <SelectItem value="Galle Branch">Galle Branch</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -193,27 +223,32 @@ export default function UsersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredUsers.length === 0 && (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading users...</TableCell>
+              </TableRow>
+            ) : filteredUsers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                   No users found.
                 </TableCell>
               </TableRow>
-            )}
-            {filteredUsers.map((user) => (
-              <TableRow key={user.id}>
+            ) : filteredUsers.map((user) => (
+              <TableRow key={user._id}>
                 <TableCell>
-                  <div className="font-medium">{user.name}</div>
-                  <div className="text-xs text-muted-foreground">{user.email}</div>
+                  <div className="font-medium text-foreground">{user.name}</div>
+                  <div className="text-sm text-muted-foreground">{user.email}</div>
                 </TableCell>
                 <TableCell>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.role === 'Super Admin' ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-muted text-foreground'}`}>
+                  <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 dark:bg-blue-900/30 dark:text-blue-400">
                     {user.role}
                   </span>
                 </TableCell>
-                <TableCell className="text-muted-foreground">{user.branch}</TableCell>
                 <TableCell>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.status === 'Active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                  <span className="text-sm font-medium">{user.branch}</span>
+                </TableCell>
+                <TableCell>
+                  <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${user.status === 'Active' ? 'bg-green-50 text-green-700 ring-green-600/20' : 'bg-red-50 text-red-700 ring-red-600/20'}`}>
                     {user.status}
                   </span>
                 </TableCell>
@@ -221,17 +256,13 @@ export default function UsersPage() {
                   <div className="flex justify-end gap-2">
                     <Button 
                       variant="ghost" 
-                      size="icon"
+                      size="icon" 
                       title={user.status === 'Active' ? 'Deactivate' : 'Activate'}
-                      onClick={() => toggleStatus(user.id, user.status)}
-                      disabled={user.role === 'Super Admin'}
+                      onClick={() => toggleStatus(user._id, user.status)}
                     >
                       {user.status === 'Active' ? <PowerOff className="h-4 w-4 text-orange-500" /> : <Power className="h-4 w-4 text-green-500" />}
                     </Button>
-                    <Button variant="ghost" size="icon" title="Edit">
-                      <Edit className="h-4 w-4 text-blue-500" />
-                    </Button>
-                    <Button variant="ghost" size="icon" title="Delete" onClick={() => deleteUser(user.id)} disabled={user.role === 'Super Admin'}>
+                    <Button variant="ghost" size="icon" title="Delete" onClick={() => deleteUser(user._id)}>
                       <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>
                   </div>

@@ -4,21 +4,13 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Search, Edit, Trash2, Box, X } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { logAudit } from "@/lib/auditLogger"
 import { useAuth } from "@/context/AuthContext"
-
-// Dummy Data matching the screenshot
-const INITIAL_PRODUCTS = [
-  { id: 1, name: "BLACKFOREST CAKE", sku: "TEZ002", category: "Cakes", type: "Product", outletPrice: 200.00, pickmePrice: 1500.00, uberPrice: 1500.00, status: true, hasVariants: false, variants: [] },
-  { id: 2, name: "BANANA MILKSHAKE", sku: "TEZ001", category: "Cold Beverages", type: "Recipe Based", outletPrice: 350.00, pickmePrice: 1300.00, uberPrice: 1300.00, status: true, hasVariants: true, variants: [{ id: 'var-0', name: 'Large', sku: 'TEZ001-L', outletPrice: 450, pickmePrice: 1500, uberPrice: 1500 }] },
-  { id: 3, name: "chips", sku: "MA123", category: "Snacks", type: "Product", outletPrice: 150.00, pickmePrice: 1450.00, uberPrice: 1450.00, status: true, hasVariants: false, variants: [] },
-  { id: 4, name: "coconut", sku: "ES12001", category: "Raw Materials", type: "Product", outletPrice: 15.00, pickmePrice: 18.00, uberPrice: 18.00, status: true, hasVariants: false, variants: [] },
-]
 
 export default function ProductsPage() {
   const { user } = useAuth()
@@ -37,26 +29,19 @@ export default function ProductsPage() {
       const res = await fetch('/api/products')
       if (res.ok) {
         const data = await res.json()
-        // Map _id to id for our frontend types if needed, 
-        // or just accept _id if backend returns it
         const mapped = data.map((p: any) => ({
           ...p,
-          id: p._id || p.id
+          id: p._id
         }))
         setProducts(mapped)
-      } else {
-        // Fallback to local storage if API fails (for demo resilience)
-        const local = localStorage.getItem("mock_products")
-        if (local) setProducts(JSON.parse(local))
       }
     } catch (e) {
       console.error(e)
-      const local = localStorage.getItem("mock_products")
-      if (local) setProducts(JSON.parse(local))
     } finally {
       setIsLoading(false)
     }
   }
+
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   
@@ -92,7 +77,6 @@ export default function ProductsPage() {
     setVariants(newVariants)
   }
 
-  // Hardcoded Add-ons from the master list (will be fetched from API later)
   const AVAILABLE_ADDONS = [
     { id: 1, name: "Ice Cream Scoop" },
     { id: 2, name: "Bee Honey" },
@@ -111,18 +95,30 @@ export default function ProductsPage() {
     p.sku.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-
   const saveProduct = async () => {
-    if(!name || !category || !outletPrice) return alert("Please fill all required fields")
+    if(!name || !category || !outletPrice || !sku) return alert("Please fill all required fields")
 
     setIsSaving(true)
     try {
       if (editingProduct) {
-        // For Phase 1 we only built POST. So we'll fallback to local update for PUT
-        const newProduct = { ...editingProduct, name, category, outletPrice: Number(outletPrice), status: isActive }
-        const updated = products.map(p => p.id === editingProduct.id ? newProduct : p)
-        setProducts(updated)
-        logAudit(user?.name || "System", user?.branch || "Unknown", `Updated product: ${name}`, "Product")
+        const payload = {
+          id: editingProduct.id, name, category, outletPrice: Number(outletPrice), 
+          status: isActive, sku, type, pickmePrice: Number(pickmePrice), uberPrice: Number(uberPrice)
+        }
+        
+        const res = await fetch('/api/products', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+
+        if(res.ok) {
+          fetchProducts()
+          setIsDialogOpen(false)
+          resetForm()
+        } else {
+          alert("Failed to update product")
+        }
       } else {
         const payload = {
           name, category, outletPrice: Number(outletPrice), status: isActive, sku, type, pickmePrice: Number(pickmePrice), uberPrice: Number(uberPrice)
@@ -135,12 +131,12 @@ export default function ProductsPage() {
         })
         
         if (res.ok) {
-          const savedProduct = await res.json()
-          savedProduct.id = savedProduct._id
-          setProducts([savedProduct, ...products])
-          logAudit(user?.name || "System", user?.branch || "Unknown", `Created new product: ${name}`, "Product")
+          fetchProducts()
+          setIsDialogOpen(false)
+          resetForm()
         } else {
-          alert("Failed to save product in Database")
+          const err = await res.json()
+          alert("Failed to save product in Database: " + (err.error || ""))
         }
       }
     } catch (error) {
@@ -148,8 +144,6 @@ export default function ProductsPage() {
       alert("Error saving product")
     } finally {
       setIsSaving(false)
-      setIsDialogOpen(false)
-      resetForm()
     }
   }
 
@@ -171,11 +165,31 @@ export default function ProductsPage() {
     setEditingProduct(null)
   }
 
-  const deleteProduct = (id: number) => {
-    const prod = products.find(p => p.id === id)
+  const handleEdit = (p: any) => {
+    setEditingProduct(p)
+    setName(p.name)
+    setSku(p.sku)
+    setCategory(p.category)
+    setType(p.type)
+    setOutletPrice(p.outletPrice?.toString() || "")
+    setPickmePrice(p.pickmePrice?.toString() || "")
+    setUberPrice(p.uberPrice?.toString() || "")
+    setIsActive(p.status === 'Active')
+    setIsDialogOpen(true)
+  }
+
+  const deleteProduct = async (id: string) => {
     if(confirm("Are you sure you want to delete this product?")) {
-      setProducts(products.filter(p => p.id !== id))
-      if (prod) logAudit(user?.name || "System", user?.branch || "Unknown", `Deleted product: ${prod.name}`, "Product")
+      try {
+        const res = await fetch(`/api/products?id=${id}`, { method: 'DELETE' })
+        if (res.ok) {
+          fetchProducts()
+        } else {
+          alert("Failed to delete product")
+        }
+      } catch (err) {
+        console.error(err)
+      }
     }
   }
 
@@ -349,14 +363,17 @@ export default function ProductsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredProducts.length === 0 && (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading products...</TableCell>
+              </TableRow>
+            ) : filteredProducts.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   No products found.
                 </TableCell>
               </TableRow>
-            )}
-            {filteredProducts.map((p) => (
+            ) : filteredProducts.map((p) => (
               <TableRow key={p.id} className="border-b last:border-0 hover:bg-gray-50/50">
                 <TableCell className="py-4">
                   <div className="font-semibold text-gray-800 uppercase text-sm">
@@ -379,20 +396,20 @@ export default function ProductsPage() {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm font-medium">LKR {p.outletPrice.toFixed(2)}</span>
+                  <span className="text-sm font-medium">LKR {p.outletPrice?.toFixed(2)}</span>
                 </TableCell>
                 <TableCell>
-                  <div className="text-xs text-gray-500">Pick Me: LKR {p.pickmePrice.toFixed(2)}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">Uber: LKR {p.uberPrice.toFixed(2)}</div>
+                  <div className="text-xs text-gray-500">Pick Me: LKR {p.pickmePrice?.toFixed(2) || p.outletPrice?.toFixed(2)}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">Uber: LKR {p.uberPrice?.toFixed(2) || p.outletPrice?.toFixed(2)}</div>
                 </TableCell>
                 <TableCell>
-                  <span className={`text-xs font-medium ${p.status ? 'text-green-500' : 'text-gray-400'}`}>
-                    {p.status ? 'Active' : 'Inactive'}
+                  <span className={`text-xs font-medium ${p.status === 'Active' ? 'text-green-500' : 'text-gray-400'}`}>
+                    {p.status}
                   </span>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon" title="Edit">
+                    <Button variant="ghost" size="icon" title="Edit" onClick={() => handleEdit(p)}>
                       <Edit className="h-4 w-4 text-gray-400 hover:text-blue-500" />
                     </Button>
                     <Button variant="ghost" size="icon" title="Delete" onClick={() => deleteProduct(p.id)}>

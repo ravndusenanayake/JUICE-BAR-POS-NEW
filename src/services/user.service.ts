@@ -9,8 +9,6 @@ export const userService = {
     await connectToDatabase();
     // Populate role and branch so the frontend can display their names
     const users = await User.find({})
-      .populate('roleId', 'name')
-      .populate('branchId', 'name')
       .sort({ createdAt: -1 })
       .lean();
     return JSON.parse(JSON.stringify(users));

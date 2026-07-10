@@ -2,13 +2,10 @@ import { NextResponse } from 'next/server';
 import connectToDatabase from '@/database/mongoose';
 import Product from '@/database/models/Product';
 
-// GET all products
 export async function GET() {
   try {
     await connectToDatabase();
-    
     const products = await Product.find().sort({ createdAt: -1 });
-    
     return NextResponse.json(products, { status: 200 });
   } catch (error: any) {
     console.error('GET Products Error:', error);
@@ -16,7 +13,6 @@ export async function GET() {
   }
 }
 
-// POST new product
 export async function POST(req: Request) {
   try {
     await connectToDatabase();
@@ -40,13 +36,46 @@ export async function POST(req: Request) {
     });
 
     await newProduct.save();
-
     return NextResponse.json(newProduct, { status: 201 });
   } catch (error: any) {
     console.error('POST Product Error:', error);
-    if (error.code === 11000) {
-      return NextResponse.json({ error: 'SKU already exists' }, { status: 400 });
+    if (error.code === 11000) return NextResponse.json({ error: 'SKU already exists' }, { status: 400 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function PUT(req: Request) {
+  try {
+    await connectToDatabase();
+    const body = await req.json();
+    const { id, ...updateData } = body;
+    
+    if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+    
+    if (updateData.status !== undefined) {
+       updateData.status = updateData.status ? 'Active' : 'Inactive';
     }
+
+    const updatedProduct = await Product.findByIdAndUpdate(id, updateData, { new: true });
+    return NextResponse.json(updatedProduct, { status: 200 });
+  } catch (error: any) {
+    console.error('PUT Product Error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    await connectToDatabase();
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    
+    if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+
+    await Product.findByIdAndDelete(id);
+    return NextResponse.json({ message: 'Product deleted' }, { status: 200 });
+  } catch (error: any) {
+    console.error('DELETE Product Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
