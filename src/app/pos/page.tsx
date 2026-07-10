@@ -285,7 +285,7 @@ export default function POSPage() {
   const removeFromCart = (cartItemId: string) => {
     const item = cart.find(i => i.id === cartItemId)
     setCart(prev => prev.filter(i => i.id !== cartItemId))
-    if (item) logAudit(user?.name || "System", user?.branch || "Unknown", `Removed item from cart: ${item.name}`, "Sales")
+    if (item) logAudit(user?.name || "System", user?.branch === "All Branches" ? "Colombo 07" : (user?.branch || "Unknown"), `Removed item from cart: ${item.name}`, "Sales")
   }
 
   const updateItemNote = (cartItemId: string, note: string) => {
@@ -352,7 +352,7 @@ export default function POSPage() {
       // Save Sale to API
       const salePayload = {
         receiptNumber: orderRef,
-        branch: user?.branch || "Colombo 07",
+        branch: user?.branch === "All Branches" ? "Colombo 07" : (user?.branch || "Colombo 07"),
         cashier: user?.name || "System",
         customer: selectedCustomer?.name || "Walk-In Customer",
         subTotal: subtotal,
@@ -406,7 +406,7 @@ export default function POSPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            branch: user?.branch || "Colombo 07",
+            branch: user?.branch === "All Branches" ? "Colombo 07" : (user?.branch || "Colombo 07"),
             sku: sku, // We are using rawMaterialId or productId as SKU in this mock mapping
             quantity: mat.quantity,
             type: 'OUT',
@@ -527,7 +527,7 @@ export default function POSPage() {
             </Button>
             <div className="flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-full border border-orange-100">
               <User className="w-4 h-4 text-orange-600" />
-              <span className="text-sm font-semibold text-orange-800">{user?.name} ({user?.branch})</span>
+              <span className="text-sm font-semibold text-orange-800">{user?.name} ({user?.branch === "All Branches" ? "Colombo 07" : user?.branch})</span>
             </div>
           </div>
         </header>
