@@ -36,14 +36,20 @@ export default function CustomersPage() {
   const [email, setEmail] = useState("")
   const [birthday, setBirthday] = useState("")
 
-  useEffect(() => {
-    const stored = localStorage.getItem("mock_customers")
-    if (stored) {
-      setCustomers(JSON.parse(stored))
-    } else {
-      setCustomers(INITIAL_CUSTOMERS)
-      localStorage.setItem("mock_customers", JSON.stringify(INITIAL_CUSTOMERS))
+  const fetchCustomers = async () => {
+    try {
+      const res = await fetch('/api/customers')
+      if (res.ok) {
+        const data = await res.json()
+        setCustomers(data)
+      }
+    } catch (err) {
+      console.error("Failed to fetch customers", err)
     }
+  }
+
+  useEffect(() => {
+    fetchCustomers()
   }, [])
 
   const filteredCustomers = customers.filter(c => 
@@ -51,33 +57,40 @@ export default function CustomersPage() {
     c.mobile.includes(searchQuery)
   )
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name || !mobile) {
       alert("Name and Mobile are required.")
       return
     }
 
-    const newCustomer: Customer = {
-      id: `CUST-${Date.now()}`,
-      name,
-      mobile,
-      email,
-      birthday,
-      totalSpend: 0,
-      points: 0,
-      status: "Active"
+    try {
+      const res = await fetch('/api/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          mobile,
+          email,
+          birthday,
+          loyaltyPoints: 0,
+          status: "Active"
+        })
+      })
+
+      if (res.ok) {
+        await fetchCustomers()
+        setIsOpen(false)
+        setName("")
+        setMobile("")
+        setEmail("")
+        setBirthday("")
+      } else {
+        alert("Failed to add customer")
+      }
+    } catch (err) {
+      console.error("Error adding customer", err)
     }
-
-    const updated = [newCustomer, ...customers]
-    setCustomers(updated)
-    localStorage.setItem("mock_customers", JSON.stringify(updated))
-
-    setIsOpen(false)
-    setName("")
-    setMobile("")
-    setEmail("")
-    setBirthday("")
   }
 
   return (

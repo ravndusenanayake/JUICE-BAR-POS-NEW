@@ -109,6 +109,7 @@ export default function POSPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
   const [isCustomerSelectOpen, setIsCustomerSelectOpen] = useState(false)
   const [customerSearch, setCustomerSearch] = useState("")
+  const [recipes, setRecipes] = useState<any[]>([])
 
   // -- Product Config Modal --
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
@@ -144,52 +145,36 @@ export default function POSPage() {
   const [lastOrderRef, setLastOrderRef] = useState("")
   const [saleDetails, setSaleDetails] = useState<any>(null)
 
-  // --- Initial Setup (Recipes & Shift) ---
+  // --- Initial Setup (Recipes, Customers & Shift) ---
   useEffect(() => {
     // 1. Check Shift
     const shift = localStorage.getItem("pos_shift")
     if (shift) setShiftActive(true)
     else setIsShiftOpen(true) // Force open shift modal if no shift
 
-    // 1.5 Load Customers
-    const storedCustomers = localStorage.getItem("mock_customers")
-    if (storedCustomers) {
-      const parsed = JSON.parse(storedCustomers)
-      setCustomers(parsed)
-      // Default to Walk-In Customer
-      const walkIn = parsed.find((c: any) => c.name === "Walk-In Customer")
-      if (walkIn) setSelectedCustomer(walkIn)
-    } else {
-      // Fallback if they haven't visited the customers page yet
-      const fallback = [{ id: "CUST-001", name: "Walk-In Customer", mobile: "N/A" }]
-      setCustomers(fallback)
-      setSelectedCustomer(fallback[0])
-      localStorage.setItem("mock_customers", JSON.stringify(fallback))
-    }
-
-    // 2. Seed Mock Recipes for Auto-Deduction testing
-    const existingRecipes = localStorage.getItem("mock_recipes")
-    if (!existingRecipes) {
-      const demoRecipes = [
-        {
-          id: "REC-1", productId: "P2", variant: "Standard", name: "Mango Juice", category: "Fresh Juices", costPerServing: 120, retailPrice: 400,
-          ingredients: [
-            { rawMaterialId: "RM001", name: "Fresh Mango", quantity: 200, unit: "g", cost: 80 },
-            { rawMaterialId: "RM002", name: "Sugar", quantity: 30, unit: "g", cost: 10 },
-            { rawMaterialId: "RM003", name: "Purified Water", quantity: 150, unit: "ml", cost: 5 },
-          ]
-        },
-        {
-          id: "REC-2", productId: "P1", variant: "Regular", name: "Avocado Juice", category: "Fresh Juices", costPerServing: 150, retailPrice: 450,
-          ingredients: [
-            { rawMaterialId: "RM004", name: "Avocado", quantity: 150, unit: "g", cost: 100 },
-            { rawMaterialId: "RM005", name: "Fresh Milk", quantity: 100, unit: "ml", cost: 30 },
-            { rawMaterialId: "RM002", name: "Sugar", quantity: 20, unit: "g", cost: 8 },
-          ]
+    // 2. Load Customers & Recipes from DB
+    const fetchData = async () => {
+      try {
+        const [custRes, recRes] = await Promise.all([
+          fetch('/api/customers'),
+          fetch('/api/recipes')
+        ]);
+        if (custRes.ok) {
+          const data = await custRes.json();
+          setCustomers(data);
+          const walkIn = data.find((c: any) => c.name === "Walk-In Customer");
+          if (walkIn) setSelectedCustomer(walkIn);
+          else if (data.length > 0) setSelectedCustomer(data[0]);
         }
-      ]
-      localStorage.setItem("mock_recipes", JSON.stringify(demoRecipes))
-    }
+        if (recRes.ok) {
+          const data = await recRes.json();
+          setRecipes(data);
+        }
+      } catch (err) {
+        console.error("Failed to load POS data", err);
+      }
+    };
+    fetchData();
   }, [])
 
   // --- Filtering ---
@@ -361,7 +346,7 @@ export default function POSPage() {
       const newSale = await res.json()
 
       // 1. Inventory Deduction Logic (UI state & API)
-      const allRecipes = JSON.parse(localStorage.getItem("mock_recipes") || "[]")
+      const allRecipes = recipes; // Use state instead of localStorage
       const deductions: Record<string, {name: string, quantity: number, unit: string}> = {}
 
       cart.forEach(cartItem => {

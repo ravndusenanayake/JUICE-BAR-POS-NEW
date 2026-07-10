@@ -1,10 +1,12 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IRawMaterial extends Document {
+  sku: string;
   name: string;
+  category: string;
   unit: string;
+  minStockLevel: number;
   currentStock: number;
-  threshold: number;
   status: 'Active' | 'Inactive';
   createdAt: Date;
   updatedAt: Date;
@@ -12,10 +14,12 @@ export interface IRawMaterial extends Document {
 
 const RawMaterialSchema = new Schema<IRawMaterial>(
   {
-    name: { type: String, required: true, unique: true },
+    sku: { type: String, required: true, unique: true },
+    name: { type: String, required: true },
+    category: { type: String, default: 'General' },
     unit: { type: String, required: true }, // e.g. g, ml, Nos
+    minStockLevel: { type: Number, required: true, default: 10 },
     currentStock: { type: Number, required: true, default: 0 },
-    threshold: { type: Number, required: true, default: 10 },
     status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
   },
   { timestamps: true }

@@ -1,26 +1,35 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IBranchInventory extends Document {
-  branchId: mongoose.Types.ObjectId;
-  inventoryItemId: mongoose.Types.ObjectId; // References RawMaterial / InventoryItem
-  currentStock: number;
-  minimumStock: number;
+  branch: string;
+  sku: string;
+  name: string;
+  category: string;
+  unit: string;
+  quantity: number;
+  minStockLevel: number;
+  lastRestocked: Date;
+  status: 'In Stock' | 'Low Stock' | 'Out of Stock';
   createdAt: Date;
   updatedAt: Date;
 }
 
 const BranchInventorySchema = new Schema<IBranchInventory>(
   {
-    branchId: { type: Schema.Types.ObjectId, ref: 'Branch', required: true },
-    inventoryItemId: { type: Schema.Types.ObjectId, ref: 'InventoryItem', required: true },
-    currentStock: { type: Number, required: true, default: 0 },
-    minimumStock: { type: Number, required: true, default: 10 },
+    branch: { type: String, required: true },
+    sku: { type: String, required: true },
+    name: { type: String, required: true },
+    category: { type: String, required: true },
+    unit: { type: String, required: true },
+    quantity: { type: Number, required: true, default: 0 },
+    minStockLevel: { type: Number, required: true, default: 10 },
+    lastRestocked: { type: Date, default: Date.now },
+    status: { type: String, enum: ['In Stock', 'Low Stock', 'Out of Stock'], default: 'In Stock' },
   },
   { timestamps: true }
 );
 
-// Compound index to ensure one record per item per branch
-BranchInventorySchema.index({ branchId: 1, inventoryItemId: 1 }, { unique: true });
+BranchInventorySchema.index({ branch: 1, sku: 1 }, { unique: true });
 
 const BranchInventory = mongoose.models.BranchInventory || mongoose.model<IBranchInventory>('BranchInventory', BranchInventorySchema);
 

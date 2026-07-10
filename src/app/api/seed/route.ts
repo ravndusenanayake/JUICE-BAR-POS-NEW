@@ -1,0 +1,120 @@
+import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
+import connectToDatabase from '@/database/mongoose';
+import Product from '@/database/models/Product';
+import Recipe from '@/database/models/Recipe';
+import RawMaterial from '@/database/models/RawMaterial';
+import Customer from '@/database/models/Customer';
+import Category from '@/database/models/Category';
+import BranchInventory from '@/database/models/BranchInventory';
+
+export async function GET() {
+  try {
+    await connectToDatabase();
+
+    // 1. Drop existing core mock collections to clear old indexes
+    const dropIfExists = async (model: any) => {
+      try {
+        await model.collection.drop();
+      } catch (e: any) {
+        if (e.code !== 26) console.error('Drop error:', e); // 26 is namespace not found
+      }
+    };
+
+    await dropIfExists(Product);
+    await dropIfExists(Recipe);
+    await dropIfExists(RawMaterial);
+    await dropIfExists(Customer);
+    await dropIfExists(Category);
+    await dropIfExists(BranchInventory);
+
+    console.log('Cleared existing collections...');
+
+    // 2. Seed Categories
+    const categories = await Category.insertMany([
+      { name: 'Fresh Juices', description: 'All fresh fruit juices', status: 'Active' },
+      { name: 'Smoothies', description: 'Blended smoothies with milk or yogurt', status: 'Active' },
+      { name: 'Desserts', description: 'Sweet desserts and cakes', status: 'Active' },
+      { name: 'General', description: 'General items', status: 'Active' }
+    ]);
+
+    // 3. Seed Raw Materials
+    const rawMaterials = await RawMaterial.insertMany([
+      { sku: 'RM-MNG', name: 'Mango', category: 'Fruits', unit: 'g', minStockLevel: 1000, currentStock: 0, status: 'Active' },
+      { selectedUnit: "g", sku: 'RM-SUG', name: 'Sugar', category: 'Grocery', unit: 'g', minStockLevel: 2000, currentStock: 0, status: 'Active' },
+      { sku: 'RM-WAT', name: 'Purified Water', category: 'Grocery', unit: 'ml', minStockLevel: 5000, currentStock: 0, status: 'Active' },
+      { sku: 'RM-AVO', name: 'Avocado', category: 'Fruits', unit: 'g', minStockLevel: 1000, currentStock: 0, status: 'Active' },
+      { sku: 'RM-MLK', name: 'Fresh Milk', category: 'Dairy', unit: 'ml', minStockLevel: 5000, currentStock: 0, status: 'Active' }
+    ]);
+
+    // 4. Seed Products
+    const products = await Product.insertMany([
+      { sku: 'MJ01', name: 'Mango Juice', category: 'Fresh Juices', type: 'Product', unit: 'Nos', cost: 120, outletPrice: 350, pickmePrice: 400, uberPrice: 420, status: 'Active' },
+      { sku: 'AV01', name: 'Avocado Juice', category: 'Fresh Juices', type: 'Product', unit: 'Nos', cost: 180, outletPrice: 450, pickmePrice: 500, uberPrice: 520, status: 'Active' },
+      { sku: 'BF01', name: 'Blackforest Cake', category: 'Desserts', type: 'Product', unit: 'Nos', cost: 200, outletPrice: 500, pickmePrice: 550, uberPrice: 580, status: 'Active' }
+    ]);
+
+    // 5. Seed Recipes
+    const recipes = await Recipe.insertMany([
+      {
+        productId: products[0].sku, // Mango Juice
+        productName: 'Mango Juice',
+        variant: 'Standard',
+        ingredients: [
+          { rawMaterialId: rawMaterials[0].sku, name: 'Mango', quantity: 200, unit: 'g', costPerUnit: 0.5, totalCost: 100 },
+          { rawMaterialId: rawMaterials[1].sku, name: 'Sugar', quantity: 30, unit: 'g', costPerUnit: 0.2, totalCost: 6 },
+          { rawMaterialId: rawMaterials[2].sku, name: 'Purified Water', quantity: 100, unit: 'ml', costPerUnit: 0.05, totalCost: 5 }
+        ],
+        totalCost: 111
+      },
+      {
+        productId: products[1].sku, // Avocado Juice
+        productName: 'Avocado Juice',
+        variant: 'Standard',
+        ingredients: [
+          { rawMaterialId: rawMaterials[3].sku, name: 'Avocado', quantity: 150, unit: 'g', costPerUnit: 0.8, totalCost: 120 },
+          { rawMaterialId: rawMaterials[4].sku, name: 'Fresh Milk', quantity: 100, unit: 'ml', costPerUnit: 0.4, totalCost: 40 },
+          { rawMaterialId: rawMaterials[1].sku, name: 'Sugar', quantity: 30, unit: 'g', costPerUnit: 0.2, totalCost: 6 }
+        ],
+        totalCost: 166
+      }
+    ]);
+
+    // 6. Seed Customers
+    const customers = await Customer.insertMany([
+      { customerCode: 'CUST-001', name: 'Walk-In Customer', mobile: '0000000000', email: 'walkin@juicebar.com', address: 'N/A', loyaltyPoints: 0, status: 'Active' },
+      { customerCode: 'CUST-002', name: 'Jane Doe', mobile: '0712345678', email: 'jane@example.com', address: 'Colombo', loyaltyPoints: 120, status: 'Active' }
+    ]);
+
+    // 7. Seed Branch Inventory (For Colombo 07)
+    // We get the first branch, but we can hardcode for Colombo 07 if it exists, or just use string 'Colombo 07' for now since schema uses String for branch
+    const branchName = 'Colombo 07';
+    const inventoryItems = rawMaterials.map(rm => ({
+      branch: branchName,
+      sku: rm.sku,
+      name: rm.name,
+      category: rm.category,
+      unit: rm.unit,
+      quantity: 5000, // Seed with 5000 units each
+      minStockLevel: rm.minStockLevel,
+      lastRestocked: new Date(),
+      status: 'In Stock'
+    }));
+    await BranchInventory.insertMany(inventoryItems);
+
+    return NextResponse.json({ 
+      message: 'Database seeded successfully',
+      data: {
+        categories: categories.length,
+        rawMaterials: rawMaterials.length,
+        products: products.length,
+        recipes: recipes.length,
+        customers: customers.length,
+        inventory: inventoryItems.length
+      }
+    }, { status: 200 });
+  } catch (error: any) {
+    console.error('Seeding Error:', error);
+    return NextResponse.json({ error: 'Failed to seed database', details: error.message }, { status: 500 });
+  }
+}

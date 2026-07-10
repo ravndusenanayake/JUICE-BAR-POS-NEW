@@ -1,19 +1,25 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IRecipeIngredient {
-  inventoryItemId: mongoose.Types.ObjectId;
+  rawMaterialId: string;
+  name: string;
   quantity: number;
   unit: string;
 }
 
 export interface IRecipe extends Document {
-  variantId: mongoose.Types.ObjectId;
+  productId: string;
+  productName: string;
+  variant: string;
   ingredients: IRecipeIngredient[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const RecipeIngredientSchema = new Schema<IRecipeIngredient>(
   {
-    inventoryItemId: { type: Schema.Types.ObjectId, ref: 'InventoryItem', required: true },
+    rawMaterialId: { type: String, required: true },
+    name: { type: String, required: true },
     quantity: { type: Number, required: true },
     unit: { type: String, required: true },
   },
@@ -22,13 +28,15 @@ const RecipeIngredientSchema = new Schema<IRecipeIngredient>(
 
 const RecipeSchema = new Schema<IRecipe>(
   {
-    variantId: { type: Schema.Types.ObjectId, ref: 'ProductVariant', required: true, unique: true },
+    productId: { type: String, required: true },
+    productName: { type: String, required: true },
+    variant: { type: String, required: true },
     ingredients: [RecipeIngredientSchema],
   },
   { timestamps: true }
 );
 
-RecipeSchema.index({ variantId: 1 });
+RecipeSchema.index({ productId: 1, variant: 1 });
 
 const Recipe = mongoose.models.Recipe || mongoose.model<IRecipe>('Recipe', RecipeSchema);
 

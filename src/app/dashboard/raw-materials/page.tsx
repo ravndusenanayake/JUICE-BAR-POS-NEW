@@ -18,15 +18,10 @@ const UNITS = [
   { id: 4, name: "Numbers", code: "Nos" },
 ]
 
-const INITIAL_RAW_MATERIALS = [
-  { id: 1, name: "Sugar", sku: "RM-SUG-001", unit: "g", threshold: 1000, currentStock: 500, status: true },
-  { id: 2, name: "Milk", sku: "RM-MLK-001", unit: "ml", threshold: 5000, currentStock: 8000, status: true },
-  { id: 3, name: "Mango", sku: "RM-MNG-001", unit: "g", threshold: 2000, currentStock: 1500, status: true },
-  { id: 4, name: "Ice", sku: "RM-ICE-001", unit: "kg", threshold: 10, currentStock: 2, status: true },
-]
+
 
 export default function RawMaterialsPage() {
-  const [materials, setMaterials] = useState(INITIAL_RAW_MATERIALS)
+  const [materials, setMaterials] = useState<any[]>([])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   
@@ -36,12 +31,27 @@ export default function RawMaterialsPage() {
   const [threshold, setThreshold] = useState("")
   const [isActive, setIsActive] = useState(true)
 
+  const fetchMaterials = async () => {
+    try {
+      const res = await fetch('/api/raw-materials')
+      if (res.ok) {
+        setMaterials(await res.json())
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  useState(() => {
+    fetchMaterials()
+  })
+
   const filteredMaterials = materials.filter(m => 
     m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     m.sku.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const handleAddMaterial = (e: React.FormEvent) => {
+  const handleAddMaterial = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (materials.some(m => m.name.toLowerCase() === name.toLowerCase())) {
@@ -53,19 +63,31 @@ export default function RawMaterialsPage() {
     const skuCode = String(materials.length + 1).padStart(3, '0')
     const generatedSku = `RM-${skuPrefix}-${skuCode}`
 
-    const newMaterial = {
-      id: materials.length + 1,
-      name,
-      sku: generatedSku,
-      unit,
-      threshold: parseFloat(threshold) || 0,
-      currentStock: 0,
-      status: isActive
-    }
+    try {
+      const res = await fetch('/api/raw-materials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          sku: generatedSku,
+          category: 'General',
+          unit,
+          minStockLevel: parseFloat(threshold) || 0,
+          currentStock: 0,
+          status: isActive ? 'Active' : 'Inactive'
+        })
+      })
 
-    setMaterials([newMaterial, ...materials])
-    setIsDialogOpen(false)
-    resetForm()
+      if (res.ok) {
+        await fetchMaterials()
+        setIsDialogOpen(false)
+        resetForm()
+      } else {
+        alert("Failed to add raw material")
+      }
+    } catch (err) {
+      console.error(err)
+    }
   }
 
   const resetForm = () => {
@@ -75,15 +97,13 @@ export default function RawMaterialsPage() {
     setIsActive(true)
   }
 
-  const toggleStatus = (id: number) => {
-    setMaterials(materials.map(m => 
-      m.id === id ? { ...m, status: !m.status } : m
-    ))
+  const toggleStatus = (id: string) => {
+    // API Call to update status would go here
   }
 
-  const deleteMaterial = (id: number) => {
+  const deleteMaterial = (id: string) => {
     if(confirm("Are you sure you want to delete this raw material?")) {
-      setMaterials(materials.filter(m => m.id !== id))
+      // API call to delete would go here
     }
   }
 
