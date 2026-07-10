@@ -10,16 +10,29 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 export default function AllGRNPage() {
   const [grns, setGrns] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
+  const [isLoading, setIsLoading] = useState(true)
   
   const [selectedGrn, setSelectedGrn] = useState<any>(null)
   const [isViewOpen, setIsViewOpen] = useState(false)
 
   useEffect(() => {
-    const stored = localStorage.getItem("mock_grns")
-    if (stored) {
-      setGrns(JSON.parse(stored))
-    }
+    fetchGRNs()
   }, [])
+
+  const fetchGRNs = async () => {
+    setIsLoading(true)
+    try {
+      const res = await fetch('/api/grn')
+      if (res.ok) {
+        const data = await res.json()
+        setGrns(data)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const filteredGrns = grns.filter(g => 
     g.grnNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -72,51 +85,56 @@ export default function AllGRNPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredGrns.length === 0 && (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-12 text-gray-400">Loading GRNs...</TableCell>
+              </TableRow>
+            ) : filteredGrns.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-12 text-gray-400">
                   <FileText className="w-8 h-8 mx-auto mb-3 opacity-20" />
                   <p className="font-medium">No GRNs found.</p>
                 </TableCell>
               </TableRow>
+            ) : (
+              filteredGrns.map((grn) => (
+                <TableRow key={grn._id} className="border-b last:border-0 hover:bg-gray-50/50 transition-colors">
+                  <TableCell className="py-4">
+                    <div className="font-black text-gray-900 flex items-center gap-1.5">
+                      {grn.grnNumber}
+                    </div>
+                    <div className="text-xs font-medium text-gray-500 mt-1 flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {new Date(grn.receivedDate).toLocaleString()}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded inline-flex border border-blue-100">
+                      {grn.poNumber}
+                    </div>
+                    <div className="text-xs text-gray-400 mt-1">{grn.branch}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-semibold text-gray-800">{grn.supplierName}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <div className="bg-orange-100 p-1.5 rounded-full"><User className="w-3 h-3 text-orange-700"/></div>
+                      <span className="text-sm font-medium text-gray-700">{grn.receivedBy || "N/A"}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="font-black text-green-600 text-lg">{grn.items?.length || 0}</div>
+                    <div className="text-xs text-gray-400">products</div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="outline" size="sm" onClick={() => openViewModal(grn)} className="font-semibold shadow-sm hover:bg-gray-100">
+                      <Eye className="w-4 h-4 mr-2" /> View Details
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
-            {filteredGrns.map((grn) => (
-              <TableRow key={grn.id} className="border-b last:border-0 hover:bg-gray-50/50 transition-colors">
-                <TableCell className="py-4">
-                  <div className="font-black text-gray-900 flex items-center gap-1.5">
-                    {grn.grnNumber}
-                  </div>
-                  <div className="text-xs font-medium text-gray-500 mt-1 flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {new Date(grn.receivedDate).toLocaleString()}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded inline-flex border border-blue-100">
-                    {grn.poNumber}
-                  </div>
-                  <div className="text-xs text-gray-400 mt-1">{grn.branch}</div>
-                </TableCell>
-                <TableCell>
-                  <div className="font-semibold text-gray-800">{grn.supplierName}</div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <div className="bg-orange-100 p-1.5 rounded-full"><User className="w-3 h-3 text-orange-700"/></div>
-                    <span className="text-sm font-medium text-gray-700">{grn.receivedBy || "N/A"}</span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="font-black text-green-600 text-lg">{grn.items?.length || 0}</div>
-                  <div className="text-xs text-gray-400">products</div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button variant="outline" size="sm" onClick={() => openViewModal(grn)} className="font-semibold shadow-sm hover:bg-gray-100">
-                    <Eye className="w-4 h-4 mr-2" /> View Details
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
           </TableBody>
         </Table>
       </div>

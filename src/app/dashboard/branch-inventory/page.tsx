@@ -12,28 +12,17 @@ import { Search, History, ArrowDownUp, AlertCircle, CheckCircle2, TrendingUp, Tr
 import { formatStockDisplay, BaseUnit } from "@/lib/units"
 import Link from "next/link"
 
-// Dummy Data
 const BRANCHES = [
-  { id: "B1", name: "Colombo 07" },
-  { id: "B2", name: "Kandy Branch" },
-  { id: "B3", name: "Galle Branch" }
-]
-
-// Note: Stock is stored in base units (g, ml) in the DB
-const INITIAL_INVENTORY = [
-  { id: "RM-001", branchId: "B1", rawMaterialName: "Sugar", sku: "SKU-SUG-01", baseUnit: "g" as BaseUnit, currentStock: 25000, minimumStock: 10000, maxCapacity: 50000, status: "Active" },
-  { id: "RM-002", branchId: "B1", rawMaterialName: "Fresh Milk", sku: "SKU-MLK-01", baseUnit: "ml" as BaseUnit, currentStock: 8000, minimumStock: 10000, maxCapacity: 20000, status: "Active" },
-  { id: "RM-003", branchId: "B1", rawMaterialName: "Mango", sku: "SKU-MNG-01", baseUnit: "g" as BaseUnit, currentStock: 12000, minimumStock: 5000, maxCapacity: 30000, status: "Active" },
-  { id: "RM-004", branchId: "B2", rawMaterialName: "Sugar", sku: "SKU-SUG-01", baseUnit: "g" as BaseUnit, currentStock: 5000, minimumStock: 10000, maxCapacity: 20000, status: "Active" },
-  { id: "RM-005", branchId: "B2", rawMaterialName: "Fresh Milk", sku: "SKU-MLK-01", baseUnit: "ml" as BaseUnit, currentStock: 18000, minimumStock: 10000, maxCapacity: 20000, status: "Active" },
+  { id: "Colombo 07", name: "Colombo 07" },
+  { id: "Kandy Branch", name: "Kandy Branch" },
+  { id: "Galle Branch", name: "Galle Branch" }
 ]
 
 export default function BranchInventoryPage() {
   const { user, role } = useAuth()
   
-  // Set default branch based on user role
-  const [selectedBranch, setSelectedBranch] = useState(user?.branch === "All Branches" ? "B1" : (BRANCHES.find(b => b.name === user?.branch)?.id || "B1"))
-  const [inventory, setInventory] = useState(INITIAL_INVENTORY)
+  const [selectedBranch, setSelectedBranch] = useState(user?.branch === "All Branches" ? "Colombo 07" : (user?.branch || "Colombo 07"))
+  const [inventory, setInventory] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   
   // Adjustment Modal State
@@ -44,24 +33,32 @@ export default function BranchInventoryPage() {
   const [adjustmentReason, setAdjustmentReason] = useState("")
   const [adjustmentRef, setAdjustmentRef] = useState("")
   const [lossValue, setLossValue] = useState("")
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Restrict Branch Selection if not Super Admin / Admin
   const canSelectBranch = role === "Super Admin" || role === "Admin"
 
   useEffect(() => {
-    // Load from local storage if exists
-    const stored = localStorage.getItem("mock_branch_inventory")
-    if (stored) {
-      setInventory(JSON.parse(stored))
-    } else {
-      localStorage.setItem("mock_branch_inventory", JSON.stringify(INITIAL_INVENTORY))
+    fetchInventory()
+  }, [selectedBranch])
+
+  const fetchInventory = async () => {
+    setIsLoading(true)
+    try {
+      const res = await fetch(`/api/branch-inventory?branch=${selectedBranch}`)
+      if (res.ok) {
+        const data = await res.json()
+        setInventory(data)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsLoading(false)
     }
-  }, [])
+  }
 
   const filteredInventory = inventory.filter(item => 
-    item.branchId === selectedBranch &&
-    (item.rawMaterialName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     item.sku.toLowerCase().includes(searchQuery.toLowerCase()))
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.sku.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const handleOpenAdjustment = (item: any) => {
@@ -74,7 +71,7 @@ export default function BranchInventoryPage() {
     setIsAdjustmentOpen(true)
   }
 
-  const handleSaveAdjustment = (e: React.FormEvent) => {
+  const handleSaveAdjustment = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!adjustmentItem) return
     
@@ -90,48 +87,28 @@ export default function BranchInventoryPage() {
       return
     }
 
-    // Convert input to base unit before saving
-    // Example: User typed 5. If unit is 'g', they probably meant 5kg? No, let's keep it simple: 
-    // We expect the user to type in Base Unit for now, OR we scale it.
-    // Let's assume input is exactly in base unit for simplicity, or we convert if they select Kg.
-    // For this simulation, input is in Base Unit.
-    const qtyInBaseUnit = displayQty
+    try {
+      const res = await fetch('/api/inventory/adjust', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          branch: selectedBranch,
+          sku: adjustmentItem.sku,
+          quantity: displayQty,
+          type: adjustmentType,
+          reference: adjustmentRef || "Manual Adjustment",
+          remarks: adjustmentReason
+        })
+      })
 
-    const updatedInventory = inventory.map(item => {
-      if (item.id === adjustmentItem.id) {
-        let newStock = item.currentStock
-        if (adjustmentType === "IN") newStock += qtyInBaseUnit
-        else if (adjustmentType === "OUT") newStock -= qtyInBaseUnit
-        return { ...item, currentStock: newStock }
-      }
-      return item
-    })
+      if (!res.ok) throw new Error("Failed to adjust inventory")
 
-    setInventory(updatedInventory)
-    localStorage.setItem("mock_branch_inventory", JSON.stringify(updatedInventory))
-
-    // -- CRITICAL: SAVE TO AUDIT LEDGER --
-    const storedLedger = localStorage.getItem("mock_stock_ledger")
-    const ledger = storedLedger ? JSON.parse(storedLedger) : []
-    const now = new Date().toISOString()
-    
-    const newEntry = {
-      id: `LDG-ADJ-${Date.now()}`,
-      timestamp: now,
-      branch: BRANCHES.find(b => b.id === selectedBranch)?.name || "Unknown",
-      rawMaterialName: adjustmentItem.rawMaterialName,
-      type: adjustmentType,
-      reason: adjustmentReason,
-      quantityChange: qtyInBaseUnit,
-      baseUnit: adjustmentItem.baseUnit, 
-      reference: adjustmentRef || "Manual Adjustment",
-      lossValue: adjustmentType === "OUT" && isWastageReason ? parseFloat(lossValue) || 0 : undefined
+      setIsAdjustmentOpen(false)
+      fetchInventory() // refresh table
+    } catch (e) {
+      console.error(e)
+      alert("Failed to save adjustment.")
     }
-    
-    localStorage.setItem("mock_stock_ledger", JSON.stringify([...ledger, newEntry]))
-    // -------------------------------------
-    
-    setIsAdjustmentOpen(false)
   }
 
   return (
@@ -158,193 +135,194 @@ export default function BranchInventoryPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <div className="p-4 border-b bg-gray-50/50 flex justify-between items-center">
-          <div className="relative w-full max-w-md">
+        <div className="p-4 border-b bg-gray-50/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="relative w-full sm:w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input 
-              type="search" placeholder="Search item name or SKU..." 
-              className="pl-9 bg-white border-gray-200 h-10 shadow-sm"
+              type="search" placeholder="Search by name or SKU..." 
+              className="pl-9 bg-white border-gray-200 h-10 shadow-sm focus-visible:ring-orange-500"
               value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          <div className="flex gap-4">
+            <Link href="/dashboard/stock-ledger" passHref>
+              <Button variant="outline" className="h-10 text-gray-700 bg-white shadow-sm hover:bg-gray-50">
+                <History className="w-4 h-4 mr-2" /> View Stock Ledger
+              </Button>
+            </Link>
+          </div>
         </div>
 
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-gray-50 text-gray-500 text-xs font-bold uppercase tracking-wider">
-              <TableHead className="py-4">Item Details</TableHead>
-              <TableHead>Current Stock</TableHead>
-              <TableHead>Health (Capacity)</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredInventory.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-12 text-gray-400">
-                  <AlertCircle className="w-8 h-8 mx-auto mb-3 opacity-20" />
-                  <p className="font-medium">No inventory items found for this branch.</p>
-                </TableCell>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gray-50 text-gray-500 text-xs font-bold uppercase tracking-wider">
+                <TableHead className="py-4 px-4">Item Details</TableHead>
+                <TableHead className="text-right">Current Stock</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-right px-4">Actions</TableHead>
               </TableRow>
-            )}
-            {filteredInventory.map((item) => {
-              const isLowStock = item.currentStock <= item.minimumStock
-              const healthPercentage = Math.min(100, Math.max(0, (item.currentStock / item.maxCapacity) * 100))
-              
-              // Progress Bar Color Logic
-              let barColor = "bg-green-500"
-              if (healthPercentage < 20 || isLowStock) barColor = "bg-red-500"
-              else if (healthPercentage < 50) barColor = "bg-orange-500"
-
-              return (
-                <TableRow key={item.id} className={`border-b last:border-0 hover:bg-gray-50/50 transition-colors ${isLowStock ? 'bg-red-50/20' : ''}`}>
-                  <TableCell className="py-4">
-                    <div className="font-bold text-gray-900">{item.rawMaterialName}</div>
-                    <div className="text-xs font-medium text-gray-400 mt-0.5 font-mono">{item.sku}</div>
-                  </TableCell>
-                  
-                  <TableCell>
-                    {/* Unit Engine Integration */}
-                    <div className="flex flex-col">
-                      <span className={`text-lg font-black ${isLowStock ? 'text-red-600' : 'text-gray-900'}`}>
-                        {formatStockDisplay(item.currentStock, item.baseUnit)}
-                      </span>
-                      <span className="text-xs font-semibold text-gray-400 mt-1">
-                        Min: {formatStockDisplay(item.minimumStock, item.baseUnit)}
-                      </span>
-                    </div>
-                  </TableCell>
-
-                  <TableCell className="w-48">
-                    <div className="flex flex-col gap-1.5 w-full max-w-[150px]">
-                      <div className="flex justify-between text-[10px] font-bold text-gray-500">
-                        <span>{Math.round(healthPercentage)}%</span>
-                        <span>Max: {formatStockDisplay(item.maxCapacity, item.baseUnit)}</span>
-                      </div>
-                      <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                        <div className={`h-full ${barColor} transition-all duration-500`} style={{ width: `${healthPercentage}%` }} />
-                      </div>
-                    </div>
-                  </TableCell>
-
-                  <TableCell>
-                    {isLowStock ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs bg-red-100 text-red-700 px-2.5 py-1 rounded-full font-bold shadow-sm">
-                        <AlertCircle className="h-3.5 w-3.5" /> LOW STOCK
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 text-xs bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-bold shadow-sm">
-                        <CheckCircle2 className="h-3.5 w-3.5" /> HEALTHY
-                      </span>
-                    )}
-                  </TableCell>
-
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm" className="h-9 font-bold border-orange-200 text-orange-700 hover:bg-orange-50 shadow-sm" onClick={() => handleOpenAdjustment(item)}>
-                        <ArrowDownUp className="h-4 w-4 mr-1.5" /> Adjust
-                      </Button>
-                      <Link href="/dashboard/stock-ledger">
-                        <Button variant="ghost" size="sm" className="h-9 font-bold text-gray-500 hover:text-gray-900 hover:bg-gray-100" title="View Ledger">
-                          <History className="h-4 w-4 mr-1.5" /> Ledger
-                        </Button>
-                      </Link>
-                    </div>
-                  </TableCell>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-12 text-gray-400">Loading inventory...</TableCell>
                 </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
+              ) : filteredInventory.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-12 text-gray-400">No inventory found for this branch.</TableCell>
+                </TableRow>
+              ) : (
+                filteredInventory.map((item) => {
+                  const stockDisplay = formatStockDisplay(item.quantity, item.unit as BaseUnit)
+                  const minStockDisplay = formatStockDisplay(item.minStockLevel, item.unit as BaseUnit)
+                  
+                  // Status Logic
+                  let statusColor = "bg-green-100 text-green-700 border-green-200"
+                  let StatusIcon = CheckCircle2
+                  let statusText = "Optimal"
+
+                  if (item.quantity <= 0) {
+                    statusColor = "bg-red-100 text-red-700 border-red-200"
+                    StatusIcon = AlertCircle
+                    statusText = "Out of Stock"
+                  } else if (item.quantity <= item.minStockLevel) {
+                    statusColor = "bg-amber-100 text-amber-700 border-amber-200"
+                    StatusIcon = AlertCircle
+                    statusText = "Low Stock"
+                  }
+
+                  return (
+                    <TableRow key={item._id} className="border-b last:border-0 hover:bg-gray-50/50 transition-colors">
+                      <TableCell className="py-4 px-4">
+                        <div className="font-bold text-gray-900">{item.name}</div>
+                        <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                          <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-[10px]">{item.sku}</span>
+                        </div>
+                      </TableCell>
+                      
+                      <TableCell className="text-right">
+                        <div className="font-black text-gray-900 text-base">{stockDisplay}</div>
+                        <div className="text-[10px] font-medium text-gray-400 uppercase mt-0.5 tracking-wider">
+                          Min: {minStockDisplay}
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="text-center">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${statusColor}`}>
+                          <StatusIcon className="w-3.5 h-3.5" />
+                          {statusText}
+                        </span>
+                      </TableCell>
+
+                      <TableCell className="text-right px-4">
+                        <Button 
+                          variant="ghost" size="sm"
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-8 font-semibold"
+                          onClick={() => handleOpenAdjustment(item)}
+                        >
+                          <ArrowDownUp className="w-4 h-4 mr-1.5" /> Adjust
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
-      {/* Stock Adjustment Modal */}
       <Dialog open={isAdjustmentOpen} onOpenChange={setIsAdjustmentOpen}>
-        <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-0 shadow-2xl rounded-2xl">
-          <form onSubmit={handleSaveAdjustment}>
-            <div className={`p-6 border-b ${adjustmentType === 'IN' ? 'bg-green-50' : 'bg-red-50'}`}>
-              <DialogTitle className="text-xl font-black text-gray-900 flex items-center gap-2">
-                {adjustmentType === 'IN' ? <TrendingUp className="text-green-600" /> : <TrendingDown className="text-red-600" />}
-                Stock Adjustment
-              </DialogTitle>
-              <DialogDescription className="text-gray-600 mt-2 font-medium">
-                Modifying <strong className="text-gray-900">{adjustmentItem?.rawMaterialName}</strong> stock for <strong className="text-gray-900">{BRANCHES.find(b => b.id === selectedBranch)?.name}</strong>.
-              </DialogDescription>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              {/* Type Toggle */}
-              <div className="grid gap-2">
-                <Label className="text-sm font-bold text-gray-700">Movement Type</Label>
-                <div className="flex gap-4 p-1 bg-gray-100 rounded-xl border border-gray-200">
-                  <button type="button" onClick={() => setAdjustmentType("IN")} className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${adjustmentType === "IN" ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>
-                    Stock IN (+)
-                  </button>
-                  <button type="button" onClick={() => setAdjustmentType("OUT")} className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${adjustmentType === "OUT" ? 'bg-white text-red-700 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>
-                    Stock OUT (-)
-                  </button>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="qty" className="text-sm font-bold text-gray-700">Quantity (in {adjustmentItem?.baseUnit}) *</Label>
-                  <Input id="qty" type="number" step="0.01" placeholder="e.g. 500" value={adjustmentQuantity} onChange={(e) => setAdjustmentQuantity(e.target.value)} required className="border-gray-300 h-11 font-medium" />
-                </div>
-                <div className="grid gap-2">
-                  <Label className="text-sm font-bold text-gray-700">Current Stock</Label>
-                  <div className="h-11 flex items-center px-4 bg-gray-50 border border-gray-200 rounded-md text-sm font-black text-gray-800">
-                    {adjustmentItem && formatStockDisplay(adjustmentItem.currentStock, adjustmentItem.baseUnit)}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="reason" className="text-sm font-bold text-gray-700">Reason for Adjustment *</Label>
-                <Select value={adjustmentReason} onValueChange={(val) => setAdjustmentReason(val || "")} required>
-                  <SelectTrigger className="border-gray-300 h-11">
-                    <SelectValue placeholder="Select a reason" />
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle>Stock Adjustment</DialogTitle>
+            <DialogDescription>
+              Adjusting inventory for <strong className="text-gray-900">{adjustmentItem?.name}</strong> at {selectedBranch}.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleSaveAdjustment} className="space-y-4 pt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select value={adjustmentType} onValueChange={setAdjustmentType}>
+                  <SelectTrigger className={adjustmentType === "IN" ? "text-green-600 font-bold border-green-200 bg-green-50" : "text-red-600 font-bold border-red-200 bg-red-50"}>
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {adjustmentType === "IN" ? (
-                      <>
-                        <SelectItem value="GRN / Purchase Received">GRN / Purchase Received</SelectItem>
-                        <SelectItem value="Stock Transfer In">Stock Transfer In</SelectItem>
-                        <SelectItem value="Physical Count Correction">Physical Count Correction</SelectItem>
-                      </>
-                    ) : (
-                      <>
-                        <SelectItem value="Rotten / Expired">Rotten / Expired</SelectItem>
-                        <SelectItem value="Damaged / Broken">Damaged / Broken</SelectItem>
-                        <SelectItem value="Spillage">Spillage</SelectItem>
-                        <SelectItem value="Stock Transfer Out">Stock Transfer Out</SelectItem>
-                        <SelectItem value="Physical Count Correction">Physical Count Correction</SelectItem>
-                      </>
-                    )}
+                    <SelectItem value="IN" className="text-green-600 font-bold">
+                      <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4"/> Stock IN (+)</div>
+                    </SelectItem>
+                    <SelectItem value="OUT" className="text-red-600 font-bold">
+                      <div className="flex items-center gap-2"><TrendingDown className="w-4 h-4"/> Stock OUT (-)</div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Financial Loss Input if Wastage */}
-              {adjustmentType === "OUT" && ["Rotten / Expired", "Damaged / Broken", "Spillage"].includes(adjustmentReason) && (
-                <div className="grid gap-2 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <Label htmlFor="loss" className="text-sm font-bold text-red-700">Financial Loss (Rs.) *</Label>
-                  <p className="text-xs text-red-600 mb-1">Enter the total buying cost of the wasted items. This will be deducted from Net Profit.</p>
-                  <Input id="loss" type="number" step="0.01" placeholder="e.g. 1500.00" value={lossValue} onChange={(e) => setLossValue(e.target.value)} required className="border-red-300 h-11 font-medium bg-white" />
-                </div>
-              )}
-
-              <div className="grid gap-2">
-                <Label htmlFor="ref" className="text-sm font-bold text-gray-700">Reference / Bill No. (Optional)</Label>
-                <Input id="ref" type="text" placeholder="e.g. INV-2026-99" value={adjustmentRef} onChange={(e) => setAdjustmentRef(e.target.value)} className="border-gray-300 h-11 font-mono" />
+              <div className="space-y-2">
+                <Label>Quantity ({adjustmentItem?.unit})</Label>
+                <Input 
+                  type="number" step="0.01" min="0.01" required 
+                  value={adjustmentQuantity} onChange={e => setAdjustmentQuantity(e.target.value)}
+                  placeholder="e.g. 500" className="font-mono font-bold"
+                />
               </div>
-
             </div>
-            
-            <DialogFooter className="p-6 border-t bg-gray-50 flex gap-3 sm:justify-end">
-              <Button type="button" variant="outline" className="h-11 px-6 font-bold border-gray-300" onClick={() => setIsAdjustmentOpen(false)}>Cancel</Button>
-              <Button type="submit" className="h-11 px-6 font-bold bg-gray-900 text-white hover:bg-black shadow-lg">Save to Ledger</Button>
+
+            <div className="space-y-2">
+              <Label>Reason</Label>
+              <Select value={adjustmentReason} onValueChange={setAdjustmentReason} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  {adjustmentType === "IN" ? (
+                    <>
+                      <SelectItem value="Initial Count">Initial Count</SelectItem>
+                      <SelectItem value="Found Stock">Found Stock</SelectItem>
+                      <SelectItem value="Return">Return</SelectItem>
+                      <SelectItem value="Other IN">Other</SelectItem>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value="Damaged / Broken">Damaged / Broken</SelectItem>
+                      <SelectItem value="Rotten / Expired">Rotten / Expired</SelectItem>
+                      <SelectItem value="Spillage">Spillage</SelectItem>
+                      <SelectItem value="Staff Consumption">Staff Consumption</SelectItem>
+                      <SelectItem value="Theft / Lost">Theft / Lost</SelectItem>
+                      <SelectItem value="Other OUT">Other</SelectItem>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {adjustmentType === "OUT" && ["Rotten / Expired", "Damaged / Broken", "Spillage"].includes(adjustmentReason) && (
+              <div className="space-y-2 bg-red-50/50 p-3 rounded-lg border border-red-100">
+                <Label className="text-red-700">Financial Loss Amount (Rs.)</Label>
+                <Input 
+                  type="number" min="0" required
+                  value={lossValue} onChange={e => setLossValue(e.target.value)}
+                  placeholder="Estimated loss value" className="border-red-200"
+                />
+                <p className="text-xs text-red-500">Required for wastage tracking.</p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Reference Note / Bill No (Optional)</Label>
+              <Input 
+                value={adjustmentRef} onChange={e => setAdjustmentRef(e.target.value)}
+                placeholder="e.g. ADJ-001"
+              />
+            </div>
+
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="outline" onClick={() => setIsAdjustmentOpen(false)}>Cancel</Button>
+              <Button type="submit" className={adjustmentType === "IN" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}>
+                Confirm {adjustmentType}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

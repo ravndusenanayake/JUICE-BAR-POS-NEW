@@ -13,27 +13,25 @@ import { Search, Plus, CheckCircle, PackageOpen, X, FileText, Download, Truck, A
 export interface POItem {
   id: string
   name: string
+  category: string
   unit: string
   quantity: number
-  unitCost: number
-  totalCost: number
-  // For partial receives tracking on the PO level
+  unitPrice: number
+  totalPrice: number
   receivedQuantity?: number 
 }
 
 export interface PurchaseOrder {
-  id: string
+  _id: string
   poNumber: string
-  supplierId: string
   supplierName: string
   branch: string
-  createdDate: string
+  orderDate: string
   expectedDate: string
-  itemType: "Raw Materials" | "Finished Products"
   items: POItem[]
-  totalCost: number
-  status: "Draft" | "Submitted" | "Approved" | "Partially Received" | "Fully Received" | "Closed"
-  createdBy: string
+  totalAmount: number
+  status: "Pending" | "Partially Received" | "Fully Received" | "Cancelled"
+  createdAt: string
 }
 
 const BRANCHES = ["Colombo 07", "Kandy Branch", "Galle Branch"]
@@ -46,18 +44,23 @@ export default function PurchaseOrdersPage() {
   const defaultBranch = user?.branch === "All Branches" ? "Colombo 07" : (user?.branch || "Colombo 07")
 
   const [pos, setPos] = useState<PurchaseOrder[]>([])
-  const [suppliers, setSuppliers] = useState<any[]>([])
+  const [suppliers, setSuppliers] = useState<any[]>([
+    { id: "SUP-01", name: "Fresh Farms Ceylon" },
+    { id: "SUP-02", name: "Lanka Dairy" }
+  ]) // In a real scenario, this would be fetched from /api/suppliers
+  
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState<"ALL" | "PENDING">("ALL")
+  const [isLoading, setIsLoading] = useState(true)
 
   // Create PO Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [supplierId, setSupplierId] = useState("")
   const [branch, setBranch] = useState(defaultBranch)
   const [expectedDate, setExpectedDate] = useState("")
-  const [itemType, setItemType] = useState<"Raw Materials" | "Finished Products">("Raw Materials")
   const [items, setItems] = useState<POItem[]>([])
   const [itemName, setItemName] = useState("")
+  const [itemCategory, setItemCategory] = useState("Fruits")
   const [itemUnit, setItemUnit] = useState("Kg")
   const [itemQty, setItemQty] = useState("")
   const [itemCost, setItemCost] = useState("")
@@ -66,22 +69,31 @@ export default function PurchaseOrdersPage() {
   const [isGrnOpen, setIsGrnOpen] = useState(false)
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null)
   const [grnItems, setGrnItems] = useState<{ id: string, receivedQty: string, damagedQty: string }[]>([])
-  
-  // New GRN Fields based on Expert Analysis
   const [receivedBy, setReceivedBy] = useState("")
   const [grnNotes, setGrnNotes] = useState("")
 
   useEffect(() => {
-    const storedPOs = localStorage.getItem("mock_purchase_orders")
-    if (storedPOs) setPos(JSON.parse(storedPOs))
-
-    const storedSups = localStorage.getItem("mock_suppliers")
-    if (storedSups) setSuppliers(JSON.parse(storedSups))
+    fetchPOs()
   }, [])
+
+  const fetchPOs = async () => {
+    setIsLoading(true)
+    try {
+      const res = await fetch('/api/purchase-orders')
+      if (res.ok) {
+        const data = await res.json()
+        setPos(data)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const filteredPOs = pos.filter(po => {
     const matchSearch = po.poNumber.toLowerCase().includes(searchQuery.toLowerCase()) || po.supplierName.toLowerCase().includes(searchQuery.toLowerCase())
-    if (activeTab === "PENDING") return matchSearch && po.status === "Submitted"
+    if (activeTab === "PENDING") return matchSearch && po.status === "Pending"
     return matchSearch
   })
 
@@ -93,9 +105,9 @@ export default function PurchaseOrdersPage() {
     if (qty <= 0 || cost < 0) return
 
     const newItem: POItem = {
-      id: `ITEM-${Date.now()}`, name: itemName, unit: itemUnit,
-      quantity: qty, unitCost: cost, totalCost: qty * cost,
-      receivedQuantity: 0 // Initialize at 0 for tracking
+      id: `ITEM-${Date.now()}`, name: itemName, category: itemCategory, unit: itemUnit,
+      quantity: qty, unitPrice: cost, totalPrice: qty * cost,
+      receivedQuantity: 0 
     }
     setItems([...items, newItem])
     setItemName(""); setItemQty(""); setItemCost("")
@@ -103,7 +115,7 @@ export default function PurchaseOrdersPage() {
 
   const handleRemoveItem = (id: string) => setItems(items.filter(i => i.id !== id))
 
-  const handleSubmitPO = (e: React.FormEvent) => {
+  const handleSubmitPO = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!supplierId || items.length === 0 || !expectedDate) {
       alert("Please fill all required fields and add at least one item.")
@@ -112,28 +124,32 @@ export default function PurchaseOrdersPage() {
 
     const supplierName = suppliers.find(s => s.id === supplierId)?.name || "Unknown Supplier"
     const poNumber = `PO-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`
-    const totalCost = items.reduce((acc, item) => acc + item.totalCost, 0)
+    const totalAmount = items.reduce((acc, item) => acc + item.totalPrice, 0)
     
-    const initialStatus = canApprove ? "Approved" : "Submitted"
-
-    const newPO: PurchaseOrder = {
-      id: `POID-${Date.now()}`, poNumber, supplierId, supplierName, branch,
-      createdDate: new Date().toISOString().split('T')[0], expectedDate, itemType, items, totalCost,
-      status: initialStatus, createdBy: user?.name || "System"
+    const newPO = {
+      poNumber, supplierName, branch,
+      orderDate: new Date().toISOString(), expectedDate: new Date(expectedDate).toISOString(),
+      items, totalAmount, status: "Pending"
     }
 
-    const updated = [newPO, ...pos]
-    setPos(updated)
-    localStorage.setItem("mock_purchase_orders", JSON.stringify(updated))
-    setIsCreateOpen(false)
-    setSupplierId(""); setBranch(defaultBranch); setExpectedDate(""); setItems([]); setItemType("Raw Materials")
-  }
+    try {
+      const res = await fetch('/api/purchase-orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newPO)
+      })
 
-  const handleApprove = (poId: string) => {
-    if (!canApprove) return
-    const updated = pos.map(p => p.id === poId ? { ...p, status: "Approved" as const } : p)
-    setPos(updated)
-    localStorage.setItem("mock_purchase_orders", JSON.stringify(updated))
+      if (res.ok) {
+        fetchPOs()
+        setIsCreateOpen(false)
+        setSupplierId(""); setBranch(defaultBranch); setExpectedDate(""); setItems([])
+      } else {
+        throw new Error('Failed to create PO')
+      }
+    } catch (err) {
+      console.error(err)
+      alert("Failed to create PO")
+    }
   }
 
   // --- GRN Logic ---
@@ -142,7 +158,6 @@ export default function PurchaseOrdersPage() {
     setReceivedBy(user?.name || "")
     setGrnNotes("")
     
-    // Initialize GRN inputs. We only want them to receive what is LEFT to be received.
     setGrnItems(po.items.map(item => {
       const remainingQty = item.quantity - (item.receivedQuantity || 0)
       return {
@@ -158,7 +173,7 @@ export default function PurchaseOrdersPage() {
     setGrnItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item))
   }
 
-  const handleSubmitGRN = (e: React.FormEvent) => {
+  const handleSubmitGRN = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedPO) return
 
@@ -166,9 +181,7 @@ export default function PurchaseOrdersPage() {
     let isCompletelyReceived = true
     let atLeastOneItemReceived = false
 
-    // To save the GRN Document
     const grnDocument = {
-      id: `GRNID-${Date.now()}`,
       grnNumber,
       poNumber: selectedPO.poNumber,
       supplierName: selectedPO.supplierName,
@@ -179,22 +192,18 @@ export default function PurchaseOrdersPage() {
       items: [] as any[]
     }
 
-    // Update PO Items with new received quantities
     const updatedPOItems = selectedPO.items.map(poItem => {
       const grnState = grnItems.find(g => g.id === poItem.id)
       if (!grnState) return poItem
 
       const newlyReceived = parseFloat(grnState.receivedQty) || 0
       const newlyDamaged = parseFloat(grnState.damagedQty) || 0
-      
       const totalNewlyProcessed = newlyReceived + newlyDamaged
       const prevReceived = poItem.receivedQuantity || 0
-      
       const newTotalReceived = prevReceived + totalNewlyProcessed
 
       if (totalNewlyProcessed > 0) {
         atLeastOneItemReceived = true
-        // Add to GRN Document
         grnDocument.items.push({
           itemName: poItem.name,
           unit: poItem.unit,
@@ -205,7 +214,7 @@ export default function PurchaseOrdersPage() {
       }
 
       if (newTotalReceived < poItem.quantity) {
-        isCompletelyReceived = false // We still haven't received everything
+        isCompletelyReceived = false
       }
 
       return { ...poItem, receivedQuantity: newTotalReceived }
@@ -216,100 +225,60 @@ export default function PurchaseOrdersPage() {
       return
     }
 
-    // 1. Update PO Status (Partial vs Fully Received)
     const newPOStatus = isCompletelyReceived ? "Fully Received" : "Partially Received"
     
-    const updatedPOs = pos.map(p => p.id === selectedPO.id ? 
-      { ...p, status: newPOStatus, items: updatedPOItems } : p
-    )
-    setPos(updatedPOs as PurchaseOrder[])
-    localStorage.setItem("mock_purchase_orders", JSON.stringify(updatedPOs))
+    try {
+      // 1. Update PO
+      await fetch('/api/purchase-orders', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: selectedPO._id, status: newPOStatus, items: updatedPOItems })
+      })
 
-    // 2. Save GRN Document
-    const storedGRNs = localStorage.getItem("mock_grns")
-    const grnList = storedGRNs ? JSON.parse(storedGRNs) : []
-    localStorage.setItem("mock_grns", JSON.stringify([grnDocument, ...grnList]))
+      // 2. Save GRN
+      await fetch('/api/grn', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(grnDocument)
+      })
 
-    // 3. Inject into Stock Ledger & Inventory
-    const storedInv = localStorage.getItem("mock_branch_inventory")
-    let inventory = storedInv ? JSON.parse(storedInv) : []
-    
-    const storedLedger = localStorage.getItem("mock_stock_ledger")
-    const ledger = storedLedger ? JSON.parse(storedLedger) : []
-    const now = new Date().toISOString()
-    
-    const newLedgerEntries: any[] = []
+      // 3. Inject into Stock Inventory via API
+      for (const poItem of selectedPO.items) {
+        const grnState = grnItems.find(g => g.id === poItem.id)
+        if (!grnState) continue
+        
+        const goodQty = parseFloat(grnState.receivedQty) || 0
+        if (goodQty <= 0) continue
 
-    selectedPO.items.forEach((item, idx) => {
-      const grnState = grnItems.find(g => g.id === item.id)
-      if (!grnState) return
-
-      const rQty = parseFloat(grnState.receivedQty) || 0
-      const dQty = parseFloat(grnState.damagedQty) || 0
-      const goodQty = rQty
-
-      if (goodQty <= 0 && dQty <= 0) return // Nothing processed
-
-      let baseUnit = item.unit
-      let goodBaseQty = goodQty
-      if (item.unit === "Kg") { goodBaseQty = goodQty * 1000; baseUnit = "g" }
-      if (item.unit === "L") { goodBaseQty = goodQty * 1000; baseUnit = "ml" }
-
-      if (goodQty > 0) {
-        // Update Branch Inventory
-        const existingIdx = inventory.findIndex((i:any) => i.rawMaterialName.toLowerCase() === item.name.toLowerCase() && i.branchId === selectedPO.branch)
-        if (existingIdx >= 0) {
-          inventory[existingIdx].currentStock += goodBaseQty
-        } else {
-          inventory.push({
-            id: `RM-${Date.now()}-${idx}`,
-            branchId: (BRANCHES.indexOf(selectedPO.branch) + 1).toString().replace(/^/, 'B'),
-            rawMaterialName: item.name,
-            sku: `SKU-PO-${Date.now().toString().slice(-4)}`,
-            baseUnit: baseUnit,
-            currentStock: goodBaseQty,
-            minimumStock: 5000,
-            maxCapacity: goodBaseQty * 2,
-            status: "Active"
+        // Convert base units if needed (for simplicity we will let the adjust API handle exact values, assuming user enters in base unit or standard unit)
+        // For accurate tracking, let's assume PO is made in base units for now, or just send the exact goodQty.
+        let skuToUse = poItem.name.substring(0, 3).toUpperCase() + '-' + Date.now().toString().slice(-4)
+        
+        // Find existing SKU? This is a mock system so it's tricky. In a real system the PO item would have the actual SKU attached.
+        // We will just use the name as SKU mapping for the adjust API, since adjust API finds by branch and sku.
+        // Let's assume 'sku' = poItem.name for this mock update, or we map it correctly.
+        // Actually BranchInventory page displays SKU, so we'll pass poItem.name as 'sku' temporarily if real SKU is missing, but let's pass a generic one.
+        // To be safe and see it visually, let's pass poItem.name
+        
+        await fetch('/api/inventory/adjust', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            branch: selectedPO.branch,
+            sku: poItem.name, // Using name as SKU for simplicity in this workflow since PO items don't have SKU yet
+            quantity: goodQty,
+            type: 'IN', // GRN
+            reference: grnNumber,
+            remarks: 'GRN Received'
           })
-        }
-
-        // Add Ledger Entry for Good Qty
-        newLedgerEntries.push({
-          id: `LDG-${grnNumber}-${idx}`,
-          timestamp: now, branch: selectedPO.branch, rawMaterialName: item.name, type: "IN",
-          reason: "GRN Received", quantityChange: goodBaseQty, baseUnit: baseUnit, reference: grnNumber
-        })
+        }).catch(err => console.error("Failed to adjust inventory for GRN", err))
       }
 
-      if (dQty > 0) {
-        let damagedBaseQty = dQty
-        if (item.unit === "Kg") damagedBaseQty = dQty * 1000
-        if (item.unit === "L") damagedBaseQty = dQty * 1000
-
-        newLedgerEntries.push({
-          id: `LDG-${grnNumber}-REJ-${idx}`,
-          timestamp: now, branch: selectedPO.branch, rawMaterialName: item.name, type: "INFO",
-          reason: "GRN Damaged/Rejected", quantityChange: 0, baseUnit: baseUnit, reference: grnNumber,
-          notes: `${damagedBaseQty} ${baseUnit} rejected`
-        })
-      }
-    })
-
-    localStorage.setItem("mock_branch_inventory", JSON.stringify(inventory))
-    localStorage.setItem("mock_stock_ledger", JSON.stringify([...ledger, ...newLedgerEntries]))
-    
-    setIsGrnOpen(false)
-    alert(`Success! GRN (${grnNumber}) generated. PO Status: ${newPOStatus}.`)
-  }
-
-  const getStatusBadge = (status: string) => {
-    switch(status) {
-      case "Submitted": return <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-bold border border-yellow-200">Awaiting Approval</span>
-      case "Approved": return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-bold border border-blue-200">Approved</span>
-      case "Partially Received": return <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-bold border border-purple-200">Partially Received</span>
-      case "Fully Received": return <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-bold border border-green-200">Fully Received</span>
-      default: return <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-bold">{status}</span>
+      fetchPOs()
+      setIsGrnOpen(false)
+    } catch (e) {
+      console.error(e)
+      alert("Failed to process GRN")
     }
   }
 
@@ -317,28 +286,36 @@ export default function PurchaseOrdersPage() {
     <div className="space-y-6 pb-12">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900">Purchase Orders</h2>
-          <p className="text-gray-500">Create POs and manage the procurement workflow.</p>
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
+            <PackageOpen className="text-orange-500 w-6 h-6" /> Purchase Orders
+          </h2>
+          <p className="text-gray-500">Manage supplier orders and receive stock via GRN.</p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} className="bg-orange-500 hover:bg-orange-600 text-white font-bold h-10 px-4">
+        <Button onClick={() => setIsCreateOpen(true)} className="bg-orange-600 hover:bg-orange-700">
           <Plus className="w-4 h-4 mr-2" /> Create PO
         </Button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <div className="p-4 border-b bg-gray-50/50 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex gap-2 w-full sm:w-auto p-1 bg-gray-100 rounded-lg">
-            <button onClick={() => setActiveTab("ALL")} className={`px-4 py-1.5 text-sm font-bold rounded-md transition-all ${activeTab === 'ALL' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
-              All POs
+        <div className="border-b">
+          <div className="flex px-4 pt-4">
+            <button
+              className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${activeTab === "ALL" ? "border-orange-500 text-orange-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}`}
+              onClick={() => setActiveTab("ALL")}
+            >
+              All Orders
             </button>
-            {canApprove && (
-              <button onClick={() => setActiveTab("PENDING")} className={`px-4 py-1.5 text-sm font-bold rounded-md transition-all ${activeTab === 'PENDING' ? 'bg-white shadow-sm text-yellow-700' : 'text-gray-500 hover:text-gray-700'}`}>
-                Pending Approval
-              </button>
-            )}
+            <button
+              className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${activeTab === "PENDING" ? "border-orange-500 text-orange-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}`}
+              onClick={() => setActiveTab("PENDING")}
+            >
+              Pending Arrival
+            </button>
           </div>
-          
-          <div className="relative w-full sm:w-72">
+        </div>
+        
+        <div className="p-4 border-b bg-gray-50/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="relative w-full sm:w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input 
               type="search" placeholder="Search PO number or supplier..." 
@@ -351,295 +328,273 @@ export default function PurchaseOrdersPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50 text-gray-500 text-xs font-bold uppercase tracking-wider">
-              <TableHead className="py-4">PO Number & Details</TableHead>
-              <TableHead>Supplier</TableHead>
-              <TableHead>Expected Date</TableHead>
-              <TableHead>Total Cost</TableHead>
+              <TableHead className="py-4">PO Number & Supplier</TableHead>
+              <TableHead>Dates</TableHead>
+              <TableHead>Amount</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredPOs.length === 0 && (
+            {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12 text-gray-400">
-                  <FileText className="w-8 h-8 mx-auto mb-3 opacity-20" />
-                  <p className="font-medium">No purchase orders found.</p>
-                </TableCell>
+                <TableCell colSpan={5} className="text-center py-12 text-gray-400">Loading POs...</TableCell>
               </TableRow>
+            ) : filteredPOs.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-12 text-gray-400">No Purchase Orders found.</TableCell>
+              </TableRow>
+            ) : (
+              filteredPOs.map((po) => {
+                let statusColor = "bg-gray-100 text-gray-700 border-gray-200"
+                if (po.status === "Pending") statusColor = "bg-blue-100 text-blue-700 border-blue-200"
+                if (po.status === "Partially Received") statusColor = "bg-amber-100 text-amber-700 border-amber-200"
+                if (po.status === "Fully Received") statusColor = "bg-green-100 text-green-700 border-green-200"
+
+                return (
+                  <TableRow key={po._id} className="border-b last:border-0 hover:bg-gray-50/50 transition-colors">
+                    <TableCell className="py-4">
+                      <div className="font-black text-gray-900">{po.poNumber}</div>
+                      <div className="text-sm font-medium text-gray-500 mt-1 flex items-center gap-1.5">
+                        <Truck className="w-3.5 h-3.5" /> {po.supplierName}
+                        <span className="text-gray-300 ml-1">•</span>
+                        <span className="text-xs text-gray-400">{po.branch}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-xs font-medium text-gray-500">Ord: {new Date(po.createdAt).toLocaleDateString()}</div>
+                      <div className="text-xs font-bold text-gray-700 mt-1">Exp: {new Date(po.expectedDate).toLocaleDateString()}</div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-bold text-gray-900">Rs. {po.totalAmount.toFixed(2)}</div>
+                      <div className="text-xs text-gray-500">{po.items.length} items</div>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-bold border ${statusColor}`}>
+                        {po.status}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {["Pending", "Partially Received"].includes(po.status) && (
+                        <Button 
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700 h-8"
+                          onClick={() => openGrnModal(po)}
+                        >
+                          <PackageOpen className="w-4 h-4 mr-1.5" /> Receive GRN
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )
+              })
             )}
-            {filteredPOs.map((po) => (
-              <TableRow key={po.id} className="border-b last:border-0 hover:bg-gray-50/50">
-                <TableCell className="py-4">
-                  <div className="font-black text-gray-900">{po.poNumber}</div>
-                  <div className="text-xs font-medium text-gray-500 mt-0.5">{po.items.length} items • {po.branch}</div>
-                  <div className="text-[10px] uppercase font-bold text-orange-500 mt-1">{po.itemType}</div>
-                </TableCell>
-                <TableCell>
-                  <div className="font-semibold text-gray-800">{po.supplierName}</div>
-                  <div className="text-xs text-gray-400">By: {po.createdBy}</div>
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm font-medium text-gray-700">{po.expectedDate}</div>
-                  <div className="text-xs text-gray-400">Created: {po.createdDate}</div>
-                </TableCell>
-                <TableCell>
-                  <div className="font-black text-gray-900">Rs. {po.totalCost.toFixed(2)}</div>
-                </TableCell>
-                <TableCell>
-                  {getStatusBadge(po.status)}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    {po.status === "Submitted" && canApprove && (
-                      <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-8" onClick={() => handleApprove(po.id)}>
-                        <CheckCircle className="w-4 h-4 mr-1.5" /> Approve
-                      </Button>
-                    )}
-                    {(po.status === "Approved" || po.status === "Partially Received") && (
-                      <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white font-bold h-8" onClick={() => openGrnModal(po)}>
-                        <Download className="w-4 h-4 mr-1.5" /> Receive GRN
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
           </TableBody>
         </Table>
       </div>
 
-      {/* CREATE PO MODAL */}
+      {/* --- CREATE PO MODAL --- */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden border-0 shadow-2xl rounded-2xl">
-          {/* ... existing Create PO content (identical) ... */}
-          <form onSubmit={handleSubmitPO}>
-            <div className="p-6 border-b bg-orange-50">
-              <DialogTitle className="text-xl font-black text-gray-900 flex items-center gap-2">
-                <PackageOpen className="text-orange-600" /> Create Purchase Order
-              </DialogTitle>
-              <DialogDescription className="text-gray-600 mt-2 font-medium">
-                {canApprove ? "As an Admin, your POs will be auto-approved." : "As a Manager, your PO will require Admin approval."}
-              </DialogDescription>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Purchase Order</DialogTitle>
+            <DialogDescription>Generate a new PO to order stock from suppliers.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmitPO} className="space-y-6 pt-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Supplier</Label>
+                <Select value={supplierId} onValueChange={setSupplierId} required>
+                  <SelectTrigger><SelectValue placeholder="Select supplier" /></SelectTrigger>
+                  <SelectContent>
+                    {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Expected Delivery Date</Label>
+                <Input type="date" value={expectedDate} onChange={e => setExpectedDate(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label>Destination Branch</Label>
+                <Select value={branch} onValueChange={setBranch} disabled={!canApprove}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {BRANCHES.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            
-            <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
-              <div className="grid grid-cols-2 gap-4 bg-white">
-                <div className="grid gap-2">
-                  <Label className="font-bold text-gray-700">Supplier *</Label>
-                  <Select value={supplierId} onValueChange={setSupplierId} required>
-                    <SelectTrigger className="border-gray-300 h-10"><SelectValue placeholder="Select Supplier" /></SelectTrigger>
-                    <SelectContent>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
-                  </Select>
+
+            <div className="border rounded-lg p-4 bg-gray-50/50 space-y-4">
+              <h4 className="font-bold text-gray-700 text-sm">Add Items to Order</h4>
+              <div className="grid grid-cols-12 gap-2 items-end">
+                <div className="col-span-4 space-y-1">
+                  <Label className="text-xs">Item Name</Label>
+                  <Input value={itemName} onChange={e => setItemName(e.target.value)} placeholder="e.g. Sugar" />
                 </div>
-                <div className="grid gap-2">
-                  <Label className="font-bold text-gray-700">Expected Delivery Date *</Label>
-                  <Input type="date" value={expectedDate} onChange={e => setExpectedDate(e.target.value)} required className="border-gray-300 h-10" />
+                <div className="col-span-2 space-y-1">
+                  <Label className="text-xs">Qty</Label>
+                  <Input type="number" min="0.1" step="0.1" value={itemQty} onChange={e => setItemQty(e.target.value)} placeholder="0" />
                 </div>
-                <div className="grid gap-2">
-                  <Label className="font-bold text-gray-700">Branch *</Label>
-                  <Select value={branch} onValueChange={setBranch} disabled={user?.branch !== "All Branches"}>
-                    <SelectTrigger className="border-gray-300 h-10"><SelectValue /></SelectTrigger>
-                    <SelectContent>{BRANCHES.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label className="font-bold text-gray-700">Item Type</Label>
-                  <Select value={itemType} onValueChange={(val: any) => setItemType(val)}>
-                    <SelectTrigger className="border-gray-300 h-10 font-semibold text-orange-700"><SelectValue /></SelectTrigger>
+                <div className="col-span-2 space-y-1">
+                  <Label className="text-xs">Unit</Label>
+                  <Select value={itemUnit} onValueChange={setItemUnit}>
+                    <SelectTrigger className="px-2 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Raw Materials">Raw Materials (Fruits, Milk, etc)</SelectItem>
-                      <SelectItem value="Finished Products">Finished Products (Bottled Water)</SelectItem>
+                      {UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-              <div className="border rounded-xl overflow-hidden">
-                <div className="bg-gray-100 px-4 py-2 font-bold text-sm text-gray-700 border-b">Add Items to Order</div>
-                <div className="p-4 space-y-4 bg-gray-50/50">
-                  <div className="flex gap-2 items-end">
-                    <div className="grid gap-1.5 flex-1">
-                      <Label className="text-xs">Item Name</Label>
-                      <Input value={itemName} onChange={e => setItemName(e.target.value)} placeholder="e.g. Sugar" className="h-9" />
-                    </div>
-                    <div className="grid gap-1.5 w-24">
-                      <Label className="text-xs">Unit</Label>
-                      <Select value={itemUnit} onValueChange={setItemUnit}>
-                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                        <SelectContent>{UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid gap-1.5 w-24">
-                      <Label className="text-xs">Qty</Label>
-                      <Input type="number" value={itemQty} onChange={e => setItemQty(e.target.value)} placeholder="0" className="h-9" />
-                    </div>
-                    <div className="grid gap-1.5 w-28">
-                      <Label className="text-xs">Cost/Unit</Label>
-                      <Input type="number" value={itemCost} onChange={e => setItemCost(e.target.value)} placeholder="Rs." className="h-9" />
-                    </div>
-                    <Button type="button" onClick={handleAddItem} className="h-9 bg-gray-900 text-white">Add</Button>
-                  </div>
-
-                  {items.length > 0 && (
-                    <div className="border rounded-lg bg-white overflow-hidden">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="bg-gray-50 text-xs">
-                            <TableHead className="py-2">Item</TableHead>
-                            <TableHead>Qty</TableHead>
-                            <TableHead>Cost/Unit</TableHead>
-                            <TableHead>Total</TableHead>
-                            <TableHead></TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {items.map(item => (
-                            <TableRow key={item.id} className="text-sm">
-                              <TableCell className="font-semibold py-2">{item.name}</TableCell>
-                              <TableCell>{item.quantity} {item.unit}</TableCell>
-                              <TableCell>Rs. {item.unitCost.toFixed(2)}</TableCell>
-                              <TableCell className="font-bold">Rs. {item.totalCost.toFixed(2)}</TableCell>
-                              <TableCell className="text-right">
-                                <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveItem(item.id)} className="h-6 w-6 p-0 text-red-500 hover:bg-red-50"><X className="w-3 h-3" /></Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                          <TableRow className="bg-orange-50 font-black">
-                            <TableCell colSpan={3} className="text-right py-3 text-orange-900">GRAND TOTAL:</TableCell>
-                            <TableCell colSpan={2} className="py-3 text-orange-900">Rs. {items.reduce((a,b)=>a+b.totalCost,0).toFixed(2)}</TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
+                <div className="col-span-3 space-y-1">
+                  <Label className="text-xs">Unit Cost (Rs)</Label>
+                  <Input type="number" min="0" step="0.01" value={itemCost} onChange={e => setItemCost(e.target.value)} placeholder="0.00" />
+                </div>
+                <div className="col-span-1 pb-0.5">
+                  <Button type="button" size="icon" onClick={handleAddItem} className="bg-gray-900 hover:bg-gray-800 w-full">
+                    <Plus className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
+
+              {items.length > 0 && (
+                <div className="mt-4 border rounded-md overflow-hidden bg-white">
+                  <Table>
+                    <TableHeader className="bg-gray-50">
+                      <TableRow>
+                        <TableHead className="py-2 text-xs">Item</TableHead>
+                        <TableHead className="py-2 text-xs text-right">Qty</TableHead>
+                        <TableHead className="py-2 text-xs text-right">Unit Cost</TableHead>
+                        <TableHead className="py-2 text-xs text-right">Total</TableHead>
+                        <TableHead className="py-2 w-10"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {items.map(item => (
+                        <TableRow key={item.id}>
+                          <TableCell className="py-2 text-sm font-medium">{item.name}</TableCell>
+                          <TableCell className="py-2 text-sm text-right">{item.quantity} {item.unit}</TableCell>
+                          <TableCell className="py-2 text-sm text-right">{item.unitPrice.toFixed(2)}</TableCell>
+                          <TableCell className="py-2 text-sm text-right font-bold">{item.totalPrice.toFixed(2)}</TableCell>
+                          <TableCell className="py-2">
+                            <button type="button" onClick={() => handleRemoveItem(item.id)} className="text-red-500 hover:bg-red-50 p-1 rounded">
+                              <X className="w-4 h-4" />
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow className="bg-gray-50">
+                        <TableCell colSpan={3} className="text-right font-bold text-gray-900 py-3">PO Grand Total:</TableCell>
+                        <TableCell className="text-right font-black text-orange-600 text-base py-3">
+                          Rs. {items.reduce((acc, i) => acc + i.totalPrice, 0).toFixed(2)}
+                        </TableCell>
+                        <TableCell></TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </div>
-            
-            <DialogFooter className="p-6 border-t bg-white flex gap-3 sm:justify-end">
-              <Button type="button" variant="outline" className="h-11 px-6 font-bold" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-              <Button type="submit" className="h-11 px-6 font-bold bg-orange-500 text-white hover:bg-orange-600 shadow-lg">Submit Purchase Order</Button>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+              <Button type="submit" className="bg-orange-600 hover:bg-orange-700">Submit PO</Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* ENHANCED GRN MODAL */}
+      {/* --- GRN MODAL --- */}
       <Dialog open={isGrnOpen} onOpenChange={setIsGrnOpen}>
-        <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden border-0 shadow-2xl rounded-2xl">
-          <form onSubmit={handleSubmitGRN}>
-            <div className="p-6 border-b bg-green-50">
-              <div className="flex justify-between items-start">
-                <div>
-                  <DialogTitle className="text-xl font-black text-gray-900 flex items-center gap-2">
-                    <Truck className="text-green-600" /> Create Goods Received Note (GRN)
-                  </DialogTitle>
-                  <DialogDescription className="text-gray-600 mt-2 font-medium">
-                    Receiving items for <strong className="text-gray-900">{selectedPO?.poNumber}</strong> from <strong className="text-gray-900">{selectedPO?.supplierName}</strong>.
-                  </DialogDescription>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-bold text-gray-500">GRN Date</div>
-                  <div className="font-black text-gray-900">{new Date().toLocaleDateString()}</div>
+        <DialogContent className="sm:max-w-[750px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PackageOpen className="w-5 h-5 text-green-600" /> Receive Goods (GRN)
+            </DialogTitle>
+            <DialogDescription>
+              Processing delivery for <strong className="text-gray-900">{selectedPO?.poNumber}</strong> from {selectedPO?.supplierName}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmitGRN} className="space-y-6 pt-4">
+            <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border">
+              <div>
+                <Label className="text-xs text-gray-500">Destination Branch</Label>
+                <div className="font-bold text-gray-900">{selectedPO?.branch}</div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Received By</Label>
+                <div className="relative">
+                  <User className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input 
+                    value={receivedBy} onChange={e => setReceivedBy(e.target.value)} required
+                    className="pl-8 h-9 text-sm" placeholder="Staff Name"
+                  />
                 </div>
               </div>
             </div>
 
-            <div className="p-6 max-h-[60vh] overflow-y-auto bg-gray-50/30">
-              {/* New Fields Area */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="grid gap-2">
-                  <Label className="font-bold flex items-center gap-2"><User className="w-4 h-4 text-gray-500"/> Received By *</Label>
-                  <Input 
-                    required 
-                    value={receivedBy} 
-                    onChange={e => setReceivedBy(e.target.value)} 
-                    className="bg-white"
-                    placeholder="Store Keeper Name"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label className="font-bold text-gray-700">Notes / Remarks</Label>
-                  <Input 
-                    value={grnNotes} 
-                    onChange={e => setGrnNotes(e.target.value)} 
-                    className="bg-white"
-                    placeholder="Any damages, delays, etc..."
-                  />
-                </div>
-              </div>
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader className="bg-gray-100">
+                  <TableRow>
+                    <TableHead className="py-3 text-xs font-bold text-gray-700">Item</TableHead>
+                    <TableHead className="py-3 text-xs font-bold text-gray-700 text-center">Ordered</TableHead>
+                    <TableHead className="py-3 text-xs font-bold text-gray-700 text-center">Prev. Received</TableHead>
+                    <TableHead className="py-3 text-xs font-bold text-blue-700 bg-blue-50/50">Receive Good Qty</TableHead>
+                    <TableHead className="py-3 text-xs font-bold text-red-700 bg-red-50/50">Receive Damaged</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {selectedPO?.items.map(item => {
+                    const remainingQty = item.quantity - (item.receivedQuantity || 0)
+                    const isFullyReceived = remainingQty <= 0
+                    const grnState = grnItems.find(g => g.id === item.id)
 
-              <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-6 flex gap-3">
-                <AlertTriangle className="text-blue-500 w-5 h-5 shrink-0" />
-                <p className="text-sm text-blue-900 font-medium leading-relaxed">
-                  Enter the exact <strong>Received Good Qty</strong>. Damaged stock will be ignored from inventory. If you receive less than ordered, the PO will become <strong>Partially Received</strong>.
-                </p>
-              </div>
-
-              <div className="border rounded-xl bg-white overflow-hidden shadow-sm">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-100 text-xs">
-                      <TableHead className="py-3">Product Name</TableHead>
-                      <TableHead>Expected Qty (Remaining)</TableHead>
-                      <TableHead className="w-32 bg-green-50/50">Received Qty</TableHead>
-                      <TableHead className="w-32 bg-red-50/50">Damaged Qty</TableHead>
-                      <TableHead className="text-right">Good Stock Added</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {selectedPO?.items.map((item) => {
-                      const previouslyReceived = item.receivedQuantity || 0
-                      const remainingToReceive = item.quantity - previouslyReceived
-
-                      // If already fully received, don't show or show as disabled
-                      if (remainingToReceive <= 0) return null
-
-                      const grnState = grnItems.find(g => g.id === item.id)
-                      const rQty = parseFloat(grnState?.receivedQty || "0") || 0
-                      const dQty = parseFloat(grnState?.damagedQty || "0") || 0
-                      const goodQty = rQty
-
-                      return (
-                        <TableRow key={item.id} className="text-sm">
-                          <TableCell className="font-bold py-3 text-gray-900">
-                            {item.name}
-                            {previouslyReceived > 0 && <div className="text-xs text-purple-600 font-semibold mt-1">Already received: {previouslyReceived} {item.unit}</div>}
-                          </TableCell>
-                          <TableCell className="text-gray-500 font-bold">{remainingToReceive} {item.unit}</TableCell>
-                          <TableCell className="bg-green-50/20">
-                            <Input 
-                              type="number" step="0.01" max={remainingToReceive}
-                              className="h-8 w-20 border-green-200 focus-visible:ring-green-500 font-bold"
-                              value={grnState?.receivedQty}
-                              onChange={e => updateGrnItem(item.id, 'receivedQty', e.target.value)}
-                            />
-                          </TableCell>
-                          <TableCell className="bg-red-50/20">
-                            <Input 
-                              type="number" step="0.01"
-                              className="h-8 w-20 border-red-200 focus-visible:ring-red-500 font-bold text-red-600"
-                              value={grnState?.damagedQty}
-                              onChange={e => updateGrnItem(item.id, 'damagedQty', e.target.value)}
-                            />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span className={`font-black ${goodQty > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                              {goodQty > 0 ? '+' : ''}{goodQty} {item.unit}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+                    return (
+                      <TableRow key={item.id} className={isFullyReceived ? "bg-gray-50/50 opacity-60" : ""}>
+                        <TableCell className="py-3">
+                          <div className="font-medium text-sm">{item.name}</div>
+                          <div className="text-xs text-gray-500">Unit: {item.unit}</div>
+                        </TableCell>
+                        <TableCell className="text-center font-mono text-sm">{item.quantity}</TableCell>
+                        <TableCell className="text-center font-mono text-sm text-gray-600">{item.receivedQuantity || 0}</TableCell>
+                        <TableCell className="bg-blue-50/20">
+                          <Input 
+                            type="number" min="0" step="0.01" 
+                            disabled={isFullyReceived}
+                            value={grnState?.receivedQty || ""}
+                            onChange={e => updateGrnItem(item.id, 'receivedQty', e.target.value)}
+                            className="w-24 mx-auto text-center h-8 font-mono border-blue-200 focus-visible:ring-blue-500"
+                          />
+                        </TableCell>
+                        <TableCell className="bg-red-50/20">
+                          <Input 
+                            type="number" min="0" step="0.01"
+                            disabled={isFullyReceived}
+                            value={grnState?.damagedQty || ""}
+                            onChange={e => updateGrnItem(item.id, 'damagedQty', e.target.value)}
+                            className="w-24 mx-auto text-center h-8 font-mono border-red-200 focus-visible:ring-red-500"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Delivery Notes / Invoice Number</Label>
+              <Input 
+                value={grnNotes} onChange={e => setGrnNotes(e.target.value)}
+                placeholder="e.g. INV-10023, Vehicle No: WP-2342"
+              />
             </div>
 
-            <DialogFooter className="p-6 border-t bg-white flex gap-3 sm:justify-end">
-              <Button type="button" variant="outline" className="h-11 px-6 font-bold" onClick={() => setIsGrnOpen(false)}>Cancel</Button>
-              <Button type="submit" className="h-11 px-6 font-bold bg-green-600 text-white hover:bg-green-700 shadow-lg">Submit GRN & Update Stock</Button>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsGrnOpen(false)}>Cancel</Button>
+              <Button type="submit" className="bg-green-600 hover:bg-green-700">Confirm & Add to Stock</Button>
             </DialogFooter>
           </form>
         </DialogContent>

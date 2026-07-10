@@ -1,44 +1,51 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export interface IGrnItem {
-  productId: mongoose.Types.ObjectId;
+export interface IGRNItem {
+  itemName: string;
+  unit: string;
   orderedQty: number;
-  receivedQty: number;
+  receivedGoodQty: number;
   damagedQty: number;
 }
 
-export interface IGrn extends Document {
+export interface IGRN extends Document {
   grnNumber: string;
-  poId: mongoose.Types.ObjectId;
-  branchId: mongoose.Types.ObjectId;
+  poNumber: string;
+  supplierName: string;
+  branch: string;
   receivedDate: Date;
-  items: IGrnItem[];
+  receivedBy: string;
+  notes?: string;
+  items: IGRNItem[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-const GrnItemSchema = new Schema<IGrnItem>(
+const GRNItemSchema = new Schema<IGRNItem>(
   {
-    productId: { type: Schema.Types.ObjectId, ref: 'InventoryItem', required: true },
+    itemName: { type: String, required: true },
+    unit: { type: String, required: true },
     orderedQty: { type: Number, required: true },
-    receivedQty: { type: Number, required: true },
-    damagedQty: { type: Number, default: 0 },
+    receivedGoodQty: { type: Number, required: true, default: 0 },
+    damagedQty: { type: Number, required: true, default: 0 }
   },
   { _id: false }
 );
 
-const GrnSchema = new Schema<IGrn>(
+const GRNSchema = new Schema<IGRN>(
   {
     grnNumber: { type: String, required: true, unique: true },
-    poId: { type: Schema.Types.ObjectId, ref: 'PurchaseOrder', required: true },
-    branchId: { type: Schema.Types.ObjectId, ref: 'Branch', required: true },
-    receivedDate: { type: Date, default: Date.now },
-    items: [GrnItemSchema],
+    poNumber: { type: String, required: true },
+    supplierName: { type: String, required: true },
+    branch: { type: String, required: true },
+    receivedDate: { type: Date, required: true },
+    receivedBy: { type: String, required: true },
+    notes: { type: String },
+    items: [GRNItemSchema]
   },
   { timestamps: true }
 );
 
-GrnSchema.index({ grnNumber: 1 });
-GrnSchema.index({ poId: 1 });
+const GRN = mongoose.models.GRN || mongoose.model<IGRN>('GRN', GRNSchema);
 
-const Grn = mongoose.models.Grn || mongoose.model<IGrn>('Grn', GrnSchema);
-
-export default Grn;
+export default GRN;
