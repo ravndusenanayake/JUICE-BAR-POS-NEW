@@ -10,21 +10,18 @@ import { Label } from "@/components/ui/label"
 import { Search, ShoppingCart, ArrowLeft, Trash2, Plus, Minus, CreditCard, User, CheckCircle2, PauseCircle, PlayCircle, Tag, Printer, Power, Wallet } from "lucide-react"
 import { logAudit } from "@/lib/auditLogger"
 
-// --- Mock Data: Products ---
-const CATEGORIES = ["All", "Fresh Juices", "Milkshakes", "Desserts", "Snacks", "Mojitos"]
-
-const MOCK_PRODUCTS = [
-  { id: "P1", name: "Avocado Juice", price: 450, category: "Fresh Juices", color: "bg-green-100 text-green-700 border-green-200", hasVariants: true, variants: [{ name: "Regular", price: 450 }, { name: "Large", price: 600 }] },
-  { id: "P2", name: "Mango Juice", price: 400, category: "Fresh Juices", color: "bg-yellow-100 text-yellow-700 border-yellow-200" },
-  { id: "P3", name: "Chocolate Milkshake", price: 650, category: "Milkshakes", color: "bg-amber-100 text-amber-800 border-amber-200" },
-  { id: "P4", name: "Strawberry Milkshake", price: 600, category: "Milkshakes", color: "bg-pink-100 text-pink-700 border-pink-200" },
-  { id: "P5", name: "Fruit Salad", price: 500, category: "Desserts", color: "bg-orange-100 text-orange-700 border-orange-200", hasVariants: true, variants: [{ name: "Medium", price: 500 }, { name: "Large", price: 750 }] },
-  { id: "P6", name: "Club Sandwich", price: 800, category: "Snacks", color: "bg-blue-100 text-blue-700 border-blue-200" },
-  { id: "P7", name: "Papaya Juice", price: 350, category: "Fresh Juices", color: "bg-orange-50 text-orange-600 border-orange-100" },
-  { id: "P8", name: "Watalappam", price: 250, category: "Desserts", color: "bg-stone-100 text-stone-700 border-stone-200" },
-  { id: "P9", name: "Virgin Mojito", price: 500, category: "Mojitos", color: "bg-lime-100 text-lime-700 border-lime-200" },
-  { id: "P10", name: "Watermelon Mojito", price: 550, category: "Mojitos", color: "bg-red-100 text-red-700 border-red-200" },
-]
+// --- Helpers ---
+const getCategoryColor = (category: string) => {
+  const colors: Record<string, string> = {
+    "Fresh Juices": "bg-green-100 text-green-700 border-green-200",
+    "Milkshakes": "bg-amber-100 text-amber-800 border-amber-200",
+    "Desserts": "bg-orange-100 text-orange-700 border-orange-200",
+    "Snacks": "bg-blue-100 text-blue-700 border-blue-200",
+    "Mojitos": "bg-red-100 text-red-700 border-red-200",
+    "General": "bg-gray-100 text-gray-700 border-gray-200"
+  };
+  return colors[category] || colors["General"];
+};
 
 // --- Mock Data: Smart Add-ons mapped by Category ---
 const CATEGORY_ADDONS: Record<string, {name: string, price: number}[]> = {
@@ -144,21 +141,53 @@ export default function POSPage() {
   const [deductedMaterials, setDeductedMaterials] = useState<any[]>([])
   const [lastOrderRef, setLastOrderRef] = useState("")
   const [saleDetails, setSaleDetails] = useState<any>(null)
+  
+  // -- Data State --
+  const [products, setProducts] = useState<any[]>([])
+  const [categories, setCategories] = useState<string[]>(["All"])
+  const [currentShiftId, setCurrentShiftId] = useState<string | null>(null)
 
-  // --- Initial Setup (Recipes, Customers & Shift) ---
+  // --- Initial Setup (Products, Recipes, Customers & Shift) ---
   useEffect(() => {
-    // 1. Check Shift
-    const shift = localStorage.getItem("pos_shift")
-    if (shift) setShiftActive(true)
-    else setIsShiftOpen(true) // Force open shift modal if no shift
+    if (!user) return;
 
-    // 2. Load Customers & Recipes from DB
     const fetchData = async () => {
       try {
-        const [custRes, recRes] = await Promise.all([
+        // 1. Check Shift from DB
+        const shiftRes = await fetch(`/api/shifts?cashierName=${encodeURIComponent(user.name)}&status=Open`);
+        if (shiftRes.ok) {
+          const shifts = await shiftRes.json();
+          if (shifts.length > 0) {
+            setShiftActive(true);
+            setCurrentShiftId(shifts[0]._id);
+          } else {
+            setIsShiftOpen(true);
+          }
+        }
+
+        // 2. Load Products, Customers & Recipes
+        const [prodRes, custRes, recRes] = await Promise.all([
+          fetch('/api/products'),
           fetch('/api/customers'),
           fetch('/api/recipes')
         ]);
+
+        if (prodRes.ok) {
+          const data = await prodRes.json();
+          const activeProducts = data.filter((p: any) => p.status === 'Active').map((p: any) => ({
+            id: p.sku,
+            productId: p._id,
+            name: p.name,
+            price: p.outletPrice || 0,
+            category: p.category || 'General',
+            color: getCategoryColor(p.category),
+            hasVariants: false, // Future logic can add variants
+          }));
+          setProducts(activeProducts);
+          const cats = ["All", ...Array.from(new Set(activeProducts.map((p: any) => p.category)))];
+          setCategories(cats as string[]);
+        }
+
         if (custRes.ok) {
           const data = await custRes.json();
           setCustomers(data);
@@ -175,16 +204,16 @@ export default function POSPage() {
       }
     };
     fetchData();
-  }, [])
+  }, [user])
 
   // --- Filtering ---
   const filteredProducts = useMemo(() => {
-    return MOCK_PRODUCTS.filter(p => {
+    return products.filter(p => {
       const matchCategory = activeCategory === "All" || p.category === activeCategory
       const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase())
       return matchCategory && matchSearch
     })
-  }, [activeCategory, searchQuery])
+  }, [products, activeCategory, searchQuery])
 
   // --- Calculations ---
   const subtotal = cart.reduce((acc, item) => acc + item.totalPrice, 0)
@@ -407,30 +436,67 @@ export default function POSPage() {
   }
 
   // --- Shift Management ---
-  const handleOpenShift = () => {
-    if (!openingBalance) return
-    localStorage.setItem("pos_shift", JSON.stringify({
-      openedAt: new Date().toISOString(),
-      openingBalance: parseFloat(openingBalance)
-    }))
-    localStorage.setItem("shift_sales", JSON.stringify([]))
-    setShiftActive(true)
-    setIsShiftOpen(false)
+  const handleOpenShift = async () => {
+    if (!openingBalance || !user) return
+    try {
+      const res = await fetch('/api/shifts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cashierName: user.name,
+          branch: user.branch || "Colombo 07",
+          openingBalance: parseFloat(openingBalance),
+          status: 'Open'
+        })
+      });
+      if (res.ok) {
+        const shift = await res.json();
+        setCurrentShiftId(shift._id);
+        localStorage.setItem("shift_sales", JSON.stringify([])); // Local fallback for simple tally
+        setShiftActive(true);
+        setIsShiftOpen(false);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Failed to open shift.");
+    }
   }
 
-  const handleCloseShift = () => {
-    const shift = JSON.parse(localStorage.getItem("pos_shift") || "{}")
+  const handleCloseShift = async () => {
+    if (!currentShiftId) return;
     const sales = JSON.parse(localStorage.getItem("shift_sales") || "[]")
     const totalSales = sales.reduce((a:number,b:number)=>a+b, 0)
-    const expectedCash = (shift.openingBalance || 0) + totalSales
     
-    alert(`--- Z-REPORT (SHIFT CLOSED) ---\nOpening Balance: Rs. ${shift.openingBalance?.toFixed(2)}\nTotal Sales: Rs. ${totalSales.toFixed(2)}\nExpected Cash in Drawer: Rs. ${expectedCash.toFixed(2)}`)
-    
-    localStorage.removeItem("pos_shift")
-    localStorage.removeItem("shift_sales")
-    setShiftActive(false)
-    setIsCloseShiftOpen(false)
-    setIsShiftOpen(true) // Force them to open a new one
+    try {
+      // First get current shift to know opening balance
+      const shiftRes = await fetch(`/api/shifts?cashierName=${encodeURIComponent(user?.name || '')}&status=Open`);
+      const shifts = await shiftRes.json();
+      const shift = shifts[0];
+      const expectedCash = (shift?.openingBalance || 0) + totalSales;
+
+      await fetch('/api/shifts', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: currentShiftId,
+          status: 'Closed',
+          endTime: new Date(),
+          closingBalance: expectedCash,
+          expectedClosingBalance: expectedCash
+        })
+      });
+
+      alert(`--- Z-REPORT (SHIFT CLOSED) ---\nOpening Balance: Rs. ${shift?.openingBalance?.toFixed(2)}\nTotal Sales: Rs. ${totalSales.toFixed(2)}\nExpected Cash in Drawer: Rs. ${expectedCash.toFixed(2)}`)
+      
+      localStorage.removeItem("shift_sales")
+      setShiftActive(false)
+      setCurrentShiftId(null)
+      setIsCloseShiftOpen(false)
+      setIsShiftOpen(true) // Force them to open a new one
+    } catch (e) {
+      console.error(e);
+      alert("Failed to close shift.");
+    }
   }
 
   return (
@@ -467,17 +533,18 @@ export default function POSPage() {
         </header>
 
         {/* Categories */}
-        <div className="px-6 py-4 border-b bg-gray-50/50 shrink-0 overflow-x-auto whitespace-nowrap hide-scrollbar flex gap-2">
-          {CATEGORIES.map(cat => (
-            <button 
-              key={cat} onClick={() => setActiveCategory(cat)}
-              className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-200 ${
-                activeCategory === cat ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20 transform scale-[1.02]' : 'bg-white text-gray-600 border border-gray-200 hover:border-orange-300 hover:text-orange-600'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+        <div className="px-6 py-4 border-b bg-gray-50/50 shrink-0">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide shrink-0 px-6">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeCategory === cat ? "bg-orange-500 text-white shadow-md shadow-orange-500/20" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Product Grid */}

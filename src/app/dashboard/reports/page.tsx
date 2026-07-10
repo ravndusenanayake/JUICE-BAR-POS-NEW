@@ -23,10 +23,24 @@ export default function ReportsPage() {
   const [ledger, setLedger] = useState<any[]>([])
   
   useEffect(() => {
-    setSales(JSON.parse(localStorage.getItem("mock_sales") || "[]"))
-    setInventory(JSON.parse(localStorage.getItem("mock_branch_inventory") || "[]"))
-    setExpenses(JSON.parse(localStorage.getItem("mock_expenses") || "[]"))
-    setLedger(JSON.parse(localStorage.getItem("mock_stock_ledger") || "[]"))
+    const fetchData = async () => {
+      try {
+        const [salesRes, invRes, expRes, ledRes] = await Promise.all([
+          fetch('/api/sales'),
+          fetch('/api/branch-inventory'),
+          fetch('/api/expenses'),
+          fetch('/api/stock-ledger')
+        ]);
+        
+        if (salesRes.ok) setSales(await salesRes.json());
+        if (invRes.ok) setInventory(await invRes.json());
+        if (expRes.ok) setExpenses(await expRes.json());
+        if (ledRes.ok) setLedger(await ledRes.json());
+      } catch (err) {
+        console.error("Error fetching report data:", err);
+      }
+    };
+    fetchData();
   }, [])
 
   // --- Filtering Logic ---
@@ -61,10 +75,10 @@ export default function ReportsPage() {
   
   // --- Wastage Metrics ---
   // Assuming "OUT" type with reason "WASTAGE" or "EXPIRED" in stock ledger
-  const wastageRecords = filteredLedger.filter(l => l.type === "OUT" && (l.reason === "Wastage" || l.reason === "Damaged" || l.reason === "Expired" || l.reason === "Rotten" || l.reason === "Spillage"))
+  const wastageRecords = filteredLedger.filter(l => l.type === "OUT" && (l.remarks?.toLowerCase().includes("wastage") || l.remarks?.toLowerCase().includes("damage") || l.reason === "Wastage" || l.reason === "Damaged" || l.reason === "Expired"))
   // In a real app, we'd lookup the unit cost of the raw material at the time of wastage. Mocking cost for now.
   const mockCostPerUnit = 50 
-  const totalWastageCost = wastageRecords.reduce((acc, w) => acc + (w.quantityChange * mockCostPerUnit), 0)
+  const totalWastageCost = wastageRecords.reduce((acc, w) => acc + (w.quantity * mockCostPerUnit), 0)
 
   // --- Inventory Valuation ---
   // Assuming current stock * mock buying price

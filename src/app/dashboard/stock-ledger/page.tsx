@@ -23,23 +23,34 @@ export default function StockLedgerPage() {
   const [ledger, setLedger] = useState<LedgerEntry[]>([])
 
   useEffect(() => {
-    const fetchLedger = () => {
-      const stored = localStorage.getItem("mock_stock_ledger")
-      if (stored) {
-        const parsed: LedgerEntry[] = JSON.parse(stored)
-        
-        // Filter by branch if not Super Admin / Admin
-        if (role === "Super Admin" || role === "Admin") {
-          setLedger(parsed.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()))
-        } else {
-          setLedger(parsed.filter(e => e.branch === user?.branch).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()))
+    const fetchLedger = async () => {
+      if (!user) return;
+      try {
+        const branchQuery = (role === "Super Admin" || role === "Admin") ? "" : `?branch=${encodeURIComponent(user.branch || "")}`;
+        const res = await fetch(`/api/stock-ledger${branchQuery}`);
+        if (res.ok) {
+          const data = await res.json();
+          const formattedLedger: LedgerEntry[] = data.map((item: any) => ({
+            id: item._id,
+            timestamp: item.date,
+            branch: item.branch,
+            rawMaterialName: item.sku, // DB uses SKU. We'll show SKU here or we could populate name.
+            type: item.type === "IN" || item.type === "GRN" ? "IN" : "OUT",
+            reason: item.type, // e.g. "SALE", "GRN", "WASTAGE"
+            quantityChange: item.quantity,
+            baseUnit: "Nos" as BaseUnit, // Mock unit for now, as it's not stored in ledger
+            reference: item.reference || "Manual Adjustment"
+          }));
+          setLedger(formattedLedger);
         }
+      } catch (err) {
+        console.error("Failed to fetch stock ledger", err);
       }
     }
     fetchLedger()
     
-    // Auto refresh every 2 seconds to see POS updates instantly in another tab
-    const interval = setInterval(fetchLedger, 2000)
+    // Auto refresh every 5 seconds
+    const interval = setInterval(fetchLedger, 5000)
     return () => clearInterval(interval)
   }, [role, user?.branch])
 
