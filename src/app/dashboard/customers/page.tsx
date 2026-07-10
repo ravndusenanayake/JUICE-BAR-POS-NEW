@@ -146,8 +146,8 @@ export default function CustomersPage() {
                 </TableCell>
               </TableRow>
             )}
-            {filteredCustomers.map((customer) => (
-              <TableRow key={customer.id} className="border-b last:border-0 hover:bg-gray-50/50">
+            {filteredCustomers.map((customer: any) => (
+              <TableRow key={customer._id || customer.id} className="border-b last:border-0 hover:bg-gray-50/50">
                 <TableCell className="py-4 font-bold text-gray-900">
                   {customer.name}
                   {customer.name === "Walk-In Customer" && <span className="ml-2 bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full font-bold">DEFAULT</span>}
