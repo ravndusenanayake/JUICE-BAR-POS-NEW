@@ -49,9 +49,10 @@ export async function GET() {
 
     // 4. Seed Products
     const products = await Product.insertMany([
-      { sku: 'MJ01', name: 'Mango Juice', category: 'Fresh Juices', type: 'Product', unit: 'Nos', cost: 120, outletPrice: 350, pickmePrice: 400, uberPrice: 420, status: 'Active' },
-      { sku: 'AV01', name: 'Avocado Juice', category: 'Fresh Juices', type: 'Product', unit: 'Nos', cost: 180, outletPrice: 450, pickmePrice: 500, uberPrice: 520, status: 'Active' },
-      { sku: 'BF01', name: 'Blackforest Cake', category: 'Desserts', type: 'Product', unit: 'Nos', cost: 200, outletPrice: 500, pickmePrice: 550, uberPrice: 580, status: 'Active' }
+      { sku: 'MJ01', name: 'Mango Juice', category: 'Fresh Juices', type: 'Product', unit: 'Nos', cost: 120, outletPrice: 350, pickmePrice: 400, uberPrice: 420, status: 'Active', addons: [{name: "Vanilla Ice Cream Scoop", price: 150}, {name: "Chia Seeds", price: 80}, {name: "Extra Sugar", price: 0}, {name: "No Sugar", price: 0}, {name: "Honey Instead of Sugar", price: 100}, {name: "Extra Ice", price: 0}, {name: "No Ice", price: 0}] },
+      { sku: 'AV01', name: 'Avocado Juice', category: 'Fresh Juices', type: 'Product', unit: 'Nos', cost: 180, outletPrice: 450, pickmePrice: 500, uberPrice: 520, status: 'Active', addons: [{name: "Chocolate Ice Cream Scoop", price: 180}, {name: "Honey Instead of Sugar", price: 100}, {name: "Extra Nuts (Cashews)", price: 200}, {name: "Vanilla Ice Cream Scoop", price: 150}] },
+      { sku: 'BF01', name: 'Blackforest Cake', category: 'Desserts', type: 'Product', unit: 'Nos', cost: 200, outletPrice: 500, pickmePrice: 550, uberPrice: 580, status: 'Active', addons: [{name: "Extra Ice Cream (Vanilla)", price: 150}, {name: "Extra Ice Cream (Chocolate)", price: 180}, {name: "Extra Nuts", price: 200}] },
+      { sku: 'MS01', name: 'Chocolate Milkshake', category: 'Milkshakes', type: 'Product', unit: 'Nos', cost: 250, outletPrice: 600, status: 'Active', addons: [{name: "Whipped Cream", price: 120}, {name: "Chocolate Syrup", price: 80}, {name: "Oreo Crumbs", price: 150}, {name: "Protein Powder (1 Scoop)", price: 300}] }
     ]);
 
     // 5. Seed Recipes

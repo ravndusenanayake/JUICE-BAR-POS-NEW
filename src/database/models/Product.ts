@@ -11,6 +11,7 @@ export interface IProduct extends Document {
   pickmePrice: number;
   uberPrice: number;
   status: 'Active' | 'Inactive';
+  addons: { name: string, price: number }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,6 +28,7 @@ const ProductSchema = new Schema<IProduct>(
     pickmePrice: { type: Number, default: 0 },
     uberPrice: { type: Number, default: 0 },
     status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
+    addons: [{ name: String, price: Number }],
   },
   { timestamps: true }
 );

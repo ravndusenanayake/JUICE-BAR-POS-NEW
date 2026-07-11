@@ -23,54 +23,7 @@ const getCategoryColor = (category: string) => {
   return colors[category] || colors["General"];
 };
 
-// --- Mock Data: Smart Add-ons mapped by Category ---
-const CATEGORY_ADDONS: Record<string, {name: string, price: number}[]> = {
-  "Fresh Juices": [
-    { name: "Vanilla Ice Cream Scoop", price: 150 },
-    { name: "Chocolate Ice Cream Scoop", price: 180 },
-    { name: "Mint Leaves", price: 50 },
-    { name: "Chia Seeds", price: 80 },
-    { name: "Extra Sugar", price: 0 },
-    { name: "No Sugar", price: 0 },
-    { name: "Honey Instead of Sugar", price: 100 },
-    { name: "Extra Ice", price: 0 },
-    { name: "No Ice", price: 0 },
-    { name: "Lemon Squeeze", price: 50 },
-  ],
-  "Milkshakes": [
-    { name: "Whipped Cream", price: 120 },
-    { name: "Chocolate Syrup", price: 80 },
-    { name: "Caramel Drizzle", price: 80 },
-    { name: "Extra Nuts (Cashews)", price: 200 },
-    { name: "Oreo Crumbs", price: 150 },
-    { name: "Extra Ice Cream Scoop", price: 150 },
-    { name: "Strawberry Syrup", price: 80 },
-    { name: "Protein Powder (1 Scoop)", price: 300 },
-  ],
-  "Desserts": [
-    { name: "Extra Ice Cream (Vanilla)", price: 150 },
-    { name: "Extra Ice Cream (Chocolate)", price: 180 },
-    { name: "Extra Nuts", price: 200 },
-    { name: "Honey", price: 100 },
-    { name: "Condensed Milk", price: 100 },
-    { name: "Jelly Pieces", price: 80 },
-  ],
-  "Mojitos": [
-    { name: "Extra Mint", price: 50 },
-    { name: "Extra Lime", price: 50 },
-    { name: "Sprite Top-up", price: 100 },
-    { name: "Salt Rim", price: 0 },
-    { name: "Sugar Rim", price: 0 },
-    { name: "Passion Fruit Burst", price: 150 },
-  ],
-  "Snacks": [
-    { name: "Extra Cheese", price: 150 },
-    { name: "Extra Chicken", price: 250 },
-    { name: "French Fries (Side)", price: 350 },
-    { name: "Tomato Ketchup", price: 0 },
-    { name: "Chili Paste", price: 50 },
-  ]
-}
+
 
 interface CartItem {
   id: string
@@ -181,6 +134,7 @@ export default function POSPage() {
             price: p.outletPrice || 0,
             category: p.category || 'General',
             color: getCategoryColor(p.category),
+            addons: p.addons || [],
             hasVariants: false, // Future logic can add variants
           }));
           setProducts(activeProducts);
@@ -228,7 +182,7 @@ export default function POSPage() {
 
   // --- Cart Handlers ---
   const handleProductClick = (product: any) => {
-    const addons = CATEGORY_ADDONS[product.category] || []
+    const addons = product.addons || []
     if (product.hasVariants || addons.length > 0) {
       setSelectedProduct(product)
       setSelectedVariant(product.variants ? product.variants[0] : null)
@@ -737,14 +691,14 @@ export default function POSPage() {
                 )}
 
                 {/* Smart Add-ons specific to category */}
-                {CATEGORY_ADDONS[selectedProduct.category] && CATEGORY_ADDONS[selectedProduct.category].length > 0 && (
+                {selectedProduct.addons && selectedProduct.addons.length > 0 && (
                   <div className="space-y-3">
                     <Label className="text-base font-bold text-gray-800 flex items-center gap-2">
                       <span className="bg-orange-100 text-orange-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">{selectedProduct.hasVariants ? '2' : '1'}</span>
-                      Add-ons for {selectedProduct.category} (Optional)
+                      Add-ons (Optional)
                     </Label>
                     <div className="grid grid-cols-2 gap-2">
-                      {CATEGORY_ADDONS[selectedProduct.category].map((addon) => {
+                      {selectedProduct.addons.map((addon: any) => {
                         const isSelected = selectedAddons.some(a => a.name === addon.name)
                         return (
                           <button key={addon.name} type="button" onClick={() => toggleAddon(addon)}
