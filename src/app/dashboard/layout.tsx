@@ -55,143 +55,139 @@ export default function DashboardLayout({
             <span className="text-lg">Juice Bar POS</span>
           </Link>
         </div>
-        <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
-          <Link href="/dashboard" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}>
-            <LayoutDashboard className="h-5 w-5" />
-            Dashboard
-          </Link>
-          <Link href="/pos" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/pos') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}>
-            <Store className="h-5 w-5" />
-            POS Terminal
-          </Link>
-          <Link href="/dashboard/sales" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/sales') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}>
-            <ShoppingCart className="h-5 w-5" />
-            Sales
-          </Link>
-
-          {(hasAccess(["Super Admin", "Admin", "Branch Manager", "Cashier"])) && (
-            <Link href="/dashboard/customers" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/customers') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}>
-              <Users className="h-5 w-5" />
-              Customers
-            </Link>
-          )}
-
-          {hasAccess(["Super Admin", "Admin"]) && (
+        <nav className="flex-1 space-y-1 p-4 overflow-y-auto custom-scrollbar">
+          {/* 1. Administration */}
+          {hasAccess(["Super Admin", "Admin", "Branch Manager"]) && (
             <>
-              <div className="pt-4 pb-1">
+              <div className="pb-1 pt-2">
                 <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Administration</p>
               </div>
-              <Link href="/dashboard/users" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
-                <UserCog className="h-5 w-5" />
-                User Management
+              <Link href="/dashboard" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                <LayoutDashboard className="h-4 w-4" /> Dashboard
               </Link>
-              <Link href="/dashboard/roles" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
-                <ShieldCheck className="h-5 w-5" />
-                Roles & Permissions
-              </Link>
-              <Link href="/dashboard/branches" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
-                <Store className="h-5 w-5" />
-                Branch Management
-              </Link>
-              <Link href="/dashboard/audit-logs" className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all ${isActive('/dashboard/audit-logs') ? 'bg-primary/10 text-primary' : ''}`}>
-                <Activity className="h-5 w-5" />
-                System Logs
-              </Link>
+              {hasAccess(["Super Admin", "Admin"]) && (
+                <>
+                  <Link href="/dashboard/branches" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/branches') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                    <Store className="h-4 w-4" /> Branches
+                  </Link>
+                  <Link href="/dashboard/roles" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/roles') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                    <ShieldCheck className="h-4 w-4" /> Roles
+                  </Link>
+                  <Link href="/dashboard/users" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/users') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                    <UserCog className="h-4 w-4" /> Users
+                  </Link>
+                  <Link href="/dashboard/staff" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/staff') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                    <Users className="h-4 w-4" /> Staff
+                  </Link>
+                  <Link href="/dashboard/settings" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/settings') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                    <Settings className="h-4 w-4" /> Settings
+                  </Link>
+                </>
+              )}
             </>
           )}
 
+          {/* 2. Master Data */}
           {hasAccess(["Super Admin", "Admin"]) && (
             <>
               <div className="pt-4 pb-1">
-                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Products & Recipes</p>
+                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Master Data</p>
               </div>
-              <Link href="/dashboard/categories" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
-                <Tags className="h-5 w-5" />
-                Category
+              <Link href="/dashboard/categories" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/categories') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                <Tags className="h-4 w-4" /> Categories
               </Link>
-              <Link href="/dashboard/products" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
-                <Box className="h-5 w-5" />
-                All Products
+              <Link href="/dashboard/products" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/products') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                <Box className="h-4 w-4" /> Products
               </Link>
-              <Link href="/dashboard/product-variants" className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all ${isActive('/dashboard/product-variants') ? 'bg-primary/10 text-primary' : ''}`}>
-                <ListOrdered className="h-5 w-5" />
-                Product Variants
+              <Link href="/dashboard/product-variants" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/product-variants') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                <ListOrdered className="h-4 w-4" /> Variants
               </Link>
-              <Link href="/dashboard/add-ons" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
-                <PlusCircle className="h-5 w-5" />
-                Add-Ons
+              <Link href="/dashboard/add-ons" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/add-ons') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                <PlusCircle className="h-4 w-4" /> Add-ons
               </Link>
-              <Link href="/dashboard/recipes" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
-                <Settings className="h-5 w-5" />
-                Recipes
+              <Link href="/dashboard/recipes" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/recipes') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                <FileText className="h-4 w-4" /> Recipes
+              </Link>
+              <Link href="/dashboard/suppliers" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/suppliers') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                <Building2 className="h-4 w-4" /> Suppliers
               </Link>
             </>
           )}
 
+          {/* 3. Inventory */}
           {hasAccess(["Super Admin", "Admin", "Branch Manager", "Store Keeper"]) && (
             <>
               <div className="pt-4 pb-1">
-                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Inventory & Stock</p>
+                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Inventory</p>
               </div>
-              <Link href="/dashboard/branch-inventory" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/branch-inventory') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-orange-50 hover:text-orange-600'}`}>
-                <LayoutDashboard className="h-4 w-4" />
-                Branch Inventory
+              <Link href="/dashboard/branch-inventory" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/branch-inventory') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                <Package className="h-4 w-4" /> Inventory List
               </Link>
-              <Link href="/dashboard/stock-ledger" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/stock-ledger') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}>
-                <History className="h-5 w-5" />
-                Stock Ledger
+              <Link href="/dashboard/stock-adjustments" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/stock-adjustments') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                <History className="h-4 w-4" /> Stock Adjustment
+              </Link>
+              <Link href="/dashboard/purchase-orders" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/purchase-orders') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                <Truck className="h-4 w-4" /> Purchase Orders
+              </Link>
+              <Link href="/dashboard/grn" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/grn') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                <FileText className="h-4 w-4" /> GRN
+              </Link>
+              <Link href="/dashboard/stock-transfers" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/stock-transfers') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                <ArrowRightLeft className="h-4 w-4" /> Stock Transfers
+              </Link>
+              <Link href="/dashboard/wastage" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/wastage') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                <Activity className="h-4 w-4" /> Wastage
               </Link>
             </>
           )}
 
-          {hasAccess(["Super Admin", "Admin", "Branch Manager", "Store Keeper"]) && (
+          {/* 4. Sales */}
+          {hasAccess(["Super Admin", "Admin", "Branch Manager", "Cashier"]) && (
             <>
               <div className="pt-4 pb-1">
-                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Procurement</p>
+                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Sales</p>
               </div>
-              <Link href="/dashboard/suppliers" className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all ${isActive('/dashboard/suppliers') ? 'bg-primary/10 text-primary' : ''}`}>
-                <Building2 className="h-5 w-5" />
-                Suppliers
+              <Link href="/pos" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/pos') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                <Store className="h-4 w-4 text-orange-500" /> POS
               </Link>
-              <Link href="/dashboard/purchase-orders" className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all ${isActive('/dashboard/purchase-orders') ? 'bg-primary/10 text-primary' : ''}`}>
-                <Truck className="h-5 w-5" />
-                Purchase Orders
+              <Link href="/dashboard/customers" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/customers') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                <Users className="h-4 w-4" /> Customers
               </Link>
-              <Link href="/dashboard/grn" className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all ${isActive('/dashboard/grn') ? 'bg-primary/10 text-primary' : ''}`}>
-                <FileText className="h-5 w-5" />
-                All GRNs
-              </Link>
-              <Link href="/dashboard/stock-transfers" className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all ${isActive('/dashboard/stock-transfers') ? 'bg-primary/10 text-primary' : ''}`}>
-                <ArrowRightLeft className="h-5 w-5" />
-                Stock Transfers
+              <Link href="/dashboard/sales" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/sales') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                <ShoppingCart className="h-4 w-4" /> Sales History
               </Link>
             </>
           )}
 
+          {/* 5. Reports */}
           {hasAccess(["Super Admin", "Admin", "Branch Manager"]) && (
             <>
               <div className="pt-4 pb-1">
-                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Finance & Reports</p>
+                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Reports</p>
               </div>
-              <Link href="/dashboard/expenses" className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all ${isActive('/dashboard/expenses') ? 'bg-primary/10 text-primary' : ''}`}>
-                <Wallet className="h-5 w-5" />
-                Expenses
+              <Link href="/dashboard/reports?tab=sales" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all text-sm pl-6">
+                <div className="w-1.5 h-1.5 rounded-full bg-orange-500" /> Sales Reports
               </Link>
-              <Link href="/dashboard/reports" className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all ${isActive('/dashboard/reports') ? 'bg-primary/10 text-primary' : ''}`}>
-                <BarChart3 className="h-5 w-5 text-orange-500" />
-                Reports & Analytics
+              <Link href="/dashboard/reports?tab=inventory" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all text-sm pl-6">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Inventory Reports
+              </Link>
+              <Link href="/dashboard/reports?tab=purchases" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all text-sm pl-6">
+                <div className="w-1.5 h-1.5 rounded-full bg-purple-500" /> Purchase Reports
+              </Link>
+              <Link href="/dashboard/reports?tab=expenses" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all text-sm pl-6">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500" /> Expense Reports
+              </Link>
+              <Link href="/dashboard/reports?tab=expenses" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all text-sm pl-6">
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-500" /> Wastage Reports
+              </Link>
+              <Link href="/dashboard/reports?tab=profit" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all text-sm pl-6">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500" /> Profitability Reports
               </Link>
             </>
           )}
 
         </nav>
         <div className="mt-auto border-t p-4 space-y-2">
-          {hasAccess(["Super Admin", "Admin", "Branch Manager"]) && (
-            <Link href="/dashboard/settings" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
-              <Settings className="h-5 w-5" />
-              Settings
-            </Link>
-          )}
           {hasAccess(["Super Admin"]) && (
             <Link href="/dashboard/system-settings" className="flex items-center gap-3 rounded-lg px-3 py-2 text-amber-600 font-semibold hover:bg-amber-50 transition-all border-t pt-4">
               <Settings className="h-5 w-5" />
