@@ -44,7 +44,7 @@ export default function RecipesPage() {
   }, [])
 
   // Handlers
-  const handleVariantChange = (val: string) => {
+  const handleVariantChange = (val: any) => {
     setSelectedVariantId(val)
     const variant = variants.find(v => v._id === val || v.id === val)
     if (!variant) return
@@ -175,7 +175,7 @@ export default function RecipesPage() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Raw Material</Label>
-                <Select value={selectedRawMaterialId} onValueChange={setSelectedRawMaterialId}>
+                <Select value={selectedRawMaterialId} onValueChange={(val: any) => setSelectedRawMaterialId(val || "")}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select raw material" />
                   </SelectTrigger>

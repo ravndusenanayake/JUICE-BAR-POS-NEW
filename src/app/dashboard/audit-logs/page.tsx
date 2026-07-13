@@ -67,7 +67,7 @@ export default function AuditLogsPage() {
             />
           </div>
           
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v || "")}>
             <SelectTrigger className="w-full sm:w-[200px] h-11 bg-white">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-gray-400" />

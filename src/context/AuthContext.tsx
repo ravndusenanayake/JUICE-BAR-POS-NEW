@@ -77,7 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     if (user) {
-      logAudit(user.name, user.branch, "Logged out of the system.", "Logout")
+      logAudit(user.name, user.branch, "Logged out of the system.", "Login")
     }
     setUser(null)
     localStorage.removeItem("authUser")

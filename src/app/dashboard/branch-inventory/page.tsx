@@ -246,7 +246,7 @@ export default function BranchInventoryPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Type</Label>
-                <Select value={adjustmentType} onValueChange={setAdjustmentType}>
+                <Select value={adjustmentType} onValueChange={(v) => setAdjustmentType(v || "")}>
                   <SelectTrigger className={adjustmentType === "IN" ? "text-green-600 font-bold border-green-200 bg-green-50" : "text-red-600 font-bold border-red-200 bg-red-50"}>
                     <SelectValue />
                   </SelectTrigger>
@@ -272,7 +272,7 @@ export default function BranchInventoryPage() {
 
             <div className="space-y-2">
               <Label>Reason</Label>
-              <Select value={adjustmentReason} onValueChange={setAdjustmentReason} required>
+              <Select value={adjustmentReason} onValueChange={(v) => setAdjustmentReason(v || "")} required>
                 <SelectTrigger>
                   <SelectValue placeholder="Select reason" />
                 </SelectTrigger>

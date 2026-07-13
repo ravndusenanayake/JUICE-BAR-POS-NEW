@@ -149,7 +149,7 @@ export default function WastagePage() {
             />
           </div>
           <div className="w-full sm:w-64">
-            <Select value={selectedBranch} onValueChange={setSelectedBranch} disabled={!canSelectBranch}>
+            <Select value={selectedBranch} onValueChange={(v) => setSelectedBranch(v || "")} disabled={!canSelectBranch}>
               <SelectTrigger className="border-gray-200 h-10 bg-white">
                 <SelectValue placeholder="Select Branch" />
               </SelectTrigger>
@@ -219,7 +219,7 @@ export default function WastagePage() {
           <form onSubmit={handleSave} className="space-y-4 pt-4">
             <div className="space-y-2">
               <Label>Select Item *</Label>
-              <Select value={selectedItemName} onValueChange={setSelectedItemName} required>
+              <Select value={selectedItemName} onValueChange={(v) => setSelectedItemName(v || "")} required>
                 <SelectTrigger><SelectValue placeholder="Choose inventory item..." /></SelectTrigger>
                 <SelectContent>
                   {inventory.map(i => (
@@ -238,7 +238,7 @@ export default function WastagePage() {
               </div>
               <div className="space-y-2">
                 <Label>Reason *</Label>
-                <Select value={reason} onValueChange={setReason} required>
+                <Select value={reason} onValueChange={(v) => setReason(v || "")} required>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {REASONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}

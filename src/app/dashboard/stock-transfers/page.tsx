@@ -20,6 +20,7 @@ export interface TransferItem {
 
 export interface StockTransfer {
   id: string
+  _id?: string
   transferNumber: string
   sourceBranch: string
   destinationBranch: string
@@ -365,14 +366,14 @@ export default function StockTransfersPage() {
               <div className="grid grid-cols-2 gap-4 bg-white">
                 <div className="grid gap-2">
                   <Label className="font-bold text-gray-700">Source Branch (From) *</Label>
-                  <Select value={sourceBranch} onValueChange={setSourceBranch} disabled={user?.branch !== "All Branches"}>
+                  <Select value={sourceBranch} onValueChange={(v) => setSourceBranch(v || "")} disabled={user?.branch !== "All Branches"}>
                     <SelectTrigger className="border-red-200 bg-red-50 h-10"><SelectValue /></SelectTrigger>
                     <SelectContent>{BRANCHES.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="grid gap-2">
                   <Label className="font-bold text-gray-700">Destination Branch (To) *</Label>
-                  <Select value={destBranch} onValueChange={setDestBranch} required>
+                  <Select value={destBranch} onValueChange={(v) => setDestBranch(v || "")} required>
                     <SelectTrigger className="border-green-200 bg-green-50 h-10"><SelectValue placeholder="Select Destination" /></SelectTrigger>
                     <SelectContent>{BRANCHES.filter(b => b !== sourceBranch).map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
                   </Select>
@@ -389,7 +390,7 @@ export default function StockTransfersPage() {
                   <div className="flex gap-2 items-end">
                     <div className="grid gap-1.5 flex-1">
                       <Label className="text-xs font-bold text-gray-700">Select Item</Label>
-                      <Select value={selectedItemName} onValueChange={setSelectedItemName}>
+                      <Select value={selectedItemName} onValueChange={(v) => setSelectedItemName(v || "")}>
                         <SelectTrigger className="h-9 bg-white"><SelectValue placeholder="Choose product..." /></SelectTrigger>
                         <SelectContent>
                           {getSourceInventory().map((i: any) => (

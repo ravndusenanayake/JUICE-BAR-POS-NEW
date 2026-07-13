@@ -102,7 +102,7 @@ export default function InventoryPage() {
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <Label>Select Product</Label>
-                  <Select onValueChange={setSelectedSku} required>
+                  <Select onValueChange={(v: any) => setSelectedSku(v || "")} required>
                     <SelectTrigger>
                       <SelectValue placeholder="Select Product" />
                     </SelectTrigger>
@@ -117,7 +117,7 @@ export default function InventoryPage() {
                 </div>
                 <div className="grid gap-2">
                   <Label>Adjustment Type</Label>
-                  <Select value={adjustType} onValueChange={setAdjustType}>
+                  <Select value={adjustType} onValueChange={(v) => setAdjustType(v || "")}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>

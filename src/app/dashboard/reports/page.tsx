@@ -103,7 +103,7 @@ export default function ReportsPage() {
         </div>
         
         <div className="flex items-center gap-3 bg-white p-2 rounded-xl shadow-sm border">
-          <Select value={dateFilter} onValueChange={setDateFilter}>
+          <Select value={dateFilter} onValueChange={(v) => setDateFilter(v || "")}>
             <SelectTrigger className="w-[150px] border-0 bg-transparent font-bold"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="Today">Today</SelectItem>
@@ -115,7 +115,7 @@ export default function ReportsPage() {
           
           <div className="w-px h-6 bg-gray-200" />
           
-          <Select value={filterBranch} onValueChange={setFilterBranch} disabled={!canSeeAllBranches}>
+          <Select value={filterBranch} onValueChange={(v) => setFilterBranch(v || "")} disabled={!canSeeAllBranches}>
             <SelectTrigger className="w-[180px] border-0 bg-transparent font-bold"><SelectValue /></SelectTrigger>
             <SelectContent>
               {canSeeAllBranches && <SelectItem value="All">All Branches</SelectItem>}
@@ -314,7 +314,7 @@ export default function ReportsPage() {
                       acc[e.category] = (acc[e.category] || 0) + e.amount
                       return acc
                     }, {} as Record<string, number>)
-                  ).sort((a,b) => b[1]-a[1]).map(([cat, amount], i) => (
+                  ).sort((a: any, b: any) => b[1]-a[1]).map(([cat, amount]: any, i) => (
                     <div key={i}>
                       <div className="flex justify-between text-sm font-bold text-gray-700 mb-1">
                         <span>{cat}</span>

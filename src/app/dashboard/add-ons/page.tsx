@@ -158,12 +158,10 @@ export default function AddOnsPage() {
           <p className="text-muted-foreground">Manage optional extras that customers can add to their orders.</p>
         </div>
         
+        <Button className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => setIsDialogOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" /> Add New Add-On
+        </Button>
         <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-              <Plus className="mr-2 h-4 w-4" /> Add New Add-On
-            </Button>
-          </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <form onSubmit={handleSaveAddon}>
               <DialogHeader>

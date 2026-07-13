@@ -412,7 +412,7 @@ export default function PurchaseOrdersPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Supplier</Label>
-                <Select value={supplierId} onValueChange={setSupplierId} required>
+                <Select value={supplierId} onValueChange={(v) => setSupplierId(v || "")} required>
                   <SelectTrigger><SelectValue placeholder="Select supplier" /></SelectTrigger>
                   <SelectContent>
                     {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
@@ -425,7 +425,7 @@ export default function PurchaseOrdersPage() {
               </div>
               <div className="space-y-2">
                 <Label>Destination Branch</Label>
-                <Select value={branch} onValueChange={setBranch} disabled={!canApprove}>
+                <Select value={branch} onValueChange={(v) => setBranch(v || "")} disabled={!canApprove}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {BRANCHES.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
@@ -447,7 +447,7 @@ export default function PurchaseOrdersPage() {
                 </div>
                 <div className="col-span-2 space-y-1">
                   <Label className="text-xs">Unit</Label>
-                  <Select value={itemUnit} onValueChange={setItemUnit}>
+                  <Select value={itemUnit} onValueChange={(v) => setItemUnit(v || "")}>
                     <SelectTrigger className="px-2 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}

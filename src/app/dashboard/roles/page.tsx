@@ -106,12 +106,12 @@ export default function RolesPage() {
     if (!roleName) return
 
     if (editingRole) {
-      setRoles(roles.map(r => r.id === editingRole.id ? { ...r, name: roleName, permissions: selectedPerms } : r))
+      setRoles(roles.map(r => r.id === editingRole.id ? { ...r, name: roleName, permissions: selectedPerms as any } : r))
     } else {
       const newRole = {
         id: `ROLE-00${roles.length + 1}`,
         name: roleName,
-        permissions: selectedPerms
+        permissions: selectedPerms as any
       }
       setRoles([...roles, newRole])
     }

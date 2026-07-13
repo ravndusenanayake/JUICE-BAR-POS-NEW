@@ -166,7 +166,7 @@ export default function ExpensesPage() {
               />
             </div>
             {canSeeAllBranches && (
-              <Select value={filterBranch} onValueChange={setFilterBranch}>
+              <Select value={filterBranch} onValueChange={(v) => setFilterBranch(v || "")}>
                 <SelectTrigger className="w-48 h-10 bg-white">
                   <SelectValue placeholder="All Branches" />
                 </SelectTrigger>
@@ -263,7 +263,7 @@ export default function ExpensesPage() {
                 </div>
                 <div className="grid gap-2">
                   <Label className="font-bold text-gray-700">Branch *</Label>
-                  <Select value={branch} onValueChange={setBranch} disabled={!canSeeAllBranches}>
+                  <Select value={branch} onValueChange={(v) => setBranch(v || "")} disabled={!canSeeAllBranches}>
                     <SelectTrigger className="h-11 bg-gray-50"><SelectValue /></SelectTrigger>
                     <SelectContent>{BRANCHES.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
                   </Select>
@@ -273,7 +273,7 @@ export default function ExpensesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label className="font-bold text-gray-700">Category *</Label>
-                  <Select value={category} onValueChange={setCategory} required>
+                  <Select value={category} onValueChange={(v) => setCategory(v || "")} required>
                     <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
                     <SelectContent>{CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                   </Select>
