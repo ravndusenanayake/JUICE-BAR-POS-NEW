@@ -96,6 +96,7 @@ const CATEGORY_ADDONS: Record<string, {name: string, price: number}[]> = {
 interface CartItem {
   id: string
   productId: string
+  sku?: string
   name: string
   basePrice: number
   variant?: string
@@ -333,7 +334,7 @@ export default function POSPage() {
         return prev.map(item => item.id === cartItemId ? { ...item, quantity: item.quantity + 1, totalPrice: (item.quantity + 1) * unitPrice } : item)
       }
       return [...prev, {
-        id: cartItemId, productId: product.productId, name: product.name,
+        id: cartItemId, productId: product.productId, sku: product.id, name: product.name,
         basePrice: unitPrice, variant: variant?.name, addons,
         quantity: 1, totalPrice: unitPrice
       }]
@@ -461,9 +462,10 @@ export default function POSPage() {
           })
         } else {
           // If it's a direct product (not recipe based), we might deduct the product itself
-          // Assuming product ID is the SKU for now if it's a direct product
-          if (deductions[cartItem.productId]) deductions[cartItem.productId].quantity += cartItem.quantity
-          else deductions[cartItem.productId] = { name: cartItem.name, quantity: cartItem.quantity, unit: 'Nos' }
+          // Using sku from cart item
+          const itemSku = cartItem.sku || cartItem.productId
+          if (deductions[itemSku]) deductions[itemSku].quantity += cartItem.quantity
+          else deductions[itemSku] = { name: cartItem.name, quantity: cartItem.quantity, unit: 'Nos' }
         }
       })
 
