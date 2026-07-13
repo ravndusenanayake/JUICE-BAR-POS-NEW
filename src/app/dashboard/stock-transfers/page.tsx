@@ -52,14 +52,39 @@ export default function StockTransfersPage() {
   const [transferItems, setTransferItems] = useState<TransferItem[]>([])
 
   useEffect(() => {
-    const storedTransfers = localStorage.getItem("mock_stock_transfers")
-    if (storedTransfers) setTransfers(JSON.parse(storedTransfers))
-
-    const storedInv = localStorage.getItem("mock_branch_inventory")
-    if (storedInv) {
-      setInventory(JSON.parse(storedInv))
-    }
+    fetchTransfers()
+    fetchInventory()
   }, [])
+
+  const fetchTransfers = async () => {
+    try {
+      const res = await fetch('/api/stock-transfers')
+      if (res.ok) {
+        const data = await res.json()
+        setTransfers(data)
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const fetchInventory = async () => {
+    try {
+      // Fetch for all branches or selected branch. For transfer, we need to know source branch inventory.
+      // We will fetch based on sourceBranch
+      const res = await fetch(`/api/branch-inventory?branch=${sourceBranch}`)
+      if (res.ok) {
+        const data = await res.json()
+        setInventory(data)
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  useEffect(() => {
+    fetchInventory()
+  }, [sourceBranch])
 
   const filteredTransfers = transfers.filter(t => 
     t.transferNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -68,9 +93,7 @@ export default function StockTransfersPage() {
   )
 
   const getSourceInventory = () => {
-    // Map branch names to IDs (B1, B2) based on logic in branch-inventory
-    const branchId = "B" + (BRANCHES.indexOf(sourceBranch) + 1)
-    return inventory.filter(i => i.branchId === branchId)
+    return inventory // already filtered by sourceBranch in fetch
   }
 
   const handleAddItem = () => {
@@ -78,24 +101,24 @@ export default function StockTransfersPage() {
     const qty = parseFloat(transferQty)
     if (qty <= 0) return
 
-    const invItem = getSourceInventory().find(i => i.rawMaterialName === selectedItemName)
+    const invItem = inventory.find(i => i.name === selectedItemName)
     if (!invItem) {
       alert("Item not found in source branch inventory.")
       return
     }
 
     // Check if source has enough stock (assuming qty entered is in baseUnit)
-    if (invItem.currentStock < qty) {
-      alert(`Not enough stock! Available: ${invItem.currentStock} ${invItem.baseUnit}`)
+    if (invItem.quantity < qty) {
+      alert(`Not enough stock! Available: ${invItem.quantity} ${invItem.unit}`)
       return
     }
 
     const newItem: TransferItem = {
       id: `TRF-ITEM-${Date.now()}`,
-      rawMaterialName: invItem.rawMaterialName,
+      rawMaterialName: invItem.name,
       sku: invItem.sku,
       quantity: qty,
-      unit: invItem.baseUnit
+      unit: invItem.unit
     }
     
     setTransferItems([...transferItems, newItem])
@@ -103,7 +126,7 @@ export default function StockTransfersPage() {
     setTransferQty("")
   }
 
-  const handleSubmitTransfer = (e: React.FormEvent) => {
+  const handleSubmitTransfer = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!destBranch || sourceBranch === destBranch) {
       alert("Please select a valid destination branch different from the source.")
@@ -119,128 +142,109 @@ export default function StockTransfersPage() {
     // If Manager creates it, it goes to Pending. If Admin, it's Approved immediately.
     const initialStatus = canApprove ? "Approved" : "Pending Approval"
 
-    const newTransfer: StockTransfer = {
-      id: `TRFID-${Date.now()}`,
+    const payload = {
       transferNumber,
       sourceBranch,
       destinationBranch: destBranch,
-      createdDate: new Date().toISOString(),
       items: transferItems,
-      status: initialStatus,
-      createdBy: user?.name || "System"
+      status: initialStatus
     }
 
-    // If auto-approved, we MUST deduct from source immediately
-    if (initialStatus === "Approved") {
-      processSourceDeduction(newTransfer)
-    }
-
-    const updated = [newTransfer, ...transfers]
-    setTransfers(updated)
-    localStorage.setItem("mock_stock_transfers", JSON.stringify(updated))
-    
-    setIsCreateOpen(false)
-    setTransferItems([])
-    setDestBranch("")
-  }
-
-  const processSourceDeduction = (transfer: StockTransfer) => {
-    let currentInv = [...inventory]
-    const sourceBranchId = "B" + (BRANCHES.indexOf(transfer.sourceBranch) + 1)
-    
-    const storedLedger = localStorage.getItem("mock_stock_ledger")
-    const ledger = storedLedger ? JSON.parse(storedLedger) : []
-    const newLedgerEntries = []
-    const now = new Date().toISOString()
-
-    transfer.items.forEach((item, idx) => {
-      const invIdx = currentInv.findIndex(i => i.branchId === sourceBranchId && i.rawMaterialName === item.rawMaterialName)
-      if (invIdx >= 0) {
-        currentInv[invIdx].currentStock -= item.quantity
-      }
-
-      newLedgerEntries.push({
-        id: `LDG-TRF-OUT-${Date.now()}-${idx}`,
-        timestamp: now,
-        branch: transfer.sourceBranch,
-        rawMaterialName: item.rawMaterialName,
-        type: "OUT",
-        reason: "Stock Transfer Out",
-        quantityChange: item.quantity,
-        baseUnit: item.unit,
-        reference: transfer.transferNumber
+    try {
+      const res = await fetch('/api/stock-transfers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       })
-    })
 
-    setInventory(currentInv)
-    localStorage.setItem("mock_branch_inventory", JSON.stringify(currentInv))
-    localStorage.setItem("mock_stock_ledger", JSON.stringify([...ledger, ...newLedgerEntries]))
-  }
-
-  const handleApprove = (transfer: StockTransfer) => {
-    if (!canApprove) return
-    
-    const updated = transfers.map(t => t.id === transfer.id ? { ...t, status: "Approved" as const } : t)
-    setTransfers(updated)
-    localStorage.setItem("mock_stock_transfers", JSON.stringify(updated))
-
-    // Deduct from source branch now
-    processSourceDeduction(transfer)
-    alert("Transfer Approved. Stock has been deducted from the Source Branch.")
-  }
-
-  const handleReceive = (transfer: StockTransfer) => {
-    if (confirm(`Are you sure you want to receive these items at ${transfer.destinationBranch}?`)) {
-      let currentInv = [...inventory]
-      const destBranchId = "B" + (BRANCHES.indexOf(transfer.destinationBranch) + 1)
-      
-      const storedLedger = localStorage.getItem("mock_stock_ledger")
-      const ledger = storedLedger ? JSON.parse(storedLedger) : []
-      const newLedgerEntries = []
-      const now = new Date().toISOString()
-
-      transfer.items.forEach((item, idx) => {
-        const invIdx = currentInv.findIndex(i => i.branchId === destBranchId && i.rawMaterialName === item.rawMaterialName)
-        if (invIdx >= 0) {
-          currentInv[invIdx].currentStock += item.quantity
-        } else {
-          // If dest branch doesn't have this item yet, create it
-          currentInv.push({
-            id: `RM-${Date.now()}-${idx}`,
-            branchId: destBranchId,
-            rawMaterialName: item.rawMaterialName,
-            sku: item.sku,
-            baseUnit: item.unit,
-            currentStock: item.quantity,
-            minimumStock: 5000,
-            maxCapacity: item.quantity * 2,
-            status: "Active"
-          })
+      if (res.ok) {
+        const newTransfer = await res.json()
+        
+        // If auto-approved, we MUST deduct from source immediately
+        if (initialStatus === "Approved") {
+          await processSourceDeduction(payload)
         }
+        
+        fetchTransfers()
+        setIsCreateOpen(false)
+        setTransferItems([])
+        setDestBranch("")
+      } else {
+        alert("Failed to create transfer")
+      }
+    } catch (err) {
+      console.error(err)
+      alert("Failed to create transfer")
+    }
+  }
 
-        newLedgerEntries.push({
-          id: `LDG-TRF-IN-${Date.now()}-${idx}`,
-          timestamp: now,
-          branch: transfer.destinationBranch,
-          rawMaterialName: item.rawMaterialName,
-          type: "IN",
-          reason: "Stock Transfer In",
-          quantityChange: item.quantity,
-          baseUnit: item.unit,
-          reference: transfer.transferNumber
+  const processSourceDeduction = async (transfer: any) => {
+    for (const item of transfer.items) {
+      await fetch('/api/inventory/adjust', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          branch: transfer.sourceBranch,
+          sku: item.sku,
+          quantity: item.quantity,
+          type: 'OUT',
+          reference: transfer.transferNumber,
+          remarks: 'Stock Transfer Out to ' + transfer.destinationBranch
         })
       })
+    }
+  }
 
-      setInventory(currentInv)
-      localStorage.setItem("mock_branch_inventory", JSON.stringify(currentInv))
-      localStorage.setItem("mock_stock_ledger", JSON.stringify([...ledger, ...newLedgerEntries]))
+  const handleApprove = async (transfer: StockTransfer) => {
+    if (!canApprove) return
+    
+    try {
+      const res = await fetch('/api/stock-transfers', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: transfer._id || transfer.id, status: "Approved" })
+      })
+      if (res.ok) {
+        await processSourceDeduction(transfer)
+        fetchTransfers()
+        alert("Transfer Approved. Stock has been deducted from the Source Branch.")
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
-      // Update Transfer Status
-      const updatedTransfers = transfers.map(t => t.id === transfer.id ? { ...t, status: "Completed" as const } : t)
-      setTransfers(updatedTransfers)
-      localStorage.setItem("mock_stock_transfers", JSON.stringify(updatedTransfers))
-
-      alert("Stock successfully added to Destination Branch.")
+  const handleReceive = async (transfer: StockTransfer) => {
+    if (confirm(`Are you sure you want to receive these items at ${transfer.destinationBranch}?`)) {
+      try {
+        for (const item of transfer.items) {
+          await fetch('/api/inventory/adjust', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              branch: transfer.destinationBranch,
+              sku: item.sku,
+              quantity: item.quantity,
+              type: 'IN',
+              reference: transfer.transferNumber,
+              remarks: 'Stock Transfer In from ' + transfer.sourceBranch
+            })
+          })
+        }
+        
+        const res = await fetch('/api/stock-transfers', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: transfer._id || transfer.id, status: "Completed" })
+        })
+        
+        if (res.ok) {
+          fetchTransfers()
+          alert("Stock successfully added to Destination Branch.")
+        }
+      } catch (e) {
+        console.error(e)
+      }
     }
   }
 
@@ -388,9 +392,9 @@ export default function StockTransfersPage() {
                       <Select value={selectedItemName} onValueChange={setSelectedItemName}>
                         <SelectTrigger className="h-9 bg-white"><SelectValue placeholder="Choose product..." /></SelectTrigger>
                         <SelectContent>
-                          {getSourceInventory().map(i => (
-                            <SelectItem key={i.id} value={i.rawMaterialName}>
-                              {i.rawMaterialName} <span className="text-gray-400 text-xs ml-2">(Max: {i.currentStock} {i.baseUnit})</span>
+                          {getSourceInventory().map((i: any) => (
+                            <SelectItem key={i._id || i.sku} value={i.name}>
+                              {i.name} <span className="text-gray-400 text-xs ml-2">(Max: {i.quantity} {i.unit})</span>
                             </SelectItem>
                           ))}
                         </SelectContent>

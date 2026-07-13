@@ -44,10 +44,7 @@ export default function PurchaseOrdersPage() {
   const defaultBranch = user?.branch === "All Branches" ? "Colombo 07" : (user?.branch || "Colombo 07")
 
   const [pos, setPos] = useState<PurchaseOrder[]>([])
-  const [suppliers, setSuppliers] = useState<any[]>([
-    { id: "SUP-01", name: "Fresh Farms Ceylon" },
-    { id: "SUP-02", name: "Lanka Dairy" }
-  ]) // In a real scenario, this would be fetched from /api/suppliers
+  const [suppliers, setSuppliers] = useState<any[]>([])
   
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState<"ALL" | "PENDING">("ALL")
@@ -79,10 +76,21 @@ export default function PurchaseOrdersPage() {
   const fetchPOs = async () => {
     setIsLoading(true)
     try {
-      const res = await fetch('/api/purchase-orders')
-      if (res.ok) {
-        const data = await res.json()
+      const [poRes, supRes] = await Promise.all([
+        fetch('/api/purchase-orders'),
+        fetch('/api/suppliers')
+      ])
+      
+      if (poRes.ok) {
+        const data = await poRes.json()
         setPos(data)
+      }
+      
+      if (supRes.ok) {
+        const data = await supRes.json()
+        // Map _id to id for the UI logic
+        const mappedSuppliers = data.map((s: any) => ({ ...s, id: s._id }))
+        setSuppliers(mappedSuppliers)
       }
     } catch (e) {
       console.error(e)

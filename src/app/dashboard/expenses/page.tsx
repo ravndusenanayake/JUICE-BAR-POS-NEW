@@ -56,11 +56,19 @@ export default function ExpensesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    const stored = localStorage.getItem("mock_expenses")
-    if (stored) {
-      setExpenses(JSON.parse(stored))
-    }
+    fetchExpenses()
   }, [])
+
+  const fetchExpenses = async () => {
+    try {
+      const res = await fetch('/api/expenses')
+      if (res.ok) {
+        setExpenses(await res.json())
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   const filteredExpenses = expenses.filter(e => {
     const matchSearch = e.note.toLowerCase().includes(searchQuery.toLowerCase()) || e.category.toLowerCase().includes(searchQuery.toLowerCase())
@@ -71,42 +79,55 @@ export default function ExpensesPage() {
     return matchSearch && matchBranch && securityCheck
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!amount || parseFloat(amount) <= 0) {
       alert("Please enter a valid amount.")
       return
     }
 
-    const newExpense: Expense = {
-      id: `EXP-${Date.now()}`,
-      branch,
-      expenseDate,
-      category,
-      amount: parseFloat(amount),
-      note,
-      attachmentUrl: fileName ? `mock-url-for-${fileName}` : undefined,
-      createdBy: user?.name || "System"
-    }
+    try {
+      const res = await fetch('/api/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          branch,
+          date: expenseDate,
+          category,
+          amount: parseFloat(amount),
+          note,
+          attachment: fileName ? `mock-url-for-${fileName}` : undefined
+        })
+      })
 
-    const updated = [newExpense, ...expenses]
-    setExpenses(updated)
-    localStorage.setItem("mock_expenses", JSON.stringify(updated))
-    
-    // Reset
-    setIsOpen(false)
-    setExpenseDate(new Date().toISOString().split('T')[0])
-    setCategory("Rent")
-    setAmount("")
-    setNote("")
-    setFileName("")
+      if (res.ok) {
+        fetchExpenses()
+        // Reset
+        setIsOpen(false)
+        setExpenseDate(new Date().toISOString().split('T')[0])
+        setCategory("Rent")
+        setAmount("")
+        setNote("")
+        setFileName("")
+      } else {
+        alert("Failed to save expense")
+      }
+    } catch (e) {
+      console.error(e)
+      alert("Error saving expense")
+    }
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this expense record? This will impact profit reports.")) {
-      const updated = expenses.filter(e => e.id !== id)
-      setExpenses(updated)
-      localStorage.setItem("mock_expenses", JSON.stringify(updated))
+      try {
+        const res = await fetch(`/api/expenses?id=${id}`, { method: 'DELETE' })
+        if (res.ok) {
+          fetchExpenses()
+        }
+      } catch (e) {
+        console.error(e)
+      }
     }
   }
 

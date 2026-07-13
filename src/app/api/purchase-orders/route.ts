@@ -27,6 +27,11 @@ export async function POST(req: Request) {
     await connectToDatabase();
     const body = await req.json();
     
+    // Auto-generate PO Number if missing
+    if (!body.poNumber) {
+      body.poNumber = `PO-${Date.now()}`;
+    }
+
     const po = new PurchaseOrder(body);
     await po.save();
     
