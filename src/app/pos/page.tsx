@@ -22,7 +22,75 @@ const getCategoryColor = (category: string) => {
   };
   return colors[category] || colors["General"];
 };
-
+const CATEGORY_ADDONS: Record<string, {name: string, price: number}[]> = {
+  "Fresh Juices": [
+    { name: "Extra Sugar", price: 0 },
+    { name: "No Sugar", price: 0 },
+    { name: "Less Sugar", price: 0 },
+    { name: "Sugar Syrup", price: 0 },
+    { name: "Extra Ice", price: 0 },
+    { name: "Less Ice", price: 0 },
+    { name: "No Ice", price: 0 },
+    { name: "Mint Leaves", price: 50 },
+    { name: "Chia Seeds", price: 100 },
+    { name: "Basil Seeds", price: 100 },
+    { name: "Ginger Kick", price: 50 },
+    { name: "Lemon Squeeze", price: 50 },
+    { name: "Extra Orange Pulp", price: 150 },
+    { name: "Aloe Vera Chunks", price: 120 }
+  ],
+  "Milkshakes": [
+    { name: "Extra Ice Cream Scoop", price: 150 },
+    { name: "Whipped Cream", price: 100 },
+    { name: "Chocolate Chips", price: 100 },
+    { name: "Chocolate Syrup", price: 50 },
+    { name: "Caramel Syrup", price: 50 },
+    { name: "Strawberry Syrup", price: 50 },
+    { name: "Oreo Crumbs", price: 120 },
+    { name: "Nutella Blend", price: 200 },
+    { name: "Peanut Butter", price: 150 },
+    { name: "Sprinkles", price: 50 },
+    { name: "Cashew Nuts", price: 150 },
+    { name: "Almond Flakes", price: 150 },
+    { name: "No Sugar", price: 0 },
+    { name: "Less Sugar", price: 0 }
+  ],
+  "Mojitos": [
+    { name: "Extra Mint", price: 50 },
+    { name: "Extra Lime", price: 50 },
+    { name: "Less Ice", price: 0 },
+    { name: "No Ice", price: 0 },
+    { name: "Extra Soda", price: 50 },
+    { name: "Blue Curacao Extra", price: 100 },
+    { name: "Passion Fruit Syrup", price: 100 },
+    { name: "Strawberry Popping Boba", price: 150 },
+    { name: "Green Apple Syrup", price: 100 },
+    { name: "Slice of Lemon", price: 0 }
+  ],
+  "Desserts": [
+    { name: "Extra Chocolate Sauce", price: 100 },
+    { name: "Extra Caramel Sauce", price: 100 },
+    { name: "Vanilla Ice Cream Scoop", price: 150 },
+    { name: "Chocolate Ice Cream Scoop", price: 150 },
+    { name: "Strawberry Ice Cream Scoop", price: 150 },
+    { name: "Cherry on Top", price: 50 },
+    { name: "Crushed Nuts", price: 100 },
+    { name: "Whipped Cream", price: 100 }
+  ],
+  "Snacks": [
+    { name: "Extra Tomato Sauce", price: 0 },
+    { name: "Extra Chili Sauce", price: 0 },
+    { name: "Mayonnaise", price: 50 },
+    { name: "Cheese Slice", price: 100 },
+    { name: "Extra Chicken", price: 150 },
+    { name: "Toasted", price: 0 },
+    { name: "Warm up", price: 0 }
+  ],
+  "General": [
+    { name: "Takeaway Box", price: 50 },
+    { name: "Extra Paper Bag", price: 20 }
+  ]
+};
 
 
 interface CartItem {
@@ -134,7 +202,7 @@ export default function POSPage() {
             price: p.outletPrice || 0,
             category: p.category || 'General',
             color: getCategoryColor(p.category),
-            addons: p.addons || [],
+            addons: [...(p.addons || []), ...(CATEGORY_ADDONS[p.category || 'General'] || [])],
             hasVariants: false, // Future logic can add variants
           }));
           setProducts(activeProducts);
@@ -505,7 +573,7 @@ export default function POSPage() {
         <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
           <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
             {filteredProducts.map(product => {
-              const addons = CATEGORY_ADDONS[product.category] || []
+              const addons = product.addons || []
               return (
                 <button 
                   key={product.id} onClick={() => handleProductClick(product)}
