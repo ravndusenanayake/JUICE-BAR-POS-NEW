@@ -53,7 +53,9 @@ export default function RecipesPage() {
     // In our model, Recipe has productId (which we'll use as Variant ID for simplicity or reference) and variant name. 
     // Wait, the Recipe model has `productId` and `variant`. Let's store `variantId` in `productId` field to link it, or just use `productId` as the master product ID and `variant.name` as variant string.
     // Given the previous schema: productId (string), productName (string), variant (string).
-    const existing = recipes.find(r => r.productId === variant.productId?._id && r.variant === variant.name)
+    // Find if a recipe exists for this variant
+    const prodIdStr = typeof variant.productId === 'object' && variant.productId !== null ? variant.productId._id : variant.productId;
+    const existing = recipes.find(r => r.productId === prodIdStr && r.variant === variant.name)
     
     if (existing) {
       setCurrentIngredients([...existing.ingredients])
@@ -97,11 +99,12 @@ export default function RecipesPage() {
 
     try {
       // Check if recipe exists to update it, or create a new one
-      const existing = recipes.find(r => r.productId === selectedVariant.productId?._id && r.variant === selectedVariant.name)
+      const prodIdStr = typeof selectedVariant.productId === 'object' && selectedVariant.productId !== null ? selectedVariant.productId._id : selectedVariant.productId;
+      const existing = recipes.find(r => r.productId === prodIdStr && r.variant === selectedVariant.name)
 
       const payload = {
-        productId: selectedVariant.productId?._id, // Master Product ID
-        productName: selectedVariant.productId?.name || "Unknown",
+        productId: prodIdStr, // Master Product ID
+        productName: selectedVariant.productId?.name || "Unknown Product",
         variant: selectedVariant.name, // e.g. Small, Medium
         ingredients: currentIngredients,
       }
@@ -152,17 +155,28 @@ export default function RecipesPage() {
                 <Label>Product Variant</Label>
                 <Select value={selectedVariantId} onValueChange={handleVariantChange}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a variant" />
+                    <SelectValue placeholder="Select a variant">
+                      {selectedVariantId ? 
+                        (() => {
+                          const v = variants.find(x => x._id === selectedVariantId || x.id === selectedVariantId)
+                          const prodName = v?.productId?.name || "Unknown Product"
+                          return v ? `${prodName} - ${v.name}` : selectedVariantId
+                        })() 
+                        : null}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {variants.length === 0 ? (
                       <SelectItem value="none" disabled>No variants found</SelectItem>
                     ) : (
-                      variants.map(v => (
-                        <SelectItem key={v._id} value={v._id}>
-                          {v.productId?.name} - {v.name}
-                        </SelectItem>
-                      ))
+                      variants.map(v => {
+                        const prodName = v.productId?.name || "Unknown Product"
+                        return (
+                          <SelectItem key={v._id} value={v._id}>
+                            {prodName} - {v.name}
+                          </SelectItem>
+                        )
+                      })
                     )}
                   </SelectContent>
                 </Select>
@@ -177,7 +191,14 @@ export default function RecipesPage() {
                 <Label>Raw Material</Label>
                 <Select value={selectedRawMaterialId} onValueChange={(val: any) => setSelectedRawMaterialId(val || "")}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select raw material" />
+                    <SelectValue placeholder="Select raw material">
+                      {selectedRawMaterialId ? 
+                        (() => {
+                          const r = rawMaterials.find(x => (x._id || x.id || x.sku) === selectedRawMaterialId)
+                          return r ? `${r.name} (${r.unit})` : selectedRawMaterialId
+                        })() 
+                        : null}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {rawMaterials.map(r => (
@@ -210,7 +231,7 @@ export default function RecipesPage() {
           <div className="bg-white p-6 rounded-xl shadow-sm border h-full flex flex-col">
             <div className="flex items-center justify-between mb-4 border-b pb-2">
               <h3 className="font-bold text-lg text-gray-800">
-                {selectedVariant ? `Recipe for ${selectedVariant.productId?.name} (${selectedVariant.name})` : "Select a product variant to view recipe"}
+                {selectedVariant ? `Recipe for ${selectedVariant.productId?.name || "Unknown Product"} (${selectedVariant.name})` : "Select a product variant to view recipe"}
               </h3>
               {currentIngredients.length > 0 && (
                 <Button onClick={saveRecipe} className="bg-gray-900 text-white hover:bg-black shadow-md rounded-lg">

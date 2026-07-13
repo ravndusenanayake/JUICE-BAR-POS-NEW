@@ -190,25 +190,38 @@ export default function POSPage() {
           }
         }
 
-        // 2. Load Products, Customers & Recipes
-        const [prodRes, custRes, recRes] = await Promise.all([
+        // 2. Load Products, Variants, Customers & Recipes
+        const [prodRes, varRes, custRes, recRes] = await Promise.all([
           fetch('/api/products'),
+          fetch('/api/product-variants'),
           fetch('/api/customers'),
           fetch('/api/recipes')
         ]);
 
         if (prodRes.ok) {
           const data = await prodRes.json();
-          const activeProducts = data.filter((p: any) => p.status === 'Active').map((p: any) => ({
-            id: p.sku,
-            productId: p._id,
-            name: p.name,
-            price: p.outletPrice || 0,
-            category: p.category || 'General',
-            color: getCategoryColor(p.category),
-            addons: [...(p.addons || []), ...(CATEGORY_ADDONS[p.category || 'General'] || [])],
-            hasVariants: false, // Future logic can add variants
-          }));
+          let variantsData = [];
+          if (varRes.ok) {
+             variantsData = await varRes.json();
+          }
+
+          const activeProducts = data.filter((p: any) => p.status === 'Active').map((p: any) => {
+            const productVariants = variantsData
+              .filter((v: any) => v.productId === p._id && v.status === 'Active')
+              .map((v: any) => ({ name: v.name, price: v.sellingPrice }));
+              
+            return {
+              id: p.sku,
+              productId: p._id,
+              name: p.name,
+              price: p.outletPrice || 0,
+              category: p.category || 'General',
+              color: getCategoryColor(p.category),
+              addons: [...(p.addons || []), ...(CATEGORY_ADDONS[p.category || 'General'] || [])],
+              hasVariants: productVariants.length > 0,
+              variants: productVariants.length > 0 ? productVariants : null
+            };
+          });
           setProducts(activeProducts);
           const cats = ["All", ...Array.from(new Set(activeProducts.map((p: any) => p.category)))];
           setCategories(cats as string[]);
