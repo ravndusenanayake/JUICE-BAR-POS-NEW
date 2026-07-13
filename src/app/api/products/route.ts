@@ -18,21 +18,25 @@ export async function POST(req: Request) {
     await connectToDatabase();
     const body = await req.json();
     
-    if (!body.name || !body.sku || !body.outletPrice) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!body.name) {
+      return NextResponse.json({ error: 'Product name is required' }, { status: 400 });
     }
 
+    const sku = body.sku || `PRD-${Date.now().toString().slice(-6)}`;
+
     const newProduct = new Product({
-      sku: body.sku,
+      sku: sku,
       name: body.name,
       category: body.category || 'General',
       type: body.type || 'Product',
       unit: body.unit || 'Nos',
       cost: body.cost || 0,
-      outletPrice: body.outletPrice,
-      pickmePrice: body.pickmePrice || body.outletPrice,
-      uberPrice: body.uberPrice || body.outletPrice,
-      status: body.status ? 'Active' : 'Inactive',
+      outletPrice: body.outletPrice || 0,
+      pickmePrice: body.pickmePrice || body.outletPrice || 0,
+      uberPrice: body.uberPrice || body.outletPrice || 0,
+      status: (body.status === true || body.status === 'Active') ? 'Active' : 'Inactive',
+      image: body.image,
+      description: body.description,
     });
 
     await newProduct.save();
@@ -53,7 +57,7 @@ export async function PUT(req: Request) {
     if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
     
     if (updateData.status !== undefined) {
-       updateData.status = updateData.status ? 'Active' : 'Inactive';
+       updateData.status = (updateData.status === true || updateData.status === 'Active') ? 'Active' : 'Inactive';
     }
 
     const updatedProduct = await Product.findByIdAndUpdate(id, updateData, { new: true });

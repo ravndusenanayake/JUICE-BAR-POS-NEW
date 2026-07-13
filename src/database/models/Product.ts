@@ -12,6 +12,8 @@ export interface IProduct extends Document {
   uberPrice: number;
   status: 'Active' | 'Inactive';
   addons: { name: string, price: number }[];
+  image?: string;
+  description?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,6 +31,8 @@ const ProductSchema = new Schema<IProduct>(
     uberPrice: { type: Number, default: 0 },
     status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
     addons: [{ name: String, price: Number }],
+    image: { type: String },
+    description: { type: String },
   },
   { timestamps: true }
 );
