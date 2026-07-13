@@ -7,6 +7,8 @@ import RawMaterial from '@/database/models/RawMaterial';
 import Customer from '@/database/models/Customer';
 import Category from '@/database/models/Category';
 import BranchInventory from '@/database/models/BranchInventory';
+import Branch from '@/database/models/Branch';
+import InventoryItem from '@/database/models/InventoryItem';
 
 export async function GET() {
   try {
@@ -27,6 +29,8 @@ export async function GET() {
     await dropIfExists(Customer);
     await dropIfExists(Category);
     await dropIfExists(BranchInventory);
+    await dropIfExists(Branch);
+    await dropIfExists(InventoryItem);
 
     console.log('Cleared existing collections...');
 
@@ -87,10 +91,27 @@ export async function GET() {
       { customerCode: 'CUST-002', name: 'Jane Doe', mobile: '0712345678', email: 'jane@example.com', address: 'Colombo', loyaltyPoints: 120, status: 'Active' }
     ]);
 
+    // 6.5 Seed Branches
+    const branches = await Branch.insertMany([
+      { name: 'Colombo 07', code: 'COL07', address: 'Colombo 07', contactNumber: '0112345678', status: 'Active', managerId: null },
+      { name: 'Kandy Branch', code: 'KAN01', address: 'Kandy', contactNumber: '0812345678', status: 'Active', managerId: null },
+      { name: 'Galle Branch', code: 'GAL01', address: 'Galle', contactNumber: '0912345678', status: 'Active', managerId: null }
+    ]);
+
+    // 6.6 Seed InventoryItem (Shared Product/RawMaterial registry)
+    const inventoryItems = await InventoryItem.insertMany([
+      { sku: 'RM-MNG', name: 'Mango', unit: 'g', type: 'Raw Material' },
+      { sku: 'RM-SUG', name: 'Sugar', unit: 'g', type: 'Raw Material' },
+      { sku: 'RM-WAT', name: 'Purified Water', unit: 'ml', type: 'Raw Material' },
+      { sku: 'RM-AVO', name: 'Avocado', unit: 'g', type: 'Raw Material' },
+      { sku: 'RM-MLK', name: 'Fresh Milk', unit: 'ml', type: 'Raw Material' },
+      { sku: 'item1', name: 'Test Mango', unit: 'Kg', type: 'Raw Material' }
+    ]);
+
     // 7. Seed Branch Inventory (For Colombo 07)
     // We get the first branch, but we can hardcode for Colombo 07 if it exists, or just use string 'Colombo 07' for now since schema uses String for branch
     const branchName = 'Colombo 07';
-    const inventoryItems = rawMaterials.map(rm => ({
+    const branchInventoryItems = rawMaterials.map(rm => ({
       branch: branchName,
       sku: rm.sku,
       name: rm.name,
@@ -101,7 +122,7 @@ export async function GET() {
       lastRestocked: new Date(),
       status: 'In Stock'
     }));
-    await BranchInventory.insertMany(inventoryItems);
+    await BranchInventory.insertMany(branchInventoryItems);
 
     return NextResponse.json({ 
       message: 'Database seeded successfully',
@@ -111,7 +132,7 @@ export async function GET() {
         products: products.length,
         recipes: recipes.length,
         customers: customers.length,
-        inventory: inventoryItems.length
+        inventory: branchInventoryItems.length
       }
     }, { status: 200 });
   } catch (error: any) {
