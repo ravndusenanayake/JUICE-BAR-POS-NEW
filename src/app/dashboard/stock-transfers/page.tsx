@@ -303,8 +303,8 @@ export default function StockTransfersPage() {
                 </TableCell>
               </TableRow>
             )}
-            {filteredTransfers.map((trf) => (
-              <TableRow key={trf.id} className="border-b last:border-0 hover:bg-gray-50/50">
+            {filteredTransfers.map((trf: any) => (
+              <TableRow key={trf._id || trf.id} className="border-b last:border-0 hover:bg-gray-50/50">
                 <TableCell className="py-4">
                   <div className="font-black text-gray-900">{trf.transferNumber}</div>
                   <div className="text-xs text-gray-400 mt-1">{new Date(trf.createdDate).toLocaleDateString()}</div>
