@@ -4,6 +4,7 @@ import connectToDatabase from '@/database/mongoose';
 import Product from '@/database/models/Product';
 import Recipe from '@/database/models/Recipe';
 import RawMaterial from '@/database/models/RawMaterial';
+import ProductVariant from '@/database/models/ProductVariant';
 import Customer from '@/database/models/Customer';
 import Category from '@/database/models/Category';
 import BranchInventory from '@/database/models/BranchInventory';
@@ -24,6 +25,7 @@ export async function GET() {
     };
 
     await dropIfExists(Product);
+    await dropIfExists(ProductVariant);
     await dropIfExists(Recipe);
     await dropIfExists(RawMaterial);
     await dropIfExists(Customer);
@@ -59,12 +61,20 @@ export async function GET() {
       { sku: 'MS01', name: 'Chocolate Milkshake', category: 'Milkshakes', type: 'Product', unit: 'Nos', cost: 250, outletPrice: 600, status: 'Active', addons: [{name: "Whipped Cream", price: 120}, {name: "Chocolate Syrup", price: 80}, {name: "Oreo Crumbs", price: 150}, {name: "Protein Powder (1 Scoop)", price: 300}] }
     ]);
 
+    // 4.5 Seed Product Variants
+    const productVariants = await ProductVariant.insertMany([
+      { productId: products[0]._id, name: 'Small', sellingPrice: 350, status: 'Active' },
+      { productId: products[0]._id, name: 'Large', sellingPrice: 500, status: 'Active' },
+      { productId: products[1]._id, name: 'Small', sellingPrice: 450, status: 'Active' },
+      { productId: products[1]._id, name: 'Large', sellingPrice: 600, status: 'Active' }
+    ]);
+
     // 5. Seed Recipes
     const recipes = await Recipe.insertMany([
       {
-        productId: products[0].sku, // Mango Juice
+        productId: products[0]._id, // Mango Juice
         productName: 'Mango Juice',
-        variant: 'Standard',
+        variant: 'Small',
         ingredients: [
           { rawMaterialId: rawMaterials[0].sku, name: 'Mango', quantity: 200, unit: 'g', costPerUnit: 0.5, totalCost: 100 },
           { rawMaterialId: rawMaterials[1].sku, name: 'Sugar', quantity: 30, unit: 'g', costPerUnit: 0.2, totalCost: 6 },
@@ -73,9 +83,9 @@ export async function GET() {
         totalCost: 111
       },
       {
-        productId: products[1].sku, // Avocado Juice
+        productId: products[1]._id, // Avocado Juice
         productName: 'Avocado Juice',
-        variant: 'Standard',
+        variant: 'Small',
         ingredients: [
           { rawMaterialId: rawMaterials[3].sku, name: 'Avocado', quantity: 150, unit: 'g', costPerUnit: 0.8, totalCost: 120 },
           { rawMaterialId: rawMaterials[4].sku, name: 'Fresh Milk', quantity: 100, unit: 'ml', costPerUnit: 0.4, totalCost: 40 },

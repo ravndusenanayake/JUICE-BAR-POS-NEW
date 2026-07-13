@@ -207,7 +207,10 @@ export default function POSPage() {
 
           const activeProducts = data.filter((p: any) => p.status === 'Active').map((p: any) => {
             const productVariants = variantsData
-              .filter((v: any) => v.productId === p._id && v.status === 'Active')
+              .filter((v: any) => {
+                const variantProdId = typeof v.productId === 'object' && v.productId !== null ? v.productId._id : v.productId;
+                return variantProdId === p._id && v.status === 'Active';
+              })
               .map((v: any) => ({ name: v.name, price: v.sellingPrice }));
               
             return {
@@ -294,7 +297,7 @@ export default function POSPage() {
     const addons = product.addons || []
     if (product.hasVariants || addons.length > 0) {
       setSelectedProduct(product)
-      setSelectedVariant(product.variants ? product.variants[0] : null)
+      setSelectedVariant(null) // Force user to select variant
       setSelectedAddons([])
       setIsConfigOpen(true)
     } else {
@@ -801,8 +804,8 @@ export default function POSPage() {
                 )}
 
                 {/* Smart Add-ons specific to category */}
-                {selectedProduct.addons && selectedProduct.addons.length > 0 && (
-                  <div className="space-y-3">
+                {selectedProduct.addons && selectedProduct.addons.length > 0 && (!selectedProduct.hasVariants || selectedVariant) && (
+                  <div className="space-y-3 animate-in fade-in zoom-in duration-300">
                     <Label className="text-base font-bold text-gray-800 flex items-center gap-2">
                       <span className="bg-orange-100 text-orange-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">{selectedProduct.hasVariants ? '2' : '1'}</span>
                       Add-ons (Optional)
@@ -825,7 +828,7 @@ export default function POSPage() {
               </div>
               <div className="p-6 bg-white border-t flex gap-3 rounded-b-2xl">
                 <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold border-gray-300" onClick={() => setIsConfigOpen(false)}>Cancel</Button>
-                <Button className="flex-1 h-12 rounded-xl font-bold bg-gray-900 text-white hover:bg-black shadow-lg" onClick={handleConfirmConfig}>Add to Cart</Button>
+                <Button className="flex-1 h-12 rounded-xl font-bold bg-gray-900 text-white hover:bg-black shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" onClick={handleConfirmConfig} disabled={selectedProduct.hasVariants && !selectedVariant}>Add to Cart</Button>
               </div>
             </>
           )}
