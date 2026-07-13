@@ -115,7 +115,7 @@ export async function GET() {
       { sku: 'RM-WAT', name: 'Purified Water', unit: 'ml', type: 'Raw Material' },
       { sku: 'RM-AVO', name: 'Avocado', unit: 'g', type: 'Raw Material' },
       { sku: 'RM-MLK', name: 'Fresh Milk', unit: 'ml', type: 'Raw Material' },
-      { sku: 'item1', name: 'Test Mango', unit: 'Kg', type: 'Raw Material' }
+      { sku: 'item1', name: 'Test Mango', unit: 'g', type: 'Raw Material' }
     ]);
 
     // 7. Seed Branch Inventory (For Colombo 07)

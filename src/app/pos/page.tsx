@@ -213,6 +213,9 @@ export default function POSPage() {
               })
               .map((v: any) => ({ name: v.name, price: v.sellingPrice }));
               
+            const rawAddons = [...(p.addons || []), ...(CATEGORY_ADDONS[p.category || 'General'] || [])];
+            const uniqueAddons = Array.from(new Map(rawAddons.map(a => [a.name, a])).values());
+
             return {
               id: p.sku,
               productId: p._id,
@@ -220,7 +223,7 @@ export default function POSPage() {
               price: p.outletPrice || 0,
               category: p.category || 'General',
               color: getCategoryColor(p.category),
-              addons: [...(p.addons || []), ...(CATEGORY_ADDONS[p.category || 'General'] || [])],
+              addons: uniqueAddons,
               hasVariants: productVariants.length > 0,
               variants: productVariants.length > 0 ? productVariants : null
             };
@@ -330,7 +333,7 @@ export default function POSPage() {
         return prev.map(item => item.id === cartItemId ? { ...item, quantity: item.quantity + 1, totalPrice: (item.quantity + 1) * unitPrice } : item)
       }
       return [...prev, {
-        id: cartItemId, productId: product.id, name: product.name,
+        id: cartItemId, productId: product.productId, name: product.name,
         basePrice: unitPrice, variant: variant?.name, addons,
         quantity: 1, totalPrice: unitPrice
       }]
