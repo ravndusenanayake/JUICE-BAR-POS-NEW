@@ -15,13 +15,27 @@ import { useAuth } from "@/context/AuthContext"
 export default function ProductsPage() {
   const { user } = useAuth()
   const [products, setProducts] = useState<any[]>([])
+  const [categoriesList, setCategoriesList] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [editingProduct, setEditingProduct] = useState<any>(null)
   
   useEffect(() => {
     fetchProducts()
+    fetchCategories()
   }, [])
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch('/api/categories?active=true')
+      if (res.ok) {
+        const data = await res.json()
+        setCategoriesList(data)
+      }
+    } catch (e) {
+      console.error("Failed to fetch categories:", e)
+    }
+  }
 
   const fetchProducts = async () => {
     try {
@@ -224,10 +238,13 @@ export default function ProductsPage() {
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Cakes">Cakes</SelectItem>
-                        <SelectItem value="Cold Beverages">Cold Beverages</SelectItem>
-                        <SelectItem value="Snacks">Snacks</SelectItem>
-                        <SelectItem value="Raw Materials">Raw Materials</SelectItem>
+                        {categoriesList.length === 0 ? (
+                          <SelectItem value="none" disabled>No active categories</SelectItem>
+                        ) : (
+                          categoriesList.map(cat => (
+                            <SelectItem key={cat._id} value={cat.name}>{cat.name}</SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>

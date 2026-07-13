@@ -1,73 +1,142 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, MoreHorizontal, Edit, Power, PowerOff, Trash2 } from "lucide-react"
-
-const INITIAL_CATEGORIES = [
-  { id: "CAT-001", name: "Smoothies", description: "Blended beverages with fresh fruits and yogurt", status: "Active" },
-  { id: "CAT-002", name: "Fresh Juices", description: "100% natural cold-pressed juices", status: "Active" },
-  { id: "CAT-003", name: "Fruit Bowls", description: "Acai and pitaya bowls with toppings", status: "Active" },
-  { id: "CAT-004", name: "Add-ons", description: "Extra protein, seeds, and vitamins", status: "Active" },
-  { id: "CAT-005", name: "Seasonal Treats", description: "Limited time winter/summer specials", status: "Inactive" },
-]
+import { Plus, Search, Edit, Power, PowerOff, Trash2 } from "lucide-react"
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState(INITIAL_CATEGORIES)
+  const [categories, setCategories] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   
   // Form State
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [newName, setNewName] = useState("")
   const [newDesc, setNewDesc] = useState("")
   const [newStatus, setNewStatus] = useState("Active")
+
+  useEffect(() => {
+    fetchCategories()
+  }, [])
+
+  const fetchCategories = async () => {
+    try {
+      setIsLoading(true)
+      const res = await fetch('/api/categories')
+      if (res.ok) {
+        const data = await res.json()
+        setCategories(data.map((c: any) => ({ ...c, id: c._id })))
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const filteredCategories = categories.filter(cat => 
     cat.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const handleAddCategory = (e: React.FormEvent) => {
+  const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newName) return
 
-    // Enforce uniqueness (Acceptance Criteria)
-    if (categories.some(c => c.name.toLowerCase() === newName.toLowerCase())) {
-      alert("Category name must be unique!")
-      return
+    setIsSaving(true)
+    try {
+      if (editingId) {
+        const res = await fetch(`/api/categories/${editingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newName, description: newDesc, status: newStatus })
+        })
+        
+        if (res.ok) {
+          fetchCategories()
+          setIsDialogOpen(false)
+          resetForm()
+        } else {
+          const err = await res.json()
+          alert(err.error || "Failed to update category")
+        }
+      } else {
+        const res = await fetch('/api/categories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newName, description: newDesc, status: newStatus })
+        })
+        
+        if (res.ok) {
+          fetchCategories()
+          setIsDialogOpen(false)
+          resetForm()
+        } else {
+          const err = await res.json()
+          alert(err.error || "Failed to create category")
+        }
+      }
+    } catch (error) {
+      console.error(error)
+      alert("Error saving category")
+    } finally {
+      setIsSaving(false)
     }
+  }
 
-    const newCategory = {
-      id: `CAT-00${categories.length + 1}`,
-      name: newName,
-      description: newDesc,
-      status: newStatus
-    }
-
-    setCategories([newCategory, ...categories])
-    setIsDialogOpen(false)
-    
-    // Reset form
+  const resetForm = () => {
+    setEditingId(null)
     setNewName("")
     setNewDesc("")
     setNewStatus("Active")
   }
 
-  const toggleStatus = (id: string, currentStatus: string) => {
-    setCategories(categories.map(cat => 
-      cat.id === id 
-        ? { ...cat, status: currentStatus === 'Active' ? 'Inactive' : 'Active' }
-        : cat
-    ))
+  const handleEdit = (cat: any) => {
+    setEditingId(cat.id)
+    setNewName(cat.name)
+    setNewDesc(cat.description || "")
+    setNewStatus(cat.status)
+    setIsDialogOpen(true)
   }
 
-  const deleteCategory = (id: string) => {
+  const toggleStatus = async (id: string, currentStatus: string) => {
+    try {
+      const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active'
+      const res = await fetch(`/api/categories/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      })
+      if (res.ok) {
+        fetchCategories()
+      } else {
+        alert("Failed to update status")
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const deleteCategory = async (id: string) => {
     if(confirm("Are you sure you want to delete this category?")) {
-      setCategories(categories.filter(cat => cat.id !== id))
+      try {
+        const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' })
+        if (res.ok) {
+          fetchCategories()
+        } else {
+          const err = await res.json()
+          alert(err.error || "Failed to delete category")
+        }
+      } catch (err) {
+        console.error(err)
+      }
     }
   }
 
@@ -79,14 +148,15 @@ export default function CategoriesPage() {
           <p className="text-muted-foreground">Manage product categories globally across all branches.</p>
         </div>
         
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger render={<Button className="bg-primary hover:bg-primary/90 text-primary-foreground" />}>
-            <Plus className="mr-2 h-4 w-4" /> Create Category
-          </DialogTrigger>
+        <Button onClick={() => setIsDialogOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+          <Plus className="mr-2 h-4 w-4" /> Create Category
+        </Button>
+        
+        <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }}>
           <DialogContent className="sm:max-w-[425px]">
-            <form onSubmit={handleAddCategory}>
+            <form onSubmit={handleSaveCategory}>
               <DialogHeader>
-                <DialogTitle>Create New Category</DialogTitle>
+                <DialogTitle>{editingId ? "Edit Category" : "Create New Category"}</DialogTitle>
                 <DialogDescription>
                   Categories are visible to all branches. Inactive categories cannot be selected for new products.
                 </DialogDescription>
@@ -125,7 +195,8 @@ export default function CategoriesPage() {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit">Save Category</Button>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>Cancel</Button>
+                <Button type="submit" disabled={isSaving}>{isSaving ? "Saving..." : "Save Category"}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -156,14 +227,17 @@ export default function CategoriesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredCategories.length === 0 && (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Loading categories...</TableCell>
+              </TableRow>
+            ) : filteredCategories.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                   No categories found.
                 </TableCell>
               </TableRow>
-            )}
-            {filteredCategories.map((cat) => (
+            ) : filteredCategories.map((cat) => (
               <TableRow key={cat.id}>
                 <TableCell className="font-bold">{cat.name}</TableCell>
                 <TableCell className="text-muted-foreground">{cat.description || "N/A"}</TableCell>
@@ -182,7 +256,7 @@ export default function CategoriesPage() {
                     >
                       {cat.status === 'Active' ? <PowerOff className="h-4 w-4 text-orange-500" /> : <Power className="h-4 w-4 text-green-500" />}
                     </Button>
-                    <Button variant="ghost" size="icon" title="Edit">
+                    <Button variant="ghost" size="icon" title="Edit" onClick={() => handleEdit(cat)}>
                       <Edit className="h-4 w-4 text-blue-500" />
                     </Button>
                     <Button variant="ghost" size="icon" title="Delete" onClick={() => deleteCategory(cat.id)}>
