@@ -22,7 +22,7 @@ export default function RecipesPage() {
   const [quantity, setQuantity] = useState("")
 
   const selectedVariant = variants.find(v => v._id === selectedVariantId || v.id === selectedVariantId)
-  const selectedRawMaterial = rawMaterials.find(r => r.sku === selectedRawMaterialId || r.id === selectedRawMaterialId)
+  const selectedRawMaterial = rawMaterials.find(r => r._id === selectedRawMaterialId || r.sku === selectedRawMaterialId || r.id === selectedRawMaterialId)
 
   const loadData = async () => {
     try {

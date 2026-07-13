@@ -15,7 +15,9 @@ import {
   Wallet,
   PlusCircle,
   BarChart3,
-  Activity
+  Activity,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react"
 
 export default function DashboardLayout({
@@ -27,6 +29,7 @@ export default function DashboardLayout({
   const router = useRouter()
   const pathname = usePathname()
   const [isMounted, setIsMounted] = useState(false)
+  const [isReportsOpen, setIsReportsOpen] = useState(false)
 
   // Protect Dashboard Routes
   useEffect(() => {
@@ -161,29 +164,38 @@ export default function DashboardLayout({
 
           {/* 5. Reports */}
           {hasAccess(["Super Admin", "Admin", "Branch Manager"]) && (
-            <>
-              <div className="pt-4 pb-1">
-                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Reports</p>
-              </div>
-              <Link href="/dashboard/reports?tab=sales" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all text-sm pl-6">
-                <div className="w-1.5 h-1.5 rounded-full bg-orange-500" /> Sales Reports
-              </Link>
-              <Link href="/dashboard/reports?tab=inventory" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all text-sm pl-6">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Inventory Reports
-              </Link>
-              <Link href="/dashboard/reports?tab=purchases" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all text-sm pl-6">
-                <div className="w-1.5 h-1.5 rounded-full bg-purple-500" /> Purchase Reports
-              </Link>
-              <Link href="/dashboard/reports?tab=expenses" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all text-sm pl-6">
-                <div className="w-1.5 h-1.5 rounded-full bg-red-500" /> Expense Reports
-              </Link>
-              <Link href="/dashboard/reports?tab=expenses" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all text-sm pl-6">
-                <div className="w-1.5 h-1.5 rounded-full bg-gray-500" /> Wastage Reports
-              </Link>
-              <Link href="/dashboard/reports?tab=profit" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all text-sm pl-6">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-500" /> Profitability Reports
-              </Link>
-            </>
+            <div className="pt-2">
+              <button 
+                onClick={() => setIsReportsOpen(!isReportsOpen)}
+                className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:bg-muted rounded-lg transition-all"
+              >
+                <span>Reports</span>
+                {isReportsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+              
+              {isReportsOpen && (
+                <div className="mt-1 space-y-1">
+                  <Link href="/dashboard/reports?tab=sales" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all text-sm pl-6">
+                    <div className="w-1.5 h-1.5 rounded-full bg-orange-500" /> Sales Reports
+                  </Link>
+                  <Link href="/dashboard/reports?tab=inventory" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all text-sm pl-6">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Inventory Reports
+                  </Link>
+                  <Link href="/dashboard/reports?tab=purchases" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all text-sm pl-6">
+                    <div className="w-1.5 h-1.5 rounded-full bg-purple-500" /> Purchase Reports
+                  </Link>
+                  <Link href="/dashboard/reports?tab=expenses" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all text-sm pl-6">
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-500" /> Expense Reports
+                  </Link>
+                  <Link href="/dashboard/reports?tab=expenses" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all text-sm pl-6">
+                    <div className="w-1.5 h-1.5 rounded-full bg-gray-500" /> Wastage Reports
+                  </Link>
+                  <Link href="/dashboard/reports?tab=profit" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all text-sm pl-6">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500" /> Profitability Reports
+                  </Link>
+                </div>
+              )}
+            </div>
           )}
 
         </nav>
