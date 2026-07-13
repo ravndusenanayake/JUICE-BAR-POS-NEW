@@ -47,6 +47,58 @@ export async function POST(req: Request) {
 
     await newSale.save();
 
+    // -- INVENTORY DEDUCTION LOGIC (MODULE 2.5) --
+    try {
+      const Recipe = (await import('@/database/models/Recipe')).default;
+      const BranchInventory = (await import('@/database/models/BranchInventory')).default;
+      const StockLedger = (await import('@/database/models/StockLedger')).default;
+      
+      for (const item of body.items) {
+        // Find Recipe for this product and variant
+        // item.productId usually stores SKU or ID, item.variant stores variant name
+        const recipe = await Recipe.findOne({ 
+          productId: item.productId, 
+          variant: item.variant || 'Standard' 
+        });
+
+        if (recipe && recipe.ingredients) {
+          for (const ingredient of recipe.ingredients) {
+            const deductionQty = ingredient.quantity * item.quantity;
+            
+            // Deduct from BranchInventory
+            const inventory = await BranchInventory.findOne({ 
+              branch: body.branch || 'Colombo 07', 
+              sku: ingredient.rawMaterialId 
+            });
+
+            if (inventory) {
+              inventory.quantity -= deductionQty;
+              
+              if (inventory.quantity <= 0) inventory.status = 'Out of Stock';
+              else if (inventory.quantity <= inventory.minStockLevel) inventory.status = 'Low Stock';
+              else inventory.status = 'In Stock';
+              
+              await inventory.save();
+              
+              // Log to StockLedger
+              await StockLedger.create({
+                branch: body.branch || 'Colombo 07',
+                sku: ingredient.rawMaterialId,
+                type: 'OUT',
+                quantity: deductionQty,
+                reference: newSale.invoiceNo,
+                remarks: `Sale Deduction (Recipe for ${item.name})`
+              });
+            }
+          }
+        }
+      }
+    } catch (deductionError) {
+      console.error('Inventory Deduction Error during Sale:', deductionError);
+      // We log but do not block the sale completion response
+    }
+    // --------------------------------------------
+
     return NextResponse.json(newSale, { status: 201 });
   } catch (error: any) {
     console.error('POST Sale Error:', error);

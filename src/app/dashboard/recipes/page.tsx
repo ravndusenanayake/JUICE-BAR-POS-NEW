@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,33 +8,30 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Settings, Plus, Trash2, Box, Beaker, Save, ChefHat } from "lucide-react"
 
-
-
 export default function RecipesPage() {
   const [recipes, setRecipes] = useState<any[]>([])
-  const [products, setProducts] = useState<any[]>([])
+  const [variants, setVariants] = useState<any[]>([])
   const [rawMaterials, setRawMaterials] = useState<any[]>([])
   
   // Builder State
-  const [selectedProductId, setSelectedProductId] = useState("")
-  const [selectedVariant, setSelectedVariant] = useState("")
+  const [selectedVariantId, setSelectedVariantId] = useState("")
   const [currentIngredients, setCurrentIngredients] = useState<any[]>([])
 
   // Form selections
   const [selectedRawMaterialId, setSelectedRawMaterialId] = useState("")
   const [quantity, setQuantity] = useState("")
 
-  const selectedProduct = products.find(p => p.sku === selectedProductId || p.id === selectedProductId)
+  const selectedVariant = variants.find(v => v._id === selectedVariantId || v.id === selectedVariantId)
   const selectedRawMaterial = rawMaterials.find(r => r.sku === selectedRawMaterialId || r.id === selectedRawMaterialId)
 
   const loadData = async () => {
     try {
-      const [resProd, resRM, resRec] = await Promise.all([
-        fetch('/api/products'),
+      const [resVar, resRM, resRec] = await Promise.all([
+        fetch('/api/product-variants'),
         fetch('/api/raw-materials'),
         fetch('/api/recipes')
       ])
-      if(resProd.ok) setProducts(await resProd.json())
+      if(resVar.ok) setVariants(await resVar.json())
       if(resRM.ok) setRawMaterials(await resRM.json())
       if(resRec.ok) setRecipes(await resRec.json())
     } catch (e) {
@@ -42,31 +39,22 @@ export default function RecipesPage() {
     }
   }
 
-  useState(() => {
+  useEffect(() => {
     loadData()
-  })
+  }, [])
 
   // Handlers
-  const handleProductChange = (val: string) => {
-    setSelectedProductId(val)
-    const prod = products.find(p => p.sku === val || p.id === val)
-    if (prod && prod.variants && prod.variants.length > 0) {
-      setSelectedVariant(prod.variants[0])
-    } else {
-      setSelectedVariant("Standard")
-    }
-    // Check if recipe exists
-    const existing = recipes.find(r => r.productId === val && r.variant === (prod?.variants[0] || "Standard"))
-    if (existing) {
-      setCurrentIngredients([...existing.ingredients])
-    } else {
-      setCurrentIngredients([])
-    }
-  }
-
   const handleVariantChange = (val: string) => {
-    setSelectedVariant(val)
-    const existing = recipes.find(r => r.productId === selectedProductId && r.variant === val)
+    setSelectedVariantId(val)
+    const variant = variants.find(v => v._id === val || v.id === val)
+    if (!variant) return
+
+    // Find if a recipe exists for this variant
+    // In our model, Recipe has productId (which we'll use as Variant ID for simplicity or reference) and variant name. 
+    // Wait, the Recipe model has `productId` and `variant`. Let's store `variantId` in `productId` field to link it, or just use `productId` as the master product ID and `variant.name` as variant string.
+    // Given the previous schema: productId (string), productName (string), variant (string).
+    const existing = recipes.find(r => r.productId === variant.productId?._id && r.variant === variant.name)
+    
     if (existing) {
       setCurrentIngredients([...existing.ingredients])
     } else {
@@ -77,12 +65,22 @@ export default function RecipesPage() {
   const addIngredient = () => {
     if (!selectedRawMaterial || !quantity) return
     const newIng = {
-      rawMaterialId: selectedRawMaterial.sku || selectedRawMaterial.id,
+      rawMaterialId: selectedRawMaterial.sku || selectedRawMaterial.id || selectedRawMaterial._id,
       name: selectedRawMaterial.name,
       quantity: Number(quantity),
       unit: selectedRawMaterial.unit
     }
-    setCurrentIngredients([...currentIngredients, newIng])
+    
+    // Check if already exists
+    const existingIndex = currentIngredients.findIndex(i => i.rawMaterialId === newIng.rawMaterialId)
+    if(existingIndex >= 0) {
+      const updated = [...currentIngredients]
+      updated[existingIndex].quantity += newIng.quantity
+      setCurrentIngredients(updated)
+    } else {
+      setCurrentIngredients([...currentIngredients, newIng])
+    }
+    
     setSelectedRawMaterialId("")
     setQuantity("")
   }
@@ -92,26 +90,42 @@ export default function RecipesPage() {
   }
 
   const saveRecipe = async () => {
-    if (!selectedProduct || currentIngredients.length === 0) {
-      alert("Please select a product and add ingredients.")
+    if (!selectedVariant || currentIngredients.length === 0) {
+      alert("Please select a product variant and add ingredients.")
       return
     }
 
     try {
-      const res = await fetch('/api/recipes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId: selectedProduct.sku || selectedProduct.id,
-          productName: selectedProduct.name,
-          variant: selectedVariant,
-          ingredients: currentIngredients,
-          totalCost: 0 // calculate based on RM cost if needed
+      // Check if recipe exists to update it, or create a new one
+      const existing = recipes.find(r => r.productId === selectedVariant.productId?._id && r.variant === selectedVariant.name)
+
+      const payload = {
+        productId: selectedVariant.productId?._id, // Master Product ID
+        productName: selectedVariant.productId?.name || "Unknown",
+        variant: selectedVariant.name, // e.g. Small, Medium
+        ingredients: currentIngredients,
+      }
+
+      let res;
+      if (existing) {
+        res = await fetch('/api/recipes', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: existing._id, ...payload })
         })
-      })
+      } else {
+        res = await fetch('/api/recipes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+      }
+      
       if (res.ok) {
         alert("Recipe saved successfully! This will be used for auto-deduction at the POS.")
         loadData() // Refresh list
+      } else {
+        alert("Failed to save recipe")
       }
     } catch (e) {
       console.error(e)
@@ -124,7 +138,7 @@ export default function RecipesPage() {
         <h2 className="text-2xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
           <ChefHat className="text-orange-500 w-6 h-6" /> Recipe Management
         </h2>
-        <p className="text-gray-500">Define the exact raw materials required to produce each product for automatic stock deduction.</p>
+        <p className="text-gray-500">Define the exact raw materials required to produce each product variant for automatic stock deduction.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -132,41 +146,31 @@ export default function RecipesPage() {
         {/* Recipe Builder Form */}
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-white p-6 rounded-xl shadow-sm border">
-            <h3 className="font-bold text-lg mb-4 text-gray-800 border-b pb-2">1. Select Product</h3>
+            <h3 className="font-bold text-lg mb-4 text-gray-800 border-b pb-2">1. Select Product Variant</h3>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Product Name</Label>
-                <Select value={selectedProductId} onValueChange={handleProductChange}>
+                <Label>Product Variant</Label>
+                <Select value={selectedVariantId} onValueChange={handleVariantChange}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a product" />
+                    <SelectValue placeholder="Select a variant" />
                   </SelectTrigger>
                   <SelectContent>
-                    {products.map(p => (
-                      <SelectItem key={p.id || p.sku} value={p.sku || p.id}>{p.name}</SelectItem>
-                    ))}
+                    {variants.length === 0 ? (
+                      <SelectItem value="none" disabled>No variants found</SelectItem>
+                    ) : (
+                      variants.map(v => (
+                        <SelectItem key={v._id} value={v._id}>
+                          {v.productId?.name} - {v.name}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
-
-              {selectedProduct && selectedProduct.variants && selectedProduct.variants.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Variant (Size)</Label>
-                  <Select value={selectedVariant} onValueChange={handleVariantChange}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select size" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {selectedProduct.variants.map(v => (
-                        <SelectItem key={v} value={v}>{v}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-sm border opacity-100 transition-opacity" style={{ opacity: selectedProductId ? 1 : 0.5, pointerEvents: selectedProductId ? 'auto' : 'none' }}>
+          <div className="bg-white p-6 rounded-xl shadow-sm border opacity-100 transition-opacity" style={{ opacity: selectedVariantId ? 1 : 0.5, pointerEvents: selectedVariantId ? 'auto' : 'none' }}>
             <h3 className="font-bold text-lg mb-4 text-gray-800 border-b pb-2">2. Add Ingredients</h3>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -177,7 +181,7 @@ export default function RecipesPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {rawMaterials.map(r => (
-                      <SelectItem key={r.id || r.sku} value={r.sku || r.id}>{r.name} ({r.unit})</SelectItem>
+                      <SelectItem key={r._id || r.id || r.sku} value={r._id || r.id || r.sku}>{r.name} ({r.unit})</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -206,7 +210,7 @@ export default function RecipesPage() {
           <div className="bg-white p-6 rounded-xl shadow-sm border h-full flex flex-col">
             <div className="flex items-center justify-between mb-4 border-b pb-2">
               <h3 className="font-bold text-lg text-gray-800">
-                {selectedProduct ? `Recipe for ${selectedProduct.name} (${selectedVariant})` : "Select a product to view recipe"}
+                {selectedVariant ? `Recipe for ${selectedVariant.productId?.name} (${selectedVariant.name})` : "Select a product variant to view recipe"}
               </h3>
               {currentIngredients.length > 0 && (
                 <Button onClick={saveRecipe} className="bg-gray-900 text-white hover:bg-black shadow-md rounded-lg">

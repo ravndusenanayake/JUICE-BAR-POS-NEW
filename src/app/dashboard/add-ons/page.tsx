@@ -1,71 +1,152 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Plus, Search, Edit, Trash2, Tag } from "lucide-react"
+import { Plus, Search, Edit, Trash2, Tag, Archive } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 
-// Dummy Data
-const INITIAL_ADDONS = [
-  { id: 1, name: "Ice Cream Scoop", price: 150.00, status: true },
-  { id: 2, name: "Bee Honey", price: 100.00, status: true },
-  { id: 3, name: "Chia Seeds", price: 50.00, status: true },
-  { id: 4, name: "Protein Powder", price: 200.00, status: false },
-]
-
 export default function AddOnsPage() {
-  const [addons, setAddons] = useState(INITIAL_ADDONS)
+  const [addons, setAddons] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [editingAddon, setEditingAddon] = useState<any>(null)
   
   // Form State
   const [name, setName] = useState("")
   const [price, setPrice] = useState("")
   const [isActive, setIsActive] = useState(true)
 
+  useEffect(() => {
+    fetchAddons()
+  }, [])
+
+  const fetchAddons = async () => {
+    try {
+      setIsLoading(true)
+      const res = await fetch('/api/add-ons')
+      if (res.ok) {
+        const data = await res.json()
+        const mapped = data.map((a: any) => ({
+          ...a,
+          id: a._id
+        }))
+        setAddons(mapped)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const filteredAddons = addons.filter(a => 
     a.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const handleAddAddon = (e: React.FormEvent) => {
+  const handleSaveAddon = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (addons.some(a => a.name.toLowerCase() === name.toLowerCase())) {
-      alert("An add-on with this name already exists!")
-      return
-    }
+    if (!name || !price) return alert("Please fill all required fields")
 
-    const newAddon = {
-      id: addons.length + 1,
-      name,
-      price: parseFloat(price) || 0,
-      status: isActive
-    }
+    setIsSaving(true)
+    try {
+      if (editingAddon) {
+        const payload = {
+          id: editingAddon.id, name, price: Number(price), status: isActive
+        }
+        
+        const res = await fetch('/api/add-ons', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
 
-    setAddons([newAddon, ...addons])
-    setIsDialogOpen(false)
-    resetForm()
+        if(res.ok) {
+          fetchAddons()
+          setIsDialogOpen(false)
+          resetForm()
+        } else {
+          const err = await res.json()
+          alert("Failed to update add-on: " + (err.error || ""))
+        }
+      } else {
+        const payload = {
+          name, price: Number(price), status: isActive
+        }
+        
+        const res = await fetch('/api/add-ons', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        
+        if (res.ok) {
+          fetchAddons()
+          setIsDialogOpen(false)
+          resetForm()
+        } else {
+          const err = await res.json()
+          alert("Failed to create add-on: " + (err.error || ""))
+        }
+      }
+    } catch (error) {
+      console.error("Error saving add-on:", error)
+      alert("Error saving add-on")
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const resetForm = () => {
     setName("")
     setPrice("")
     setIsActive(true)
+    setEditingAddon(null)
   }
 
-  const toggleStatus = (id: number) => {
-    setAddons(addons.map(a => 
-      a.id === id ? { ...a, status: !a.status } : a
-    ))
+  const handleEdit = (a: any) => {
+    setEditingAddon(a)
+    setName(a.name)
+    setPrice(a.price.toString())
+    setIsActive(a.status === 'Active')
+    setIsDialogOpen(true)
   }
 
-  const deleteAddon = (id: number) => {
-    if(confirm("Are you sure you want to delete this add-on?")) {
-      setAddons(addons.filter(a => a.id !== id))
+  const toggleStatus = async (a: any) => {
+    try {
+      const res = await fetch(`/api/add-ons`, { 
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: a.id, status: a.status === 'Active' ? 'Inactive' : 'Active' })
+      })
+      if (res.ok) {
+        fetchAddons()
+      } else {
+        alert("Failed to update add-on status")
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const deleteAddon = async (id: string) => {
+    if(confirm("Are you sure you want to permanently delete this add-on?")) {
+      try {
+        const res = await fetch(`/api/add-ons?id=${id}`, { method: 'DELETE' })
+        if (res.ok) {
+          fetchAddons()
+        } else {
+          alert("Failed to delete add-on")
+        }
+      } catch (err) {
+        console.error(err)
+      }
     }
   }
 
@@ -78,13 +159,15 @@ export default function AddOnsPage() {
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }}>
-          <DialogTrigger render={<Button className="bg-orange-500 hover:bg-orange-600 text-white" />}>
-            <Plus className="mr-2 h-4 w-4" /> Add New Add-On
+          <DialogTrigger asChild>
+            <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+              <Plus className="mr-2 h-4 w-4" /> Add New Add-On
+            </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
-            <form onSubmit={handleAddAddon}>
+            <form onSubmit={handleSaveAddon}>
               <DialogHeader>
-                <DialogTitle>Add New Add-On</DialogTitle>
+                <DialogTitle>{editingAddon ? "Edit Add-On" : "Add New Add-On"}</DialogTitle>
                 <DialogDescription>
                   Create an optional extra like Honey or Ice Cream.
                 </DialogDescription>
@@ -92,13 +175,13 @@ export default function AddOnsPage() {
               
               <div className="grid gap-6 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="name" className="text-sm font-medium text-gray-700">Add-On Name *</Label>
+                  <Label htmlFor="name" className="text-sm font-medium text-gray-700">Add-On Name <span className="text-red-500">*</span></Label>
                   <Input id="name" placeholder="e.g. Ice Cream Scoop" value={name} onChange={(e) => setName(e.target.value)} required className="border-gray-300" />
                 </div>
                 
                 <div className="grid gap-2">
-                  <Label htmlFor="price" className="text-sm font-medium text-gray-700">Price (Rs.) *</Label>
-                  <Input id="price" type="number" step="0.01" placeholder="e.g. 150.00" value={price} onChange={(e) => setPrice(e.target.value)} required className="border-gray-300" />
+                  <Label htmlFor="price" className="text-sm font-medium text-gray-700">Price (Rs.) <span className="text-red-500">*</span></Label>
+                  <Input id="price" type="number" step="0.01" min="0" placeholder="e.g. 150.00" value={price} onChange={(e) => setPrice(e.target.value)} required className="border-gray-300" />
                 </div>
                 
                 <div className="flex items-center justify-between mt-2">
@@ -113,11 +196,11 @@ export default function AddOnsPage() {
               </div>
               
               <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
-                <DialogClose render={<Button type="button" variant="outline" className="w-full sm:w-auto" />}>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>
                   Cancel
-                </DialogClose>
-                <Button type="submit" className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white">
-                  Create Add-On
+                </Button>
+                <Button type="submit" disabled={isSaving} className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white">
+                  {isSaving ? "Saving..." : (editingAddon ? "Save Changes" : "Create Add-On")}
                 </Button>
               </DialogFooter>
             </form>
@@ -153,14 +236,17 @@ export default function AddOnsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredAddons.length === 0 && (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Loading add-ons...</TableCell>
+              </TableRow>
+            ) : filteredAddons.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                   No add-ons found.
                 </TableCell>
               </TableRow>
-            )}
-            {filteredAddons.map((a) => (
+            ) : filteredAddons.map((a) => (
               <TableRow key={a.id} className="border-b last:border-0 hover:bg-gray-50/50">
                 <TableCell className="py-4">
                   <div className="font-semibold text-gray-800 flex items-center gap-2">
@@ -169,18 +255,18 @@ export default function AddOnsPage() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm font-medium">LKR {a.price.toFixed(2)}</span>
+                  <span className="text-sm font-medium">Rs. {a.price?.toFixed(2)}</span>
                 </TableCell>
                 <TableCell>
                   <Switch 
-                    checked={a.status} 
-                    onCheckedChange={() => toggleStatus(a.id)} 
+                    checked={a.status === 'Active'} 
+                    onCheckedChange={() => toggleStatus(a)} 
                     className="data-[state=checked]:bg-green-500"
                   />
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon" title="Edit">
+                    <Button variant="ghost" size="icon" title="Edit" onClick={() => handleEdit(a)}>
                       <Edit className="h-4 w-4 text-gray-400 hover:text-blue-500" />
                     </Button>
                     <Button variant="ghost" size="icon" title="Delete" onClick={() => deleteAddon(a.id)}>

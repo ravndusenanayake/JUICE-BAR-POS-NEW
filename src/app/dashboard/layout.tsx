@@ -113,6 +113,10 @@ export default function DashboardLayout({
                 <Box className="h-5 w-5" />
                 All Products
               </Link>
+              <Link href="/dashboard/product-variants" className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all ${isActive('/dashboard/product-variants') ? 'bg-primary/10 text-primary' : ''}`}>
+                <ListOrdered className="h-5 w-5" />
+                Product Variants
+              </Link>
               <Link href="/dashboard/add-ons" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted transition-all">
                 <PlusCircle className="h-5 w-5" />
                 Add-Ons
