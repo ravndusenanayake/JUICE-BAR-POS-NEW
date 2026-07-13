@@ -21,21 +21,27 @@ export default function ReportsPage() {
   const [inventory, setInventory] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
   const [ledger, setLedger] = useState<any[]>([])
+  const [purchaseOrders, setPurchaseOrders] = useState<any[]>([])
+  const [grns, setGrns] = useState<any[]>([])
   
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [salesRes, invRes, expRes, ledRes] = await Promise.all([
+        const [salesRes, invRes, expRes, ledRes, poRes, grnRes] = await Promise.all([
           fetch('/api/sales'),
           fetch('/api/branch-inventory'),
           fetch('/api/expenses'),
-          fetch('/api/stock-ledger')
+          fetch('/api/stock-ledger'),
+          fetch('/api/purchase-orders'),
+          fetch('/api/grn')
         ]);
         
         if (salesRes.ok) setSales(await salesRes.json());
         if (invRes.ok) setInventory(await invRes.json());
         if (expRes.ok) setExpenses(await expRes.json());
         if (ledRes.ok) setLedger(await ledRes.json());
+        if (poRes.ok) setPurchaseOrders(await poRes.json());
+        if (grnRes.ok) setGrns(await grnRes.json());
       } catch (err) {
         console.error("Error fetching report data:", err);
       }
@@ -49,11 +55,30 @@ export default function ReportsPage() {
     return itemBranch === filterBranch
   }
   
-  // Note: Date filtering mock (assuming all data is "This Month" for now)
-  const filteredSales = sales.filter(s => isBranchMatch(s.branch))
-  const filteredInventory = inventory.filter(i => isBranchMatch(i.branch))
-  const filteredExpenses = expenses.filter(e => isBranchMatch(e.branch))
-  const filteredLedger = ledger.filter(l => isBranchMatch(l.branch))
+  const isDateMatch = (dateStr: string) => {
+    if (!dateStr) return true;
+    const date = new Date(dateStr);
+    const now = new Date();
+    
+    if (dateFilter === "Today") {
+      return date.toDateString() === now.toDateString();
+    } else if (dateFilter === "This Week") {
+      const firstDay = new Date(now.setDate(now.getDate() - now.getDay()));
+      return date >= firstDay;
+    } else if (dateFilter === "This Month") {
+      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    } else if (dateFilter === "This Year") {
+      return date.getFullYear() === now.getFullYear();
+    }
+    return true;
+  }
+  
+  const filteredSales = sales.filter(s => isBranchMatch(s.branch) && isDateMatch(s.createdAt || s.timestamp))
+  const filteredInventory = inventory.filter(i => isBranchMatch(i.branch)) // Inventory is current state, not date specific
+  const filteredExpenses = expenses.filter(e => isBranchMatch(e.branch) && isDateMatch(e.createdAt || e.date))
+  const filteredLedger = ledger.filter(l => isBranchMatch(l.branch) && isDateMatch(l.createdAt || l.timestamp))
+  const filteredPO = purchaseOrders.filter(po => isDateMatch(po.createdAt))
+  const filteredGRN = grns.filter(g => isDateMatch(g.createdAt))
   
   // --- Sales Metrics ---
   const totalSalesRevenue = filteredSales.reduce((acc, s) => acc + (s.grandTotal || 0), 0)
@@ -132,6 +157,7 @@ export default function ReportsPage() {
           <TabsTrigger value="profit" className="rounded-lg px-6 py-2.5 font-bold data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Profitability (P&L)</TabsTrigger>
           <TabsTrigger value="sales" className="rounded-lg px-6 py-2.5 font-bold data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Sales</TabsTrigger>
           <TabsTrigger value="inventory" className="rounded-lg px-6 py-2.5 font-bold data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Inventory</TabsTrigger>
+          <TabsTrigger value="purchases" className="rounded-lg px-6 py-2.5 font-bold data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Purchases</TabsTrigger>
           <TabsTrigger value="expenses" className="rounded-lg px-6 py-2.5 font-bold data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Expenses & Wastage</TabsTrigger>
         </TabsList>
 
@@ -292,6 +318,57 @@ export default function ReportsPage() {
                   {filteredInventory.filter(i => i.quantity <= i.minStock).length === 0 && (
                     <p className="text-sm text-green-600 font-bold">All stock levels are optimal.</p>
                   )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* --- PURCHASES TAB --- */}
+        <TabsContent value="purchases" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="rounded-2xl border-0 shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Truck className="w-5 h-5 text-orange-500"/> Purchase Orders (PO Summary)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                  {filteredPO.slice().reverse().map((po, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 rounded-xl border border-gray-100 bg-gray-50/50">
+                      <div>
+                        <div className="font-bold text-gray-900">{po.poNumber}</div>
+                        <div className="text-xs font-medium text-gray-500">{new Date(po.createdAt).toLocaleDateString()} • {po.supplierName}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-black text-blue-600">Rs. {(po.totalAmount || 0).toFixed(2)}</div>
+                        <div className={`text-[10px] font-bold uppercase ${po.status === 'Approved' ? 'text-green-500' : 'text-orange-500'}`}>{po.status}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {filteredPO.length === 0 && <p className="text-sm text-gray-400 italic">No purchase orders found.</p>}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl border-0 shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Package className="w-5 h-5 text-orange-500"/> GRN Summary (Received Goods)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                  {filteredGRN.slice().reverse().map((grn, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 rounded-xl border border-gray-100 bg-gray-50/50">
+                      <div>
+                        <div className="font-bold text-gray-900">{grn.grnNumber}</div>
+                        <div className="text-xs font-medium text-gray-500">{new Date(grn.createdAt).toLocaleDateString()} • Ref: {grn.poNumber}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-black text-green-600">Rs. {(grn.totalAmount || 0).toFixed(2)}</div>
+                        <div className="text-[10px] font-bold text-gray-400 uppercase">Received</div>
+                      </div>
+                    </div>
+                  ))}
+                  {filteredGRN.length === 0 && <p className="text-sm text-gray-400 italic">No GRN records found.</p>}
                 </div>
               </CardContent>
             </Card>

@@ -16,6 +16,12 @@ export async function POST(req: Request) {
   try {
     await connectToDatabase();
     const body = await req.json();
+    
+    if (!body.customerCode) {
+      const count = await Customer.countDocuments();
+      body.customerCode = `CUST-${(count + 1).toString().padStart(3, '0')}`;
+    }
+
     const customer = new Customer(body);
     await customer.save();
     return NextResponse.json(customer, { status: 201 });

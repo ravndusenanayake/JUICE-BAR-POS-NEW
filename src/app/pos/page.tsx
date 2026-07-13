@@ -121,12 +121,16 @@ export default function POSPage() {
   
   // -- Cart State --
   const [cart, setCart] = useState<CartItem[]>([])
+  const [noteModalItem, setNoteModalItem] = useState<CartItem | null>(null)
+  const [itemNote, setItemNote] = useState("")
   
   // -- Customer Selection State --
   const [customers, setCustomers] = useState<any[]>([])
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
   const [isCustomerSelectOpen, setIsCustomerSelectOpen] = useState(false)
   const [customerSearch, setCustomerSearch] = useState("")
+  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false)
+  const [newCustomer, setNewCustomer] = useState({ name: "", mobile: "", email: "" })
   const [recipes, setRecipes] = useState<any[]>([])
 
   // -- Product Config Modal --
@@ -227,6 +231,30 @@ export default function POSPage() {
     };
     fetchData();
   }, [user])
+
+  // --- Customer Management ---
+  const handleAddCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCustomer.name || !newCustomer.mobile) return;
+    try {
+      const res = await fetch('/api/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newCustomer, loyaltyPoints: 0, status: "Active" })
+      });
+      if (res.ok) {
+        const cust = await res.json();
+        setCustomers([cust, ...customers]);
+        setSelectedCustomer(cust);
+        setIsAddCustomerOpen(false);
+        setNewCustomer({ name: "", mobile: "", email: "" });
+      } else {
+        alert("Failed to add customer");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   // --- Filtering ---
   const filteredProducts = useMemo(() => {
@@ -395,6 +423,7 @@ export default function POSPage() {
       }
       
       const newSale = await res.json()
+      setSaleDetails(salePayload)
 
       // 1. Inventory Deduction Logic (UI state & API)
       const allRecipes = recipes; // Use state instead of localStorage
@@ -959,12 +988,45 @@ export default function POSPage() {
             </div>
           </div>
           <div className="p-4 bg-white border-t">
-            <Link href="/dashboard/customers" target="_blank" className="w-full">
-              <Button variant="outline" className="w-full border-orange-200 text-orange-600 hover:bg-orange-50 font-bold">
-                <Plus className="w-4 h-4 mr-2" /> Add New Customer in Dashboard
-              </Button>
-            </Link>
+            <Button 
+              variant="outline" 
+              className="w-full border-orange-200 text-orange-600 hover:bg-orange-50 font-bold"
+              onClick={() => { setIsCustomerSelectOpen(false); setIsAddCustomerOpen(true); }}
+            >
+              <Plus className="w-4 h-4 mr-2" /> Add New Customer
+            </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 7.5 Add Customer Modal */}
+      <Dialog open={isAddCustomerOpen} onOpenChange={setIsAddCustomerOpen}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl border-0 shadow-2xl bg-white">
+          <form onSubmit={handleAddCustomer}>
+            <div className="p-4 border-b bg-orange-50">
+              <DialogTitle className="text-lg font-black text-gray-900 flex items-center gap-2">
+                <User className="text-orange-500 w-5 h-5" /> Quick Add Customer
+              </DialogTitle>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="grid gap-2">
+                <Label className="font-bold">Name *</Label>
+                <Input value={newCustomer.name} onChange={e => setNewCustomer({...newCustomer, name: e.target.value})} required placeholder="e.g. Nimal" />
+              </div>
+              <div className="grid gap-2">
+                <Label className="font-bold">Mobile *</Label>
+                <Input value={newCustomer.mobile} onChange={e => setNewCustomer({...newCustomer, mobile: e.target.value})} required placeholder="e.g. 0771234567" />
+              </div>
+              <div className="grid gap-2">
+                <Label className="font-bold">Email</Label>
+                <Input type="email" value={newCustomer.email} onChange={e => setNewCustomer({...newCustomer, email: e.target.value})} placeholder="Optional" />
+              </div>
+            </div>
+            <DialogFooter className="p-4 bg-gray-50 border-t flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsAddCustomerOpen(false)}>Cancel</Button>
+              <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white font-bold">Save & Select</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -995,15 +1057,80 @@ export default function POSPage() {
           </div>
 
           <div className="flex gap-3">
-            <Button className="flex-1 h-12 rounded-xl font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-lg" onClick={handlePrintKOT}>
-              <Printer className="w-4 h-4 mr-2" /> Print KOT
-            </Button>
-            <Button className="flex-1 h-12 rounded-xl font-bold bg-gray-900 text-white hover:bg-black shadow-lg" onClick={() => { setPaymentSuccess(false); setCart([]); setDiscountType("NONE"); setDiscountValue(0) }}>
-              New Order
+            <Button className="flex-1 h-12 text-lg font-bold rounded-xl" variant="outline" onClick={() => { setPaymentSuccess(false); setCart([]); setDiscountType("NONE"); setDiscountValue(0) }}>New Sale</Button>
+            <Button className="flex-1 h-12 text-lg font-bold rounded-xl bg-orange-500 hover:bg-orange-600 text-white shadow-lg" onClick={() => window.print()}>
+              <Printer className="w-5 h-5 mr-2" /> Print Receipt
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* --- Printable Receipt (Hidden from Screen) --- */}
+      <div className="hidden print:block absolute top-0 left-0 w-full bg-white z-50 p-8 text-black">
+        <div className="text-center mb-6">
+          <h1 className="text-3xl font-black mb-1">JUICE BAR POS</h1>
+          <p className="text-lg text-gray-600">{user?.branch === "All Branches" ? "Colombo 07" : (user?.branch || "Colombo 07")}</p>
+          <div className="mt-4 flex justify-between text-sm font-bold border-b border-dashed border-gray-400 pb-2">
+            <span>Ref: {lastOrderRef}</span>
+            <span>{new Date().toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between text-sm font-bold border-b border-dashed border-gray-400 pb-2 mt-2">
+            <span>Customer: {saleDetails?.customer || "Walk-In Customer"}</span>
+            <span>Cashier: {user?.name}</span>
+          </div>
+        </div>
+        <table className="w-full text-left mb-6 text-sm">
+          <thead>
+            <tr className="border-b border-gray-300">
+              <th className="pb-2 font-bold uppercase">Item</th>
+              <th className="pb-2 font-bold uppercase text-center">Qty</th>
+              <th className="pb-2 font-bold uppercase text-right">Price</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-dashed divide-gray-200">
+            {saleDetails?.items?.map((item: any, i: number) => (
+              <tr key={i}>
+                <td className="py-3 font-medium">
+                  {item.name}
+                  {(item.variant || item.addons?.length > 0) && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      {item.variant && <span>[{item.variant}] </span>}
+                      {item.addons?.map((a:any) => a.name).join(", ")}
+                    </div>
+                  )}
+                  {item.note && <div className="text-xs text-orange-600 italic mt-0.5">* {item.note}</div>}
+                </td>
+                <td className="py-3 text-center font-bold">{item.quantity}</td>
+                <td className="py-3 text-right font-bold">Rs. {item.totalPrice.toFixed(2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="space-y-2 text-sm font-bold border-t border-gray-400 pt-4">
+          <div className="flex justify-between text-gray-600">
+            <span>Subtotal</span>
+            <span>Rs. {saleDetails?.subTotal?.toFixed(2)}</span>
+          </div>
+          {saleDetails?.discount > 0 && (
+            <div className="flex justify-between text-gray-600">
+              <span>Discount</span>
+              <span>- Rs. {saleDetails?.discount?.toFixed(2)}</span>
+            </div>
+          )}
+          <div className="flex justify-between text-xl font-black text-black mt-2 pt-2 border-t border-dashed border-gray-400">
+            <span>TOTAL</span>
+            <span>Rs. {saleDetails?.total?.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-gray-600 pt-2 border-t mt-2 border-gray-200">
+            <span>Payment Method</span>
+            <span>{saleDetails?.paymentMethod}</span>
+          </div>
+        </div>
+        <div className="mt-12 text-center text-sm font-bold text-gray-500 border-t border-dashed border-gray-400 pt-6">
+          <p>Thank you for your visit!</p>
+          <p className="text-xs mt-1 font-normal">Please come again.</p>
+        </div>
+      </div>
     </div>
   )
 }
