@@ -230,7 +230,7 @@ export default function ReportsPage() {
                       </div>
                       <div className="text-right">
                         <div className="font-black text-gray-900">{p.qty} Sold</div>
-                        <div className="text-xs font-bold text-orange-600">Rs. {p.revenue.toFixed(2)}</div>
+                        <div className="text-xs font-bold text-orange-600">Rs. {(p.revenue || 0).toFixed(2)}</div>
                       </div>
                     </div>
                   ))}
@@ -252,7 +252,7 @@ export default function ReportsPage() {
                         <div className="text-xs font-medium text-gray-500">{new Date(sale.timestamp).toLocaleString()}</div>
                       </div>
                       <div className="text-right">
-                        <div className="font-black text-green-600">Rs. {sale.grandTotal.toFixed(2)}</div>
+                        <div className="font-black text-green-600">Rs. {(sale.grandTotal || 0).toFixed(2)}</div>
                         <div className="text-[10px] font-bold text-gray-400 uppercase">{sale.paymentMethod}</div>
                       </div>
                     </div>
@@ -318,7 +318,7 @@ export default function ReportsPage() {
                     <div key={i}>
                       <div className="flex justify-between text-sm font-bold text-gray-700 mb-1">
                         <span>{cat}</span>
-                        <span>Rs. {amount.toFixed(2)}</span>
+                        <span>Rs. {(amount || 0).toFixed(2)}</span>
                       </div>
                       <div className="w-full bg-gray-100 rounded-full h-2">
                         <div className="bg-red-400 h-2 rounded-full" style={{ width: `${(amount/totalExpenses)*100}%` }}></div>
