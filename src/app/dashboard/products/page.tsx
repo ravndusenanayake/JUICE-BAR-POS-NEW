@@ -29,6 +29,7 @@ export default function ProductsPage() {
   const [name, setName] = useState("")
   const [sku, setSku] = useState("")
   const [category, setCategory] = useState("")
+  const [type, setType] = useState("Made to Order")
   const [description, setDescription] = useState("")
   const [image, setImage] = useState("")
   const [outletPrice, setOutletPrice] = useState("")
@@ -140,7 +141,7 @@ export default function ProductsPage() {
 
       if (editingProduct) {
         const payload = {
-          id: editingProduct.id, name, category, description, image,
+          id: editingProduct.id, name, category, type, description, image,
           status: isActive, sku, outletPrice: Number(outletPrice) || 0,
           addons: formAddons
         }
@@ -155,7 +156,7 @@ export default function ProductsPage() {
         savedProductId = editingProduct.id
       } else {
         const payload = {
-          name, category, description, image, status: isActive, outletPrice: Number(outletPrice) || 0,
+          name, category, type, description, image, status: isActive, outletPrice: Number(outletPrice) || 0,
           addons: formAddons
         }
         
@@ -207,6 +208,7 @@ export default function ProductsPage() {
     setName("")
     setSku("")
     setCategory("")
+    setType("Made to Order")
     setDescription("")
     setImage("")
     setOutletPrice("")
@@ -221,6 +223,7 @@ export default function ProductsPage() {
     setName(p.name)
     setSku(p.sku)
     setCategory(p.category)
+    setType(p.type || "Made to Order")
     setDescription(p.description || "")
     setImage(p.image || "")
     setOutletPrice(p.outletPrice?.toString() || "")
@@ -316,22 +319,36 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
-                <div className="grid gap-2">
-                  <Label className="text-sm font-medium text-gray-700">Category <span className="text-red-500">*</span></Label>
-                  <Select value={category} onValueChange={(val) => setCategory(val || "")}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categoriesList.length === 0 ? (
-                        <SelectItem value="none" disabled>No active categories found</SelectItem>
-                      ) : (
-                        categoriesList.map(cat => (
-                          <SelectItem key={cat._id} value={cat.name}>{cat.name}</SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label className="text-sm font-medium text-gray-700">Category <span className="text-red-500">*</span></Label>
+                    <Select value={category} onValueChange={(val) => setCategory(val || "")}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categoriesList.length === 0 ? (
+                          <SelectItem value="none" disabled>No active categories found</SelectItem>
+                        ) : (
+                          categoriesList.map(cat => (
+                            <SelectItem key={cat._id} value={cat.name}>{cat.name}</SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label className="text-sm font-medium text-gray-700">Product Type <span className="text-red-500">*</span></Label>
+                    <Select value={type} onValueChange={(val) => setType(val || "Made to Order")}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Made to Order">Made to Order (e.g. Juices)</SelectItem>
+                        <SelectItem value="Finished Good">Finished Good (e.g. Cakes, Water)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 {formVariants.length === 0 && (

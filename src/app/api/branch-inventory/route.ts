@@ -18,25 +18,33 @@ export async function GET(req: Request) {
     const inventory = await BranchInventory.find(query).lean();
     const rawMaterials = await RawMaterial.find({ status: { $in: ['Active', true] } }).lean();
     
+    // Also fetch Finished Goods from Products
+    const mongoose = require('mongoose');
+    const Product = mongoose.models.Product || mongoose.model('Product');
+    const finishedGoods = await Product.find({ type: 'Finished Good', status: 'Active' }).lean();
+    
+    // Combine Raw Materials and Finished Goods
+    const allTrackableItems = [...rawMaterials, ...finishedGoods];
+    
     const invMap = new Map();
     inventory.forEach(inv => invMap.set(inv.sku, inv));
     
-    const mergedList = rawMaterials.map(rm => {
-      const invRecord = invMap.get(rm.sku);
-      const minLevel = rm.minStockLevel || rm.threshold || 0;
+    const mergedList = allTrackableItems.map(item => {
+      const invRecord = invMap.get(item.sku);
+      const minLevel = item.minStockLevel || item.threshold || 0;
       if (invRecord) {
         return {
            ...invRecord,
-           name: rm.name,
+           name: item.name,
            minStockLevel: minLevel
         };
       }
       return {
-        _id: 'temp-' + rm._id,
-        sku: rm.sku,
-        name: rm.name,
-        category: rm.category || 'General',
-        unit: rm.unit,
+        _id: 'temp-' + item._id,
+        sku: item.sku,
+        name: item.name,
+        category: item.category || 'General',
+        unit: item.unit || 'Nos',
         quantity: 0,
         minStockLevel: minLevel,
         branch: branch && branch !== 'All Branches' ? branch : 'All Branches',
