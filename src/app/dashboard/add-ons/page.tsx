@@ -58,7 +58,7 @@ export default function AddOnsPage() {
     try {
       if (editingAddon) {
         const payload = {
-          id: editingAddon.id, name, price: Number(price), status: isActive
+          id: editingAddon.id, name, price: Number(price), status: isActive ? 'Active' : 'Inactive'
         }
         
         const res = await fetch('/api/add-ons', {
@@ -77,7 +77,7 @@ export default function AddOnsPage() {
         }
       } else {
         const payload = {
-          name, price: Number(price), status: isActive
+          name, price: Number(price), status: isActive ? 'Active' : 'Inactive'
         }
         
         const res = await fetch('/api/add-ons', {
