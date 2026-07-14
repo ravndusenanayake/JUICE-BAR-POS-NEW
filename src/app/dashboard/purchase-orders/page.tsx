@@ -56,11 +56,12 @@ export default function PurchaseOrdersPage() {
   const [branch, setBranch] = useState(defaultBranch)
   const [expectedDate, setExpectedDate] = useState("")
   const [items, setItems] = useState<POItem[]>([])
-  const [itemName, setItemName] = useState("")
-  const [itemCategory, setItemCategory] = useState("Fruits")
-  const [itemUnit, setItemUnit] = useState("Kg")
+  const [itemType, setItemType] = useState<"Raw Material" | "Product">("Raw Material")
+  const [selectedItemSku, setSelectedItemSku] = useState("")
   const [itemQty, setItemQty] = useState("")
   const [itemCost, setItemCost] = useState("")
+  const [rawMaterials, setRawMaterials] = useState<any[]>([])
+  const [products, setProducts] = useState<any[]>([])
 
   // GRN Modal State
   const [isGrnOpen, setIsGrnOpen] = useState(false)
@@ -76,9 +77,11 @@ export default function PurchaseOrdersPage() {
   const fetchPOs = async () => {
     setIsLoading(true)
     try {
-      const [poRes, supRes] = await Promise.all([
+      const [poRes, supRes, rmRes, prodRes] = await Promise.all([
         fetch('/api/purchase-orders'),
-        fetch('/api/suppliers')
+        fetch('/api/suppliers'),
+        fetch('/api/raw-materials'),
+        fetch('/api/products')
       ])
       
       if (poRes.ok) {
@@ -88,10 +91,12 @@ export default function PurchaseOrdersPage() {
       
       if (supRes.ok) {
         const data = await supRes.json()
-        // Map _id to id for the UI logic
         const mappedSuppliers = data.map((s: any) => ({ ...s, id: s._id }))
         setSuppliers(mappedSuppliers)
       }
+
+      if (rmRes.ok) setRawMaterials(await rmRes.json())
+      if (prodRes.ok) setProducts(await prodRes.json())
     } catch (e) {
       console.error(e)
     } finally {
@@ -107,18 +112,32 @@ export default function PurchaseOrdersPage() {
 
   // --- Create PO Logic ---
   const handleAddItem = () => {
-    if (!itemName || !itemQty || !itemCost) return
+    if (!selectedItemSku || !itemQty || !itemCost) return
     const qty = parseFloat(itemQty)
     const cost = parseFloat(itemCost)
     if (qty <= 0 || cost < 0) return
 
+    let itemInfo: any = null
+    if (itemType === "Raw Material") {
+      itemInfo = rawMaterials.find(rm => rm.sku === selectedItemSku)
+    } else {
+      itemInfo = products.find(p => p.sku === selectedItemSku)
+    }
+
+    if (!itemInfo) return
+
     const newItem: POItem = {
-      id: `ITEM-${Date.now()}`, name: itemName, category: itemCategory, unit: itemUnit,
-      quantity: qty, unitPrice: cost, totalPrice: qty * cost,
+      id: itemInfo.sku, 
+      name: itemInfo.name, 
+      category: itemInfo.category || "General", 
+      unit: itemInfo.unit || "Nos",
+      quantity: qty, 
+      unitPrice: cost, 
+      totalPrice: qty * cost,
       receivedQuantity: 0 
     }
     setItems([...items, newItem])
-    setItemName(""); setItemQty(""); setItemCost("")
+    setSelectedItemSku(""); setItemQty(""); setItemCost("")
   }
 
   const handleRemoveItem = (id: string) => setItems(items.filter(i => i.id !== id))
@@ -258,22 +277,13 @@ export default function PurchaseOrdersPage() {
         const goodQty = parseFloat(grnState.receivedQty) || 0
         if (goodQty <= 0) continue
 
-        // Convert base units if needed (for simplicity we will let the adjust API handle exact values, assuming user enters in base unit or standard unit)
-        // For accurate tracking, let's assume PO is made in base units for now, or just send the exact goodQty.
-        let skuToUse = poItem.name.substring(0, 3).toUpperCase() + '-' + Date.now().toString().slice(-4)
-        
-        // Find existing SKU? This is a mock system so it's tricky. In a real system the PO item would have the actual SKU attached.
-        // We will just use the name as SKU mapping for the adjust API, since adjust API finds by branch and sku.
-        // Let's assume 'sku' = poItem.name for this mock update, or we map it correctly.
-        // Actually BranchInventory page displays SKU, so we'll pass poItem.name as 'sku' temporarily if real SKU is missing, but let's pass a generic one.
-        // To be safe and see it visually, let's pass poItem.name
-        
+        // Inventory adjustment using the actual SKU stored in poItem.id
         await fetch('/api/inventory/adjust', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             branch: selectedPO.branch,
-            sku: poItem.name, // Using name as SKU for simplicity in this workflow since PO items don't have SKU yet
+            sku: poItem.id, // Now poItem.id holds the true SKU!
             quantity: goodQty,
             type: 'IN', // GRN
             reference: grnNumber,
@@ -437,29 +447,38 @@ export default function PurchaseOrdersPage() {
             <div className="border rounded-lg p-4 bg-gray-50/50 space-y-4">
               <h4 className="font-bold text-gray-700 text-sm">Add Items to Order</h4>
               <div className="grid grid-cols-12 gap-2 items-end">
+                <div className="col-span-2 space-y-1">
+                  <Label className="text-xs">Type</Label>
+                  <Select value={itemType} onValueChange={(v: "Raw Material" | "Product") => { setItemType(v); setSelectedItemSku(""); }}>
+                    <SelectTrigger className="px-2 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Raw Material">Raw Material</SelectItem>
+                      <SelectItem value="Product">Product/Packaging</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="col-span-4 space-y-1">
-                  <Label className="text-xs">Item Name</Label>
-                  <Input value={itemName} onChange={e => setItemName(e.target.value)} placeholder="e.g. Sugar" />
+                  <Label className="text-xs">Select Item</Label>
+                  <Select value={selectedItemSku} onValueChange={setSelectedItemSku}>
+                    <SelectTrigger className="text-xs truncate"><SelectValue placeholder="Choose..." /></SelectTrigger>
+                    <SelectContent>
+                      {itemType === "Raw Material" 
+                        ? rawMaterials.map(rm => <SelectItem key={rm.sku} value={rm.sku}>{rm.name} ({rm.unit})</SelectItem>)
+                        : products.map(p => <SelectItem key={p.sku} value={p.sku}>{p.name}</SelectItem>)
+                      }
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="col-span-2 space-y-1">
                   <Label className="text-xs">Qty</Label>
                   <Input type="number" min="0.1" step="0.1" value={itemQty} onChange={e => setItemQty(e.target.value)} placeholder="0" />
-                </div>
-                <div className="col-span-2 space-y-1">
-                  <Label className="text-xs">Unit</Label>
-                  <Select value={itemUnit} onValueChange={(v) => setItemUnit(v || "")}>
-                    <SelectTrigger className="px-2 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
                 </div>
                 <div className="col-span-3 space-y-1">
                   <Label className="text-xs">Unit Cost (Rs)</Label>
                   <Input type="number" min="0" step="0.01" value={itemCost} onChange={e => setItemCost(e.target.value)} placeholder="0.00" />
                 </div>
                 <div className="col-span-1 pb-0.5">
-                  <Button type="button" size="icon" onClick={handleAddItem} className="bg-gray-900 hover:bg-gray-800 w-full">
+                  <Button type="button" size="icon" onClick={handleAddItem} className="bg-gray-900 hover:bg-gray-800 w-full" disabled={!selectedItemSku}>
                     <Plus className="w-4 h-4" />
                   </Button>
                 </div>
