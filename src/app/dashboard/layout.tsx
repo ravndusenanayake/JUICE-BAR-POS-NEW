@@ -111,6 +111,9 @@ export default function DashboardLayout({
               <Link href="/dashboard/products" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/products') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
                 <Box className="h-4 w-4" /> Products
               </Link>
+              <Link href="/dashboard/raw-materials" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/raw-materials') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                <Droplets className="h-4 w-4" /> Raw Materials
+              </Link>
               <Link href="/dashboard/product-variants" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/product-variants') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
                 <ListOrdered className="h-4 w-4" /> Variants
               </Link>
