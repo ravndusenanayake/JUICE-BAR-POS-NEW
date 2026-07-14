@@ -3,8 +3,10 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import connectToDatabase from '@/database/mongoose';
 import User from '@/database/models/User';
+import { authConfig } from './auth.config';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -40,26 +42,4 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.role = (user as any).role;
-        token.branch = (user as any).branch;
-        token.id = user.id;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        (session.user as any).role = token.role;
-        (session.user as any).branch = token.branch;
-        (session.user as any).id = token.id;
-      }
-      return session;
-    },
-  },
-  session: { strategy: 'jwt' },
-  pages: {
-    signIn: '/login', // Will build this UI later
-  },
 });

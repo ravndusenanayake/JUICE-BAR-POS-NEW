@@ -1,5 +1,8 @@
-import { auth } from '@/auth/auth'
+import NextAuth from 'next-auth'
+import { authConfig } from '@/auth/auth.config'
 import { NextResponse } from 'next/server'
+
+const { auth } = NextAuth(authConfig)
 
 // Matrix mapping routes to allowed roles
 const RBAC_MATRIX = [
