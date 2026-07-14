@@ -194,7 +194,7 @@ export default function ProductsPage() {
               <DialogDescription>Products are master data and shared across all branches.</DialogDescription>
             </DialogHeader>
               
-              <div className="grid gap-6 py-4 px-2 max-h-[70vh] overflow-y-auto custom-scrollbar">
+              <div className="grid gap-6 py-4 px-2 max-h-[70vh] overflow-y-auto overflow-x-hidden custom-scrollbar">
                 
                 <div className="flex flex-col items-center justify-center gap-4 mb-2">
                   <div className="w-32 h-32 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden relative">
