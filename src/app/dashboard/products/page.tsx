@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Edit, Archive, Image as ImageIcon } from "lucide-react"
+import { Plus, Search, Edit, Archive, Trash2, Image as ImageIcon } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useAuth } from "@/context/AuthContext"
 
@@ -29,6 +29,7 @@ export default function ProductsPage() {
   const [category, setCategory] = useState("")
   const [description, setDescription] = useState("")
   const [image, setImage] = useState("")
+  const [outletPrice, setOutletPrice] = useState("")
   const [isActive, setIsActive] = useState(true)
 
   useEffect(() => {
@@ -91,7 +92,7 @@ export default function ProductsPage() {
       if (editingProduct) {
         const payload = {
           id: editingProduct.id, name, category, description, image,
-          status: isActive, sku
+          status: isActive, sku, outletPrice: Number(outletPrice) || 0
         }
         
         const res = await fetch('/api/products', {
@@ -109,7 +110,7 @@ export default function ProductsPage() {
         }
       } else {
         const payload = {
-          name, category, description, image, status: isActive
+          name, category, description, image, status: isActive, outletPrice: Number(outletPrice) || 0
         }
         
         const res = await fetch('/api/products', {
@@ -141,6 +142,7 @@ export default function ProductsPage() {
     setCategory("")
     setDescription("")
     setImage("")
+    setOutletPrice("")
     setIsActive(true)
     setEditingProduct(null)
   }
@@ -152,6 +154,7 @@ export default function ProductsPage() {
     setCategory(p.category)
     setDescription(p.description || "")
     setImage(p.image || "")
+    setOutletPrice(p.outletPrice?.toString() || "")
     setIsActive(p.status === 'Active')
     setIsDialogOpen(true)
   }
@@ -168,6 +171,21 @@ export default function ProductsPage() {
           fetchProducts()
         } else {
           alert("Failed to archive product")
+        }
+      } catch (err) {
+        console.error(err)
+      }
+    }
+  }
+
+  const deleteProduct = async (id: string) => {
+    if(confirm("Are you sure you want to permanently delete this product?")) {
+      try {
+        const res = await fetch(`/api/products?id=${id}`, { method: 'DELETE' })
+        if (res.ok) {
+          fetchProducts()
+        } else {
+          alert("Failed to delete product")
         }
       } catch (err) {
         console.error(err)
@@ -249,6 +267,25 @@ export default function ProductsPage() {
                     onChange={(e) => setDescription(e.target.value)} 
                     rows={3}
                   />
+                </div>
+
+                <div className="grid gap-2 border-t pt-4">
+                  <h3 className="font-semibold text-gray-800">Pricing Information</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label className="text-sm font-medium text-gray-700">Base Price (Rs.) <span className="text-red-500">*</span></Label>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        min="0"
+                        placeholder="e.g. 350.00" 
+                        value={outletPrice} 
+                        onChange={(e) => setOutletPrice(e.target.value)} 
+                        required 
+                      />
+                      <p className="text-xs text-muted-foreground">Default selling price at the outlet.</p>
+                    </div>
+                  </div>
                 </div>
                 
                 <div className="flex items-center justify-between border-t pt-4">
@@ -337,6 +374,9 @@ export default function ProductsPage() {
                     </Button>
                     <Button variant="ghost" size="icon" title="Archive" onClick={() => archiveProduct(p.id)} disabled={p.status === 'Inactive'}>
                       <Archive className="h-4 w-4 text-orange-500" />
+                    </Button>
+                    <Button variant="ghost" size="icon" title="Delete" onClick={() => deleteProduct(p.id)}>
+                      <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
                     </Button>
                   </div>
                 </TableCell>
