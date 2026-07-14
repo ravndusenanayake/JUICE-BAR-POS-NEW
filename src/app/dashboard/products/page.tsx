@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Edit, Archive, Trash2, Image as ImageIcon } from "lucide-react"
+import { Plus, Search, Edit, Archive, Trash2, Image as ImageIcon, X, CheckSquare, Square } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useAuth } from "@/context/AuthContext"
 
@@ -16,6 +16,8 @@ export default function ProductsPage() {
   const { user } = useAuth()
   const [products, setProducts] = useState<any[]>([])
   const [categoriesList, setCategoriesList] = useState<any[]>([])
+  const [allVariants, setAllVariants] = useState<any[]>([])
+  const [globalAddons, setGlobalAddons] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [editingProduct, setEditingProduct] = useState<any>(null)
@@ -32,34 +34,33 @@ export default function ProductsPage() {
   const [outletPrice, setOutletPrice] = useState("")
   const [isActive, setIsActive] = useState(true)
 
+  // Variant & Add-on State
+  const [formVariants, setFormVariants] = useState<{id?: string, name: string, sellingPrice: string}[]>([])
+  const [formAddons, setFormAddons] = useState<{name: string, price: number}[]>([])
+
   useEffect(() => {
-    fetchProducts()
-    fetchCategories()
+    fetchData()
   }, [])
 
-  const fetchCategories = async () => {
+  const fetchData = async () => {
+    setIsLoading(true)
     try {
-      const res = await fetch('/api/categories?active=true')
-      if (res.ok) {
-        const data = await res.json()
-        setCategoriesList(data)
+      const [prodRes, catRes, varRes, addonRes] = await Promise.all([
+        fetch('/api/products'),
+        fetch('/api/categories?active=true'),
+        fetch('/api/product-variants'),
+        fetch('/api/add-ons')
+      ])
+      
+      if (prodRes.ok) {
+        const data = await prodRes.json()
+        setProducts(data.map((p: any) => ({ ...p, id: p._id })))
       }
-    } catch (e) {
-      console.error("Failed to fetch categories:", e)
-    }
-  }
-
-  const fetchProducts = async () => {
-    try {
-      setIsLoading(true)
-      const res = await fetch('/api/products')
-      if (res.ok) {
-        const data = await res.json()
-        const mapped = data.map((p: any) => ({
-          ...p,
-          id: p._id
-        }))
-        setProducts(mapped)
+      if (catRes.ok) setCategoriesList(await catRes.json())
+      if (varRes.ok) setAllVariants(await varRes.json())
+      if (addonRes.ok) {
+        const addons = await addonRes.json()
+        setGlobalAddons(addons.filter((a: any) => a.status === 'Active'))
       }
     } catch (e) {
       console.error(e)
@@ -84,15 +85,64 @@ export default function ProductsPage() {
     }
   }
 
+  // --- Variants Handlers ---
+  const addVariantRow = () => {
+    setFormVariants([...formVariants, { name: "", sellingPrice: "" }])
+  }
+
+  const updateVariantRow = (index: number, field: string, value: string) => {
+    const newVars = [...formVariants]
+    newVars[index] = { ...newVars[index], [field]: value }
+    setFormVariants(newVars)
+  }
+
+  const removeVariantRow = async (index: number) => {
+    const variant = formVariants[index]
+    if (variant.id) {
+      if(confirm("Are you sure you want to delete this variant? It will be permanently removed.")) {
+        try {
+          await fetch(`/api/product-variants?id=${variant.id}`, { method: 'DELETE' })
+        } catch (e) {
+          console.error(e)
+        }
+      } else {
+        return // Cancelled
+      }
+    }
+    const newVars = [...formVariants]
+    newVars.splice(index, 1)
+    setFormVariants(newVars)
+  }
+
+  // --- Add-ons Handlers ---
+  const toggleAddon = (addon: any) => {
+    const exists = formAddons.find(a => a.name === addon.name)
+    if (exists) {
+      setFormAddons(formAddons.filter(a => a.name !== addon.name))
+    } else {
+      setFormAddons([...formAddons, { name: addon.name, price: addon.price }])
+    }
+  }
+
   const saveProduct = async () => {
     if(!name || !category) return alert("Please fill Product Name and Category")
 
+    // Validate variants
+    for (let v of formVariants) {
+      if (!v.name || !v.sellingPrice) {
+        return alert("Please fill all Variant names and prices, or remove empty rows.")
+      }
+    }
+
     setIsSaving(true)
     try {
+      let savedProductId = ""
+
       if (editingProduct) {
         const payload = {
           id: editingProduct.id, name, category, description, image,
-          status: isActive, sku, outletPrice: Number(outletPrice) || 0
+          status: isActive, sku, outletPrice: Number(outletPrice) || 0,
+          addons: formAddons
         }
         
         const res = await fetch('/api/products', {
@@ -101,16 +151,12 @@ export default function ProductsPage() {
           body: JSON.stringify(payload)
         })
 
-        if(res.ok) {
-          fetchProducts()
-          setIsDialogOpen(false)
-          resetForm()
-        } else {
-          alert("Failed to update product")
-        }
+        if(!res.ok) throw new Error("Failed to update product")
+        savedProductId = editingProduct.id
       } else {
         const payload = {
-          name, category, description, image, status: isActive, outletPrice: Number(outletPrice) || 0
+          name, category, description, image, status: isActive, outletPrice: Number(outletPrice) || 0,
+          addons: formAddons
         }
         
         const res = await fetch('/api/products', {
@@ -119,18 +165,39 @@ export default function ProductsPage() {
           body: JSON.stringify(payload)
         })
         
-        if (res.ok) {
-          fetchProducts()
-          setIsDialogOpen(false)
-          resetForm()
-        } else {
+        if (!res.ok) {
           const err = await res.json()
-          alert("Failed to save product: " + (err.error || ""))
+          throw new Error("Failed to save product: " + (err.error || ""))
+        }
+        const data = await res.json()
+        savedProductId = data._id
+      }
+
+      // Save Variants
+      for (let v of formVariants) {
+        if (v.id) {
+          // Update existing
+          await fetch('/api/product-variants', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: v.id, productId: savedProductId, name: v.name, sellingPrice: Number(v.sellingPrice), status: isActive })
+          })
+        } else {
+          // Create new
+          await fetch('/api/product-variants', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId: savedProductId, name: v.name, sellingPrice: Number(v.sellingPrice), status: true })
+          })
         }
       }
-    } catch (error) {
+
+      await fetchData()
+      setIsDialogOpen(false)
+      resetForm()
+    } catch (error: any) {
       console.error("Error saving product:", error)
-      alert("Error saving product")
+      alert(error.message || "Error saving product")
     } finally {
       setIsSaving(false)
     }
@@ -145,6 +212,8 @@ export default function ProductsPage() {
     setOutletPrice("")
     setIsActive(true)
     setEditingProduct(null)
+    setFormVariants([])
+    setFormAddons([])
   }
 
   const handleEdit = (p: any) => {
@@ -156,6 +225,12 @@ export default function ProductsPage() {
     setImage(p.image || "")
     setOutletPrice(p.outletPrice?.toString() || "")
     setIsActive(p.status === 'Active')
+    setFormAddons(p.addons || [])
+    
+    // Load variants
+    const productVars = allVariants.filter(v => v.productId && (v.productId._id === p.id || v.productId === p.id))
+    setFormVariants(productVars.map(v => ({ id: v._id, name: v.name, sellingPrice: v.sellingPrice.toString() })))
+    
     setIsDialogOpen(true)
   }
 
@@ -168,7 +243,7 @@ export default function ProductsPage() {
           body: JSON.stringify({ id, status: false })
         })
         if (res.ok) {
-          fetchProducts()
+          fetchData()
         } else {
           alert("Failed to archive product")
         }
@@ -183,7 +258,7 @@ export default function ProductsPage() {
       try {
         const res = await fetch(`/api/products?id=${id}`, { method: 'DELETE' })
         if (res.ok) {
-          fetchProducts()
+          fetchData()
         } else {
           alert("Failed to delete product")
         }
@@ -194,7 +269,7 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Products (Master Data)</h2>
@@ -206,13 +281,13 @@ export default function ProductsPage() {
         </Button>
         
         <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[750px]">
             <DialogHeader>
               <DialogTitle className="text-xl">{editingProduct ? "Edit Product" : "Create New Product"}</DialogTitle>
               <DialogDescription>Products are master data and shared across all branches.</DialogDescription>
             </DialogHeader>
               
-              <div className="grid gap-6 py-4 px-2 max-h-[70vh] overflow-y-auto overflow-x-hidden custom-scrollbar">
+              <div className="grid gap-6 py-4 px-2 max-h-[75vh] overflow-y-auto overflow-x-hidden custom-scrollbar">
                 
                 <div className="flex flex-col items-center justify-center gap-4 mb-2">
                   <div className="w-32 h-32 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden relative">
@@ -259,21 +334,11 @@ export default function ProductsPage() {
                   </Select>
                 </div>
 
-                <div className="grid gap-2">
-                  <Label className="text-sm font-medium text-gray-700">Description</Label>
-                  <Textarea 
-                    placeholder="Enter product description..." 
-                    value={description} 
-                    onChange={(e) => setDescription(e.target.value)} 
-                    rows={3}
-                  />
-                </div>
-
                 <div className="grid gap-2 border-t pt-4">
                   <h3 className="font-semibold text-gray-800">Pricing Information</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
-                      <Label className="text-sm font-medium text-gray-700">Base Price (Rs.) <span className="text-red-500">*</span></Label>
+                      <Label className="text-sm font-medium text-gray-700">Base Price (Rs.)</Label>
                       <Input 
                         type="number" 
                         step="0.01" 
@@ -281,11 +346,84 @@ export default function ProductsPage() {
                         placeholder="e.g. 350.00" 
                         value={outletPrice} 
                         onChange={(e) => setOutletPrice(e.target.value)} 
-                        required 
                       />
-                      <p className="text-xs text-muted-foreground">Default selling price at the outlet.</p>
+                      <p className="text-xs text-muted-foreground">Default selling price if no variants.</p>
                     </div>
                   </div>
+                </div>
+
+                {/* Variants Section */}
+                <div className="grid gap-3 border-t pt-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="font-semibold text-gray-800">Variants (Sizes & Prices)</h3>
+                      <p className="text-xs text-muted-foreground">Add specific sizes and their prices (e.g., Small, Large).</p>
+                    </div>
+                    <Button type="button" size="sm" variant="outline" onClick={addVariantRow} className="h-8">
+                      <Plus className="w-4 h-4 mr-1" /> Add Variant
+                    </Button>
+                  </div>
+
+                  {formVariants.length > 0 ? (
+                    <div className="space-y-2 mt-2">
+                      {formVariants.map((variant, idx) => (
+                        <div key={idx} className="flex items-center gap-2 bg-gray-50 p-2 rounded-md border">
+                          <div className="flex-1">
+                            <Input 
+                              placeholder="Name (e.g. Small)" 
+                              className="h-8 text-sm"
+                              value={variant.name} 
+                              onChange={e => updateVariantRow(idx, 'name', e.target.value)} 
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <Input 
+                              type="number" step="0.01" min="0" placeholder="Price (Rs.)" 
+                              className="h-8 text-sm"
+                              value={variant.sellingPrice} 
+                              onChange={e => updateVariantRow(idx, 'sellingPrice', e.target.value)} 
+                            />
+                          </div>
+                          <Button type="button" size="icon" variant="ghost" onClick={() => removeVariantRow(idx)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50">
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-400 italic py-2">No variants added. Product will use Base Price.</div>
+                  )}
+                </div>
+
+                {/* Add-ons Section */}
+                <div className="grid gap-3 border-t pt-4">
+                  <div>
+                    <h3 className="font-semibold text-gray-800">Applicable Add-ons</h3>
+                    <p className="text-xs text-muted-foreground">Select which add-ons customers can choose for this product.</p>
+                  </div>
+                  
+                  {globalAddons.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
+                      {globalAddons.map(addon => {
+                        const isSelected = formAddons.some(a => a.name === addon.name)
+                        return (
+                          <div 
+                            key={addon._id} 
+                            onClick={() => toggleAddon(addon)}
+                            className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${isSelected ? 'bg-orange-50 border-orange-200' : 'bg-white hover:bg-gray-50'}`}
+                          >
+                            {isSelected ? <CheckSquare className="w-4 h-4 text-orange-500 shrink-0" /> : <Square className="w-4 h-4 text-gray-300 shrink-0" />}
+                            <div className="flex flex-col min-w-0">
+                              <span className={`text-sm font-semibold truncate ${isSelected ? 'text-orange-900' : 'text-gray-700'}`}>{addon.name}</span>
+                              <span className="text-xs text-gray-500">Rs. {addon.price.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-400 italic py-2">No active add-ons found in Master Data. Please create Add-ons first.</div>
+                  )}
                 </div>
                 
                 <div className="flex items-center justify-between border-t pt-4">
@@ -297,7 +435,7 @@ export default function ProductsPage() {
                 </div>
               </div>
               
-              <DialogFooter className="mt-2">
+              <DialogFooter className="mt-2 pt-2 border-t">
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>Cancel</Button>
                 <Button onClick={saveProduct} disabled={isSaving}>
                   {isSaving ? "Saving..." : (editingProduct ? "Save Changes" : "Create Product")}
