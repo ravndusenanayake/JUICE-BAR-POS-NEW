@@ -14,6 +14,7 @@ export interface IProduct extends Document {
   addons: { name: string, price: number }[];
   image?: string;
   description?: string;
+  threshold: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,6 +34,7 @@ const ProductSchema = new Schema<IProduct>(
     addons: [{ name: String, price: Number }],
     image: { type: String },
     description: { type: String },
+    threshold: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

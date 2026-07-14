@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Search, Edit, Archive, Trash2, Image as ImageIcon, X, CheckSquare, Square } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useAuth } from "@/context/AuthContext"
@@ -33,6 +34,8 @@ export default function ProductsPage() {
   const [description, setDescription] = useState("")
   const [image, setImage] = useState("")
   const [outletPrice, setOutletPrice] = useState("")
+  const [unit, setUnit] = useState("Nos")
+  const [threshold, setThreshold] = useState("0")
   const [isActive, setIsActive] = useState(true)
 
   // Variant & Add-on State
@@ -128,10 +131,12 @@ export default function ProductsPage() {
   const saveProduct = async () => {
     if(!name || !category) return alert("Please fill Product Name and Category")
 
-    // Validate variants
-    for (let v of formVariants) {
-      if (!v.name || !v.sellingPrice) {
-        return alert("Please fill all Variant names and prices, or remove empty rows.")
+    // Validate variants if Made to Order
+    if (type === "Made to Order") {
+      for (let v of formVariants) {
+        if (!v.name || !v.sellingPrice) {
+          return alert("Please fill all Variant names and prices, or remove empty rows.")
+        }
       }
     }
 
@@ -143,7 +148,8 @@ export default function ProductsPage() {
         const payload = {
           id: editingProduct.id, name, category, type, description, image,
           status: isActive, sku, outletPrice: Number(outletPrice) || 0,
-          addons: formAddons
+          unit, threshold: Number(threshold) || 0,
+          addons: type === "Made to Order" ? formAddons : []
         }
         
         const res = await fetch('/api/products', {
@@ -157,7 +163,8 @@ export default function ProductsPage() {
       } else {
         const payload = {
           name, category, type, description, image, status: isActive, outletPrice: Number(outletPrice) || 0,
-          addons: formAddons
+          unit, threshold: Number(threshold) || 0,
+          addons: type === "Made to Order" ? formAddons : []
         }
         
         const res = await fetch('/api/products', {
@@ -174,22 +181,24 @@ export default function ProductsPage() {
         savedProductId = data._id
       }
 
-      // Save Variants
-      for (let v of formVariants) {
-        if (v.id) {
-          // Update existing
-          await fetch('/api/product-variants', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: v.id, productId: savedProductId, name: v.name, sellingPrice: Number(v.sellingPrice), status: isActive })
-          })
-        } else {
-          // Create new
-          await fetch('/api/product-variants', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ productId: savedProductId, name: v.name, sellingPrice: Number(v.sellingPrice), status: true })
-          })
+      // Save Variants ONLY if Made to Order
+      if (type === "Made to Order") {
+        for (let v of formVariants) {
+          if (v.id) {
+            // Update existing
+            await fetch('/api/product-variants', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: v.id, productId: savedProductId, name: v.name, sellingPrice: Number(v.sellingPrice), status: isActive })
+            })
+          } else {
+            // Create new
+            await fetch('/api/product-variants', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ productId: savedProductId, name: v.name, sellingPrice: Number(v.sellingPrice), status: true })
+            })
+          }
         }
       }
 
@@ -212,6 +221,8 @@ export default function ProductsPage() {
     setDescription("")
     setImage("")
     setOutletPrice("")
+    setUnit("Nos")
+    setThreshold("0")
     setIsActive(true)
     setEditingProduct(null)
     setFormVariants([])
@@ -227,6 +238,8 @@ export default function ProductsPage() {
     setDescription(p.description || "")
     setImage(p.image || "")
     setOutletPrice(p.outletPrice?.toString() || "")
+    setUnit(p.unit || "Nos")
+    setThreshold(p.threshold?.toString() || "0")
     setIsActive(p.status === 'Active')
     setFormAddons(p.addons || [])
     
@@ -290,37 +303,43 @@ export default function ProductsPage() {
               <DialogDescription>Products are master data and shared across all branches.</DialogDescription>
             </DialogHeader>
               
-              <div className="grid gap-6 py-4 px-2 max-h-[75vh] overflow-y-auto overflow-x-hidden custom-scrollbar">
+              <div className="py-4 px-2 max-h-[75vh] overflow-y-auto overflow-x-hidden custom-scrollbar">
                 
-                <div className="flex flex-col items-center justify-center gap-4 mb-2">
-                  <div className="w-32 h-32 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden relative">
-                    {image ? (
-                      <img src={image} alt="Preview" className="w-full h-full object-cover" />
-                    ) : (
-                      <ImageIcon className="w-8 h-8 text-gray-300" />
-                    )}
+                <Tabs value={type} onValueChange={setType} className="w-full mb-6">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="Made to Order" className="text-sm font-semibold">Made to Order (Recipes)</TabsTrigger>
+                    <TabsTrigger value="Finished Good" className="text-sm font-semibold">Finished Goods (e.g. Cakes)</TabsTrigger>
+                  </TabsList>
+                  
+                  {/* Common Product Fields */}
+                  <div className="flex flex-col items-center justify-center gap-4 mt-6 mb-4">
+                    <div className="w-32 h-32 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden relative">
+                      {image ? (
+                        <img src={image} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <ImageIcon className="w-8 h-8 text-gray-300" />
+                      )}
+                    </div>
+                    <div>
+                      <input type="file" id="imageUpload" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                      <Label htmlFor="imageUpload" className="cursor-pointer text-sm font-medium text-primary hover:underline">
+                        Upload Image
+                      </Label>
+                    </div>
                   </div>
-                  <div>
-                    <input type="file" id="imageUpload" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                    <Label htmlFor="imageUpload" className="cursor-pointer text-sm font-medium text-primary hover:underline">
-                      Upload Image
-                    </Label>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label className="text-sm font-medium text-gray-700">Product Name <span className="text-red-500">*</span></Label>
-                    <Input placeholder="e.g. Classic Mojito" value={name} onChange={(e) => setName(e.target.value)} required />
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="grid gap-2">
+                      <Label className="text-sm font-medium text-gray-700">Product Name <span className="text-red-500">*</span></Label>
+                      <Input placeholder="e.g. Classic Mojito" value={name} onChange={(e) => setName(e.target.value)} required />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label className="text-sm font-medium text-gray-700">SKU (Auto-Generated)</Label>
+                      <Input value={sku} readOnly placeholder="Will be auto-generated" className="bg-gray-100 text-gray-500 cursor-not-allowed" />
+                    </div>
                   </div>
-                  <div className="grid gap-2">
-                    <Label className="text-sm font-medium text-gray-700">SKU (Auto-Generated)</Label>
-                    <Input value={sku} readOnly placeholder="Will be auto-generated" className="bg-gray-100 text-gray-500 cursor-not-allowed" />
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
+                  <div className="grid gap-2 mb-6">
                     <Label className="text-sm font-medium text-gray-700">Category <span className="text-red-500">*</span></Label>
                     <Select value={category} onValueChange={(val) => setCategory(val || "")}>
                       <SelectTrigger>
@@ -337,123 +356,143 @@ export default function ProductsPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid gap-2">
-                    <Label className="text-sm font-medium text-gray-700">Product Type <span className="text-red-500">*</span></Label>
-                    <Select value={type} onValueChange={(val) => setType(val || "Made to Order")}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Made to Order">Made to Order (e.g. Juices)</SelectItem>
-                        <SelectItem value="Finished Good">Finished Good (e.g. Cakes, Water)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
 
-                {formVariants.length === 0 && (
-                  <div className="grid gap-2 border-t pt-4">
-                    <h3 className="font-semibold text-gray-800">Pricing Information</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label className="text-sm font-medium text-gray-700">Base Price (Rs.)</Label>
+                  {/* MADE TO ORDER SPECIFIC FIELDS */}
+                  <TabsContent value="Made to Order" className="space-y-6">
+                    {/* Variants Section */}
+                    <div className="grid gap-3 border-t pt-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h3 className="font-semibold text-gray-800">Variants (Sizes & Prices)</h3>
+                          <p className="text-xs text-muted-foreground">Add specific sizes and their prices (e.g., Small, Large).</p>
+                        </div>
+                        <Button type="button" size="sm" variant="outline" onClick={addVariantRow} className="h-8">
+                          <Plus className="w-4 h-4 mr-1" /> Add Variant
+                        </Button>
+                      </div>
+
+                      {formVariants.length > 0 ? (
+                        <div className="space-y-2 mt-2">
+                          {formVariants.map((variant, idx) => (
+                            <div key={idx} className="flex items-center gap-2 bg-gray-50 p-2 rounded-md border">
+                              <div className="flex-1">
+                                <Input 
+                                  list="variantNames"
+                                  placeholder="Name (e.g. Small)" 
+                                  className="h-8 text-sm"
+                                  value={variant.name} 
+                                  onChange={e => updateVariantRow(idx, 'name', e.target.value)} 
+                                />
+                                <datalist id="variantNames">
+                                  <option value="Small" />
+                                  <option value="Medium" />
+                                  <option value="Large" />
+                                  <option value="Standard" />
+                                  <option value="Regular" />
+                                </datalist>
+                              </div>
+                              <div className="flex-1">
+                                <Input 
+                                  type="number" step="0.01" min="0" placeholder="Price (Rs.)" 
+                                  className="h-8 text-sm"
+                                  value={variant.sellingPrice} 
+                                  onChange={e => updateVariantRow(idx, 'sellingPrice', e.target.value)} 
+                                />
+                              </div>
+                              <Button type="button" size="icon" variant="ghost" onClick={() => removeVariantRow(idx)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50">
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-400 italic py-2">Please add variants to set prices for different sizes.</div>
+                      )}
+                    </div>
+
+                    {/* Add-ons Section */}
+                    <div className="grid gap-3 border-t pt-4">
+                      <div>
+                        <h3 className="font-semibold text-gray-800">Applicable Add-ons</h3>
+                        <p className="text-xs text-muted-foreground">Select which add-ons customers can choose for this product.</p>
+                      </div>
+                      
+                      {globalAddons.length > 0 ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
+                          {globalAddons.map(addon => {
+                            const isSelected = formAddons.some(a => a.name === addon.name)
+                            return (
+                              <div 
+                                key={addon._id} 
+                                onClick={() => toggleAddon(addon)}
+                                className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${isSelected ? 'bg-orange-50 border-orange-200' : 'bg-white hover:bg-gray-50'}`}
+                              >
+                                {isSelected ? <CheckSquare className="w-4 h-4 text-orange-500 shrink-0" /> : <Square className="w-4 h-4 text-gray-300 shrink-0" />}
+                                <div className="flex flex-col min-w-0">
+                                  <span className={`text-sm font-semibold truncate ${isSelected ? 'text-orange-900' : 'text-gray-700'}`}>{addon.name}</span>
+                                  <span className="text-xs text-gray-500">Rs. {addon.price.toFixed(2)}</span>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-400 italic py-2">No active add-ons found in Master Data. Please create Add-ons first.</div>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  {/* FINISHED GOOD SPECIFIC FIELDS */}
+                  <TabsContent value="Finished Good" className="space-y-6">
+                    <div className="grid gap-3 border-t pt-4">
+                      <h3 className="font-semibold text-gray-800">Finished Good Details</h3>
+                      <p className="text-xs text-muted-foreground mb-2">Configure pricing and inventory tracking for ready-to-sell items.</p>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label className="text-sm font-medium text-gray-700">Selling Price (Rs.) <span className="text-red-500">*</span></Label>
+                          <Input 
+                            type="number" 
+                            step="0.01" 
+                            min="0"
+                            placeholder="e.g. 500" 
+                            value={outletPrice} 
+                            onChange={(e) => setOutletPrice(e.target.value)} 
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label className="text-sm font-medium text-gray-700">Measurement Unit</Label>
+                          <Select value={unit} onValueChange={(val) => setUnit(val || "Nos")}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Unit" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Nos">Nos (Pieces)</SelectItem>
+                              <SelectItem value="Bottles">Bottles</SelectItem>
+                              <SelectItem value="Cups">Cups</SelectItem>
+                              <SelectItem value="Grams">Grams</SelectItem>
+                              <SelectItem value="Kg">Kilograms</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-2 mt-2">
+                        <Label className="text-sm font-medium text-gray-700">Reorder Threshold</Label>
                         <Input 
                           type="number" 
-                          step="0.01" 
-                          min="0"
-                          placeholder="e.g. 350.00" 
-                          value={outletPrice} 
-                          onChange={(e) => setOutletPrice(e.target.value)} 
+                          min="0" 
+                          placeholder="e.g. 10 (Alerts when stock is below this)" 
+                          value={threshold} 
+                          onChange={(e) => setThreshold(e.target.value)} 
                         />
-                        <p className="text-xs text-muted-foreground">Default selling price if no variants.</p>
+                        <p className="text-xs text-muted-foreground">Get low-stock warnings in the Branch Inventory.</p>
                       </div>
                     </div>
-                  </div>
-                )}
-
-                {/* Variants Section */}
-                <div className="grid gap-3 border-t pt-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h3 className="font-semibold text-gray-800">Variants (Sizes & Prices)</h3>
-                      <p className="text-xs text-muted-foreground">Add specific sizes and their prices (e.g., Small, Large).</p>
-                    </div>
-                    <Button type="button" size="sm" variant="outline" onClick={addVariantRow} className="h-8">
-                      <Plus className="w-4 h-4 mr-1" /> Add Variant
-                    </Button>
-                  </div>
-
-                  {formVariants.length > 0 ? (
-                    <div className="space-y-2 mt-2">
-                      {formVariants.map((variant, idx) => (
-                        <div key={idx} className="flex items-center gap-2 bg-gray-50 p-2 rounded-md border">
-                          <div className="flex-1">
-                            <Input 
-                              list="variantNames"
-                              placeholder="Name (e.g. Small)" 
-                              className="h-8 text-sm"
-                              value={variant.name} 
-                              onChange={e => updateVariantRow(idx, 'name', e.target.value)} 
-                            />
-                            <datalist id="variantNames">
-                              <option value="Small" />
-                              <option value="Medium" />
-                              <option value="Large" />
-                              <option value="Standard" />
-                              <option value="Regular" />
-                            </datalist>
-                          </div>
-                          <div className="flex-1">
-                            <Input 
-                              type="number" step="0.01" min="0" placeholder="Price (Rs.)" 
-                              className="h-8 text-sm"
-                              value={variant.sellingPrice} 
-                              onChange={e => updateVariantRow(idx, 'sellingPrice', e.target.value)} 
-                            />
-                          </div>
-                          <Button type="button" size="icon" variant="ghost" onClick={() => removeVariantRow(idx)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50">
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-400 italic py-2">No variants added. Product will use Base Price.</div>
-                  )}
-                </div>
-
-                {/* Add-ons Section */}
-                <div className="grid gap-3 border-t pt-4">
-                  <div>
-                    <h3 className="font-semibold text-gray-800">Applicable Add-ons</h3>
-                    <p className="text-xs text-muted-foreground">Select which add-ons customers can choose for this product.</p>
-                  </div>
-                  
-                  {globalAddons.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
-                      {globalAddons.map(addon => {
-                        const isSelected = formAddons.some(a => a.name === addon.name)
-                        return (
-                          <div 
-                            key={addon._id} 
-                            onClick={() => toggleAddon(addon)}
-                            className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${isSelected ? 'bg-orange-50 border-orange-200' : 'bg-white hover:bg-gray-50'}`}
-                          >
-                            {isSelected ? <CheckSquare className="w-4 h-4 text-orange-500 shrink-0" /> : <Square className="w-4 h-4 text-gray-300 shrink-0" />}
-                            <div className="flex flex-col min-w-0">
-                              <span className={`text-sm font-semibold truncate ${isSelected ? 'text-orange-900' : 'text-gray-700'}`}>{addon.name}</span>
-                              <span className="text-xs text-gray-500">Rs. {addon.price.toFixed(2)}</span>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-400 italic py-2">No active add-ons found in Master Data. Please create Add-ons first.</div>
-                  )}
-                </div>
+                  </TabsContent>
+                </Tabs>
                 
-                <div className="flex items-center justify-between border-t pt-4">
+                <div className="flex items-center justify-between border-t pt-4 mt-2">
                   <div>
                     <Label className="text-sm font-medium text-gray-700">Status</Label>
                     <p className="text-xs text-muted-foreground">Active products are available for sale.</p>
@@ -521,6 +560,9 @@ export default function ProductsPage() {
                 <TableCell>
                   <div className="font-semibold text-gray-800 uppercase text-sm">
                     {p.name}
+                    {p.type === 'Finished Good' && (
+                      <span className="ml-2 bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">Finished Good</span>
+                    )}
                   </div>
                   <div className="text-xs text-gray-400 mt-0.5">{p.sku}</div>
                 </TableCell>

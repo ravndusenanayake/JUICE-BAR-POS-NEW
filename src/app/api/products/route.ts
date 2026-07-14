@@ -37,6 +37,7 @@ export async function POST(req: Request) {
       status: (body.status === true || body.status === 'Active') ? 'Active' : 'Inactive',
       image: body.image,
       description: body.description,
+      threshold: body.threshold || 0,
       addons: body.addons || [],
     });
 
