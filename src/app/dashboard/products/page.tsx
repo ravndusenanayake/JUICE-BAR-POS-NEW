@@ -334,23 +334,25 @@ export default function ProductsPage() {
                   </Select>
                 </div>
 
-                <div className="grid gap-2 border-t pt-4">
-                  <h3 className="font-semibold text-gray-800">Pricing Information</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label className="text-sm font-medium text-gray-700">Base Price (Rs.)</Label>
-                      <Input 
-                        type="number" 
-                        step="0.01" 
-                        min="0"
-                        placeholder="e.g. 350.00" 
-                        value={outletPrice} 
-                        onChange={(e) => setOutletPrice(e.target.value)} 
-                      />
-                      <p className="text-xs text-muted-foreground">Default selling price if no variants.</p>
+                {formVariants.length === 0 && (
+                  <div className="grid gap-2 border-t pt-4">
+                    <h3 className="font-semibold text-gray-800">Pricing Information</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label className="text-sm font-medium text-gray-700">Base Price (Rs.)</Label>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          min="0"
+                          placeholder="e.g. 350.00" 
+                          value={outletPrice} 
+                          onChange={(e) => setOutletPrice(e.target.value)} 
+                        />
+                        <p className="text-xs text-muted-foreground">Default selling price if no variants.</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Variants Section */}
                 <div className="grid gap-3 border-t pt-4">
@@ -370,11 +372,19 @@ export default function ProductsPage() {
                         <div key={idx} className="flex items-center gap-2 bg-gray-50 p-2 rounded-md border">
                           <div className="flex-1">
                             <Input 
+                              list="variantNames"
                               placeholder="Name (e.g. Small)" 
                               className="h-8 text-sm"
                               value={variant.name} 
                               onChange={e => updateVariantRow(idx, 'name', e.target.value)} 
                             />
+                            <datalist id="variantNames">
+                              <option value="Small" />
+                              <option value="Medium" />
+                              <option value="Large" />
+                              <option value="Standard" />
+                              <option value="Regular" />
+                            </datalist>
                           </div>
                           <div className="flex-1">
                             <Input 

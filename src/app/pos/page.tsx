@@ -626,7 +626,11 @@ export default function POSPage() {
                       {product.name}
                     </h3>
                     <div className="flex items-center justify-between mt-auto">
-                      <span className="text-sm font-black text-gray-900">Rs. {product.price.toFixed(2)}</span>
+                      {product.hasVariants ? (
+                        <span className="text-xs font-bold text-gray-500">Var. Prices</span>
+                      ) : (
+                        <span className="text-sm font-black text-gray-900">Rs. {product.price.toFixed(2)}</span>
+                      )}
                       {(product.hasVariants || addons.length > 0) && (
                         <span className="bg-gray-100 text-gray-500 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">Custom</span>
                       )}
