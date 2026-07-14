@@ -212,7 +212,7 @@ export default function RawMaterialsPage() {
               </TableRow>
             )}
             {filteredMaterials.map((m) => (
-              <TableRow key={m.id} className="border-b last:border-0 hover:bg-gray-50/50">
+              <TableRow key={m._id} className="border-b last:border-0 hover:bg-gray-50/50">
                 <TableCell className="py-4">
                   <div className="font-semibold text-gray-800 flex items-center gap-2">
                     <Droplets className="h-4 w-4 text-orange-400" />
