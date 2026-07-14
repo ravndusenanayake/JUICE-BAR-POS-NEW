@@ -1,5 +1,5 @@
+import { auth } from '@/auth/auth'
 import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
 
 // Matrix mapping routes to allowed roles
 const RBAC_MATRIX = [
@@ -33,20 +33,20 @@ const RBAC_MATRIX = [
   }
 ]
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+export default auth((req) => {
+  const { pathname } = req.nextUrl
+  const session = req.auth
+  const isLoggedIn = !!session
 
   // 1. Check if trying to access a protected route
   if (pathname.startsWith('/dashboard') || pathname.startsWith('/pos')) {
     
-    // Read userRole cookie
-    const userRoleCookie = request.cookies.get('userRole')
-    const role = userRoleCookie?.value
-
-    // If no role cookie is present, redirect to login
-    if (!role) {
-      return NextResponse.redirect(new URL('/login', request.url))
+    // If not logged in, redirect to login
+    if (!isLoggedIn) {
+      return NextResponse.redirect(new URL('/login', req.url))
     }
+
+    const role = (session?.user as any)?.role
 
     // 2. Perform RBAC checks
     // Find the first rule that matches the current pathname
@@ -54,30 +54,23 @@ export function middleware(request: NextRequest) {
       if (rule.pathPattern.test(pathname)) {
         if (!rule.allowedRoles.includes(role)) {
           // Access Denied: redirect to the default dashboard
-          // If they are on the root dashboard, don't cause infinite redirect
           if (pathname === '/dashboard') return NextResponse.next()
           
-          return NextResponse.redirect(new URL('/dashboard', request.url))
+          return NextResponse.redirect(new URL('/dashboard', req.url))
         }
-        // Match found and role is allowed
         break; 
       }
     }
   }
 
   // If attempting to go to login while already logged in, redirect to dashboard
-  if (pathname === '/login') {
-    const userRoleCookie = request.cookies.get('userRole')
-    if (userRoleCookie?.value) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
+  if (pathname === '/login' && isLoggedIn) {
+    return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
-  // Allow request to proceed
   return NextResponse.next()
-}
+})
 
-// See "Matching Paths" below to learn more
 export const config = {
   matcher: [
     '/dashboard/:path*',
