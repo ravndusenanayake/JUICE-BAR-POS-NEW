@@ -59,6 +59,15 @@ export default function DashboardLayout({
           </Link>
         </div>
         <nav className="flex-1 space-y-1 p-4 overflow-y-auto custom-scrollbar">
+          {/* Quick Access - POS */}
+          {hasAccess(["Super Admin", "Admin", "Branch Manager", "Cashier"]) && (
+            <div className="pb-2">
+              <Link href="/pos" className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-all ${isActive('/pos') ? 'bg-orange-500 text-white font-bold shadow-md' : 'bg-orange-100 text-orange-800 hover:bg-orange-200 font-bold'}`}>
+                <Store className="h-5 w-5" /> POS System
+              </Link>
+            </div>
+          )}
+
           {/* 1. Administration */}
           {hasAccess(["Super Admin", "Admin", "Branch Manager"]) && (
             <>
@@ -150,9 +159,7 @@ export default function DashboardLayout({
               <div className="pt-4 pb-1">
                 <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Sales</p>
               </div>
-              <Link href="/pos" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/pos') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
-                <Store className="h-4 w-4 text-orange-500" /> POS
-              </Link>
+
               <Link href="/dashboard/customers" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/customers') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
                 <Users className="h-4 w-4" /> Customers
               </Link>

@@ -56,10 +56,15 @@ export async function POST(req: Request) {
       for (const item of body.items) {
         // Find Recipe for this product and variant
         // item.productId usually stores SKU or ID, item.variant stores variant name
-        const recipe = await Recipe.findOne({ 
+        let recipe = await Recipe.findOne({ 
           productId: item.productId, 
           variant: item.variant || 'Standard' 
         });
+
+        // Fallback: if specific variant recipe is missing, try to find any recipe for this product
+        if (!recipe) {
+          recipe = await Recipe.findOne({ productId: item.productId });
+        }
 
         if (recipe && recipe.ingredients) {
           for (const ingredient of recipe.ingredients) {
@@ -90,6 +95,32 @@ export async function POST(req: Request) {
                 remarks: `Sale Deduction (Recipe for ${item.name})`
               });
             }
+          }
+        } else {
+          // Direct Product (Non-Recipe), deduct the item itself
+          const itemSku = item.sku || item.productId;
+          const inventory = await BranchInventory.findOne({ 
+            branch: body.branch || 'Colombo 07', 
+            $or: [{ sku: itemSku }, { name: new RegExp('^' + itemSku + '$', 'i') }] 
+          });
+
+          if (inventory) {
+            inventory.quantity -= item.quantity;
+            
+            if (inventory.quantity <= 0) inventory.status = 'Out of Stock';
+            else if (inventory.quantity <= (inventory.minStockLevel || 0)) inventory.status = 'Low Stock';
+            else inventory.status = 'In Stock';
+            
+            await inventory.save();
+            
+            await StockLedger.create({
+              branch: body.branch || 'Colombo 07',
+              sku: inventory.sku,
+              type: 'OUT',
+              quantity: item.quantity,
+              reference: newSale.invoiceNo,
+              remarks: `Sale Deduction (Direct Product ${item.name})`
+            });
           }
         }
       }

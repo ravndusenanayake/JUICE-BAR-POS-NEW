@@ -472,21 +472,8 @@ export default function POSPage() {
       const deductedArray = Object.values(deductions)
       setDeductedMaterials(deductedArray)
       
-      // Send deductions to Inventory API
-      for (const [sku, mat] of Object.entries(deductions)) {
-        await fetch('/api/inventory/adjust', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            branch: user?.branch === "All Branches" ? "Colombo 07" : (user?.branch || "Colombo 07"),
-            sku: sku, // We are using rawMaterialId or productId as SKU in this mock mapping
-            quantity: mat.quantity,
-            type: 'OUT',
-            reference: orderRef,
-            remarks: 'SALE'
-          })
-        }).catch(err => console.error("Failed to deduct stock:", err))
-      }
+      // Deductions are now handled entirely by the backend API (/api/sales) during sale creation
+      // This prevents double-deduction and ensures atomicity.
       
       // 2. Save Sale to Cash Drawer (for shift closing)
       const shiftSales = JSON.parse(localStorage.getItem("shift_sales") || "[]")
