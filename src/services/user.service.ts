@@ -1,5 +1,6 @@
 import connectToDatabase from '@/database/mongoose';
 import User, { IUser } from '@/database/models/User';
+import bcrypt from 'bcryptjs';
 
 export const userService = {
   /**
@@ -25,8 +26,9 @@ export const userService = {
       throw new Error(`User with email "${data.email}" already exists.`);
     }
 
-    // In a real app, hash the password using bcrypt here before saving
-    // data.password = await bcrypt.hash(data.password, 10);
+    if (data.password) {
+      data.password = await bcrypt.hash(data.password, 10);
+    }
 
     const newUser = new User({
       ...data,
@@ -54,8 +56,9 @@ export const userService = {
       data.email = data.email.toLowerCase();
     }
 
-    // If updating password, hash it here
-    // if (data.password) { data.password = await bcrypt.hash(data.password, 10); }
+    if (data.password) {
+      data.password = await bcrypt.hash(data.password, 10);
+    }
 
     const user = await User.findByIdAndUpdate(id, data, { new: true }).lean();
     if (!user) {
