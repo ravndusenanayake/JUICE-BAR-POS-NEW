@@ -173,14 +173,34 @@ export default function POSPage() {
   const [categories, setCategories] = useState<string[]>(["All"])
   const [currentShiftId, setCurrentShiftId] = useState<string | null>(null)
 
-  // --- Initial Setup (Products, Recipes, Customers & Shift) ---
+  // -- Branch Selection State --
+  const [posBranch, setPosBranch] = useState<string | null>(null)
+  const [availableBranches, setAvailableBranches] = useState<any[]>([])
+  const [isBranchSelectOpen, setIsBranchSelectOpen] = useState(false)
+
+  // --- Initial Branch Setup ---
   useEffect(() => {
     if (!user) return;
+    
+    if (user.branch === "All Branches") {
+      setIsBranchSelectOpen(true);
+      fetch('/api/branches')
+        .then(res => res.json())
+        .then(data => setAvailableBranches(data.filter((b: any) => b.status === "Active")))
+        .catch(console.error);
+    } else {
+      setPosBranch(user.branch);
+    }
+  }, [user]);
+
+  // --- Initial Setup (Products, Recipes, Customers & Shift) ---
+  useEffect(() => {
+    if (!user || !posBranch) return;
 
     const fetchData = async () => {
       try {
         // 1. Check Shift from DB
-        const shiftRes = await fetch(`/api/shifts?cashierName=${encodeURIComponent(user.name)}&status=Open`);
+        const shiftRes = await fetch(`/api/shifts?cashierName=${encodeURIComponent(user.name)}&status=Open&branch=${encodeURIComponent(posBranch)}`);
         if (shiftRes.ok) {
           const shifts = await shiftRes.json();
           if (shifts.length > 0) {
@@ -355,7 +375,7 @@ export default function POSPage() {
   const removeFromCart = (cartItemId: string) => {
     const item = cart.find(i => i.id === cartItemId)
     setCart(prev => prev.filter(i => i.id !== cartItemId))
-    if (item) logAudit(user?.name || "System", user?.branch === "All Branches" ? "Colombo 07" : (user?.branch || "Unknown"), `Removed item from cart: ${item.name}`, "Sales")
+    if (item) logAudit(user?.name || "System", posBranch || "Unknown", `Removed item from cart: ${item.name}`, "Sales")
   }
 
   const updateItemNote = (cartItemId: string, note: string) => {
@@ -422,7 +442,7 @@ export default function POSPage() {
       // Save Sale to API
       const salePayload = {
         receiptNumber: orderRef,
-        branch: user?.branch === "All Branches" ? "Colombo 07" : (user?.branch || "Colombo 07"),
+        branch: posBranch || "Colombo 07",
         cashier: user?.name || "System",
         customer: selectedCustomer?.name || "Walk-In Customer",
         subTotal: subtotal,
@@ -503,7 +523,7 @@ export default function POSPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           cashierName: user.name,
-          branch: user.branch || "Colombo 07",
+          branch: posBranch || "Colombo 07",
           openingBalance: parseFloat(openingBalance),
           status: 'Open'
         })
@@ -586,7 +606,7 @@ export default function POSPage() {
             </Button>
             <div className="flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-full border border-orange-100">
               <User className="w-4 h-4 text-orange-600" />
-              <span className="text-sm font-semibold text-orange-800">{user?.name} ({user?.branch === "All Branches" ? "Colombo 07" : user?.branch})</span>
+              <span className="text-sm font-semibold text-orange-800">{user?.name} ({posBranch || "Select Branch"})</span>
             </div>
           </div>
         </header>
@@ -768,6 +788,43 @@ export default function POSPage() {
       </div>
 
       {/* --- MODALS --- */}
+
+      {/* 0. Branch Selection Modal (For Admins) */}
+      <Dialog open={isBranchSelectOpen} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md p-6 bg-white" onInteractOutside={(e: any) => e.preventDefault()} onEscapeKeyDown={(e: any) => e.preventDefault()} showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-gray-900">Select Operating Branch</DialogTitle>
+            <DialogDescription>
+              Please select the branch you are operating in for this session.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+            {availableBranches.length === 0 ? (
+               <p className="text-sm text-gray-500">Loading branches...</p>
+            ) : (
+              availableBranches.map(b => (
+                <button 
+                  key={b._id} 
+                  type="button"
+                  className={`w-full text-left p-4 rounded-xl border-2 transition-all font-bold ${posBranch === b.name ? 'border-orange-500 bg-orange-50 text-orange-700 shadow-sm' : 'border-gray-200 bg-white hover:border-orange-300'}`}
+                  onClick={() => setPosBranch(b.name)}
+                >
+                  {b.name}
+                </button>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button 
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white h-12 text-lg font-bold rounded-xl disabled:opacity-50" 
+              disabled={!posBranch}
+              onClick={() => setIsBranchSelectOpen(false)}
+            >
+              Confirm Branch
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 1. Config Modal (Variants & Smart Add-ons) */}
       <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
@@ -1081,7 +1138,7 @@ export default function POSPage() {
       <div className="hidden print:block absolute top-0 left-0 w-full bg-white z-50 p-8 text-black">
         <div className="text-center mb-6">
           <h1 className="text-3xl font-black mb-1">JUICE BAR POS</h1>
-          <p className="text-lg text-gray-600">{user?.branch === "All Branches" ? "Colombo 07" : (user?.branch || "Colombo 07")}</p>
+          <p className="text-lg text-gray-600">{posBranch || "Colombo 07"}</p>
           <div className="mt-4 flex justify-between text-sm font-bold border-b border-dashed border-gray-400 pb-2">
             <span>Ref: {lastOrderRef}</span>
             <span>{new Date().toLocaleString()}</span>
