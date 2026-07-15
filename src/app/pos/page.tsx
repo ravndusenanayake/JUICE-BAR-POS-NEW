@@ -791,7 +791,7 @@ export default function POSPage() {
 
       {/* 0. Branch Selection Modal (For Admins) */}
       <Dialog open={isBranchSelectOpen} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-md p-6 bg-white" onInteractOutside={(e: any) => e.preventDefault()} onEscapeKeyDown={(e: any) => e.preventDefault()} showCloseButton={false}>
+        <DialogContent className="sm:max-w-md p-6 bg-white" showCloseButton={false}>
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-gray-900">Select Operating Branch</DialogTitle>
             <DialogDescription>
