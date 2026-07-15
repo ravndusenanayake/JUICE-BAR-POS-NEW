@@ -20,7 +20,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         await connectToDatabase();
-        const user = await User.findOne({ email: credentials.email }).lean();
+        const user = await User.findOne({ email: (credentials.email as string).toLowerCase() }).lean();
 
         if (!user || !user.password || user.status !== 'Active') {
           return null;
