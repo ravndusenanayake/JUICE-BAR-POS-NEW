@@ -17,10 +17,11 @@ export interface IPurchaseOrder extends Document {
   branch: string;
   orderDate: Date;
   expectedDate: Date;
-  status: 'Pending' | 'Partially Received' | 'Fully Received' | 'Cancelled';
+  status: 'Awaiting Approval' | 'Approved' | 'Pending' | 'Partially Received' | 'Fully Received' | 'Cancelled';
   totalAmount: number;
   items: IPOItem[];
   notes?: string;
+  approvedBy?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,10 +47,11 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
     branch: { type: String, required: true },
     orderDate: { type: Date, required: true },
     expectedDate: { type: Date, required: true },
-    status: { type: String, enum: ['Pending', 'Partially Received', 'Fully Received', 'Cancelled'], default: 'Pending' },
+    status: { type: String, enum: ['Awaiting Approval', 'Approved', 'Pending', 'Partially Received', 'Fully Received', 'Cancelled'], default: 'Awaiting Approval' },
     totalAmount: { type: Number, required: true },
     items: [POItemSchema],
-    notes: { type: String }
+    notes: { type: String },
+    approvedBy: { type: String }
   },
   { timestamps: true }
 );

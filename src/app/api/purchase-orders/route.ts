@@ -31,6 +31,11 @@ export async function POST(req: Request) {
     if (!body.poNumber) {
       body.poNumber = `PO-${Date.now()}`;
     }
+    
+    // Default to Awaiting Approval
+    if (body.status === 'Pending' || !body.status) {
+      body.status = 'Awaiting Approval';
+    }
 
     const po = new PurchaseOrder(body);
     await po.save();
@@ -46,7 +51,7 @@ export async function PUT(req: Request) {
   try {
     await connectToDatabase();
     const body = await req.json();
-    const { id, items, status } = body;
+    const { id, items, status, approvedBy } = body;
     
     if (!id) return NextResponse.json({ error: 'Missing PO ID' }, { status: 400 });
     
@@ -55,6 +60,7 @@ export async function PUT(req: Request) {
     
     if (items) po.items = items;
     if (status) po.status = status;
+    if (approvedBy) po.approvedBy = approvedBy;
     
     await po.save();
     return NextResponse.json(po, { status: 200 });

@@ -30,7 +30,8 @@ export interface PurchaseOrder {
   expectedDate: string
   items: POItem[]
   totalAmount: number
-  status: "Pending" | "Partially Received" | "Fully Received" | "Cancelled"
+  status: "Awaiting Approval" | "Approved" | "Pending" | "Partially Received" | "Fully Received" | "Cancelled"
+  approvedBy?: string
   createdAt: string
 }
 
@@ -47,7 +48,7 @@ export default function PurchaseOrdersPage() {
   const [suppliers, setSuppliers] = useState<any[]>([])
   
   const [searchQuery, setSearchQuery] = useState("")
-  const [activeTab, setActiveTab] = useState<"ALL" | "PENDING">("ALL")
+  const [activeTab, setActiveTab] = useState<"ALL" | "AWAITING_APPROVAL" | "PENDING">("ALL")
   const [isLoading, setIsLoading] = useState(true)
 
   // Create PO Modal State
@@ -106,9 +107,26 @@ export default function PurchaseOrdersPage() {
 
   const filteredPOs = pos.filter(po => {
     const matchSearch = po.poNumber.toLowerCase().includes(searchQuery.toLowerCase()) || po.supplierName.toLowerCase().includes(searchQuery.toLowerCase())
-    if (activeTab === "PENDING") return matchSearch && po.status === "Pending"
+    if (activeTab === "AWAITING_APPROVAL") return matchSearch && po.status === "Awaiting Approval"
+    if (activeTab === "PENDING") return matchSearch && ["Approved", "Pending", "Partially Received"].includes(po.status)
     return matchSearch
   })
+
+  const handleApprovePO = async (id: string) => {
+    if (!canApprove) return;
+    if(confirm("Are you sure you want to approve this Purchase Order?")) {
+      try {
+        const res = await fetch('/api/purchase-orders', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, status: 'Approved', approvedBy: user?.name || 'Admin' })
+        });
+        if (res.ok) fetchPOs();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  }
 
   // --- Create PO Logic ---
   const handleAddItem = () => {
@@ -160,7 +178,7 @@ export default function PurchaseOrdersPage() {
     const newPO = {
       poNumber, supplierName, branch,
       orderDate: new Date().toISOString(), expectedDate: new Date(expectedDate).toISOString(),
-      items, totalAmount, status: "Pending"
+      items, totalAmount, status: "Awaiting Approval"
     }
 
     try {
@@ -336,6 +354,12 @@ export default function PurchaseOrdersPage() {
               All Orders
             </button>
             <button
+              className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${activeTab === "AWAITING_APPROVAL" ? "border-orange-500 text-orange-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}`}
+              onClick={() => setActiveTab("AWAITING_APPROVAL")}
+            >
+              Awaiting Approval
+            </button>
+            <button
               className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${activeTab === "PENDING" ? "border-orange-500 text-orange-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}`}
               onClick={() => setActiveTab("PENDING")}
             >
@@ -377,7 +401,8 @@ export default function PurchaseOrdersPage() {
             ) : (
               filteredPOs.map((po) => {
                 let statusColor = "bg-gray-100 text-gray-700 border-gray-200"
-                if (po.status === "Pending") statusColor = "bg-blue-100 text-blue-700 border-blue-200"
+                if (po.status === "Awaiting Approval") statusColor = "bg-purple-100 text-purple-700 border-purple-200"
+                if (po.status === "Approved" || po.status === "Pending") statusColor = "bg-blue-100 text-blue-700 border-blue-200"
                 if (po.status === "Partially Received") statusColor = "bg-amber-100 text-amber-700 border-amber-200"
                 if (po.status === "Fully Received") statusColor = "bg-green-100 text-green-700 border-green-200"
 
@@ -403,9 +428,21 @@ export default function PurchaseOrdersPage() {
                       <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-bold border ${statusColor}`}>
                         {po.status}
                       </span>
+                      {po.approvedBy && (
+                        <div className="text-[10px] text-gray-400 mt-1">By: {po.approvedBy}</div>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
-                      {["Pending", "Partially Received"].includes(po.status) && (
+                      {po.status === "Awaiting Approval" && canApprove && (
+                        <Button 
+                          size="sm"
+                          className="bg-purple-600 hover:bg-purple-700 h-8"
+                          onClick={() => handleApprovePO(po._id)}
+                        >
+                          <CheckCircle className="w-4 h-4 mr-1.5" /> Approve
+                        </Button>
+                      )}
+                      {["Approved", "Pending", "Partially Received"].includes(po.status) && (
                         <Button 
                           size="sm"
                           className="bg-green-600 hover:bg-green-700 h-8"
