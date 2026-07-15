@@ -9,22 +9,31 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Search, Edit, Trash2, PowerOff, Power, MapPin } from "lucide-react"
 
-// Dummy Data
-const INITIAL_BRANCHES = [
-  { id: "BR-001", code: "COL-07", name: "Colombo 07", address: "123 Ward Place, Colombo 07", phone: "011-2345678", status: "Active" },
-  { id: "BR-002", code: "NUG-01", name: "Nugegoda", address: "45 High Level Rd, Nugegoda", phone: "011-9876543", status: "Active" },
-  { id: "BR-003", code: "MTL-01", name: "Mount Lavinia", address: "78 Galle Rd, Mount Lavinia", phone: "011-1122334", status: "Inactive" },
-]
-
 export default function BranchesPage() {
-  const [branches, setBranches] = useState(INITIAL_BRANCHES)
+  const [branches, setBranches] = useState<any[]>([])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [maxBranchesLimit, setMaxBranchesLimit] = useState(3) // Default 3
+  const [isLoading, setIsLoading] = useState(true)
+
+  const fetchBranches = async () => {
+    try {
+      const res = await fetch('/api/branches')
+      if (res.ok) {
+        const data = await res.json()
+        setBranches(data)
+      }
+    } catch (err) {
+      console.error("Failed to fetch branches", err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
     const limit = localStorage.getItem("maxBranches")
     if (limit) setMaxBranchesLimit(parseInt(limit))
+    fetchBranches()
   }, [])
   
   // Form State
@@ -39,10 +48,9 @@ export default function BranchesPage() {
     branch.code.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const handleAddBranch = (e: React.FormEvent) => {
+  const handleAddBranch = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Check Limits (SaaS License Logic)
     if (branches.length >= maxBranchesLimit) {
       alert(`License Limit Reached! You can only create up to ${maxBranchesLimit} branches. Please contact the Super Admin to upgrade your plan.`)
       return
@@ -54,7 +62,6 @@ export default function BranchesPage() {
     }
 
     const newBranch = {
-      id: `BR-00${branches.length + 1}`,
       code: code.toUpperCase(),
       name,
       address,
@@ -62,9 +69,24 @@ export default function BranchesPage() {
       status
     }
 
-    setBranches([...branches, newBranch])
-    setIsDialogOpen(false)
-    resetForm()
+    try {
+      const res = await fetch('/api/branches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newBranch)
+      })
+      if (res.ok) {
+        fetchBranches()
+        setIsDialogOpen(false)
+        resetForm()
+      } else {
+        const errorData = await res.json()
+        alert(errorData.error || "Failed to add branch")
+      }
+    } catch (err) {
+      console.error("Failed to add branch", err)
+      alert("An error occurred while adding the branch.")
+    }
   }
 
   const resetForm = () => {
@@ -75,17 +97,32 @@ export default function BranchesPage() {
     setStatus("Active")
   }
 
-  const toggleStatus = (id: string, currentStatus: string) => {
-    setBranches(branches.map(branch => 
-      branch.id === id 
-        ? { ...branch, status: currentStatus === 'Active' ? 'Inactive' : 'Active' }
-        : branch
-    ))
+  const toggleStatus = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active'
+    try {
+      const res = await fetch(`/api/branches/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      })
+      if (res.ok) {
+        fetchBranches()
+      }
+    } catch (err) {
+      console.error("Failed to update status", err)
+    }
   }
 
-  const deleteBranch = (id: string) => {
+  const deleteBranch = async (id: string) => {
     if(confirm("Are you sure you want to delete this branch?")) {
-      setBranches(branches.filter(branch => branch.id !== id))
+      try {
+        const res = await fetch(`/api/branches/${id}`, { method: 'DELETE' })
+        if (res.ok) {
+          fetchBranches()
+        }
+      } catch (err) {
+        console.error("Failed to delete branch", err)
+      }
     }
   }
 
@@ -177,15 +214,20 @@ export default function BranchesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredBranches.length === 0 && (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  Loading branches...
+                </TableCell>
+              </TableRow>
+            ) : filteredBranches.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                   No branches found.
                 </TableCell>
               </TableRow>
-            )}
-            {filteredBranches.map((branch) => (
-              <TableRow key={branch.id}>
+            ) : filteredBranches.map((branch) => (
+              <TableRow key={branch._id || branch.id}>
                 <TableCell>
                   <div className="font-bold flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -210,14 +252,14 @@ export default function BranchesPage() {
                       variant="ghost" 
                       size="icon"
                       title={branch.status === 'Active' ? 'Deactivate' : 'Activate'}
-                      onClick={() => toggleStatus(branch.id, branch.status)}
+                      onClick={() => toggleStatus(branch._id || branch.id, branch.status)}
                     >
                       {branch.status === 'Active' ? <PowerOff className="h-4 w-4 text-orange-500" /> : <Power className="h-4 w-4 text-green-500" />}
                     </Button>
                     <Button variant="ghost" size="icon" title="Edit">
                       <Edit className="h-4 w-4 text-blue-500" />
                     </Button>
-                    <Button variant="ghost" size="icon" title="Delete" onClick={() => deleteBranch(branch.id)}>
+                    <Button variant="ghost" size="icon" title="Delete" onClick={() => deleteBranch(branch._id || branch.id)}>
                       <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>
                   </div>

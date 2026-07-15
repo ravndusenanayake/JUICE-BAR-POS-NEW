@@ -35,12 +35,14 @@ export async function GET(req: Request) {
       if (invRecord) {
         return {
            ...invRecord,
+           itemId: item._id,
            name: item.name,
            minStockLevel: minLevel
         };
       }
       return {
         _id: 'temp-' + item._id,
+        itemId: item._id,
         sku: item.sku,
         name: item.name,
         category: item.category || 'General',

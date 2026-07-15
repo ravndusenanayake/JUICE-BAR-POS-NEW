@@ -211,22 +211,59 @@ export default function POSPage() {
           }
         }
 
-        // 2. Load Products, Variants, Customers & Recipes
-        const [prodRes, varRes, custRes, recRes] = await Promise.all([
+        // 2. Load Products, Variants, Customers, Recipes & Branch Inventory
+        const [prodRes, varRes, custRes, recRes, invRes] = await Promise.all([
           fetch('/api/products'),
           fetch('/api/product-variants'),
           fetch('/api/customers'),
-          fetch('/api/recipes')
+          fetch('/api/recipes'),
+          fetch(`/api/branch-inventory?branch=${encodeURIComponent(posBranch)}`)
         ]);
 
         if (prodRes.ok) {
           const data = await prodRes.json();
-          let variantsData = [];
+          let variantsData: any[] = [];
           if (varRes.ok) {
              variantsData = await varRes.json();
           }
+          
+          let recipesData: any[] = [];
+          if (recRes.ok) {
+             recipesData = await recRes.json();
+             setRecipes(recipesData);
+          }
+          
+          let invMapById = new Map<string, number>();
+          let invMapBySku = new Map<string, number>();
+          if (invRes.ok) {
+             const invData = await invRes.json();
+             invData.forEach((inv: any) => {
+                if (inv.itemId) invMapById.set(inv.itemId.toString(), inv.quantity || 0);
+                if (inv.sku) invMapBySku.set(inv.sku, inv.quantity || 0);
+             });
+          }
 
           const activeProducts = data.filter((p: any) => p.status === 'Active').map((p: any) => {
+            let isOutOfStock = false;
+            
+            if (p.type === 'Finished Good') {
+              // Direct check against inventory SKU
+              const qty = invMapBySku.get(p.sku) || 0;
+              if (qty <= 0) isOutOfStock = true;
+            } else {
+              // Check recipe
+              const recipe = recipesData.find((r: any) => r.productId === p._id && r.variant === 'Default');
+              if (recipe && recipe.ingredients && recipe.ingredients.length > 0) {
+                for (const ing of recipe.ingredients) {
+                   const availableQty = invMapBySku.get(ing.rawMaterialId) || 0;
+                   if (availableQty < ing.quantity) {
+                      isOutOfStock = true;
+                      break;
+                   }
+                }
+              }
+            }
+
             const productVariants = variantsData
               .filter((v: any) => {
                 const variantProdId = typeof v.productId === 'object' && v.productId !== null ? v.productId._id : v.productId;
@@ -246,7 +283,8 @@ export default function POSPage() {
               color: getCategoryColor(p.category),
               addons: uniqueAddons,
               hasVariants: productVariants.length > 0,
-              variants: productVariants.length > 0 ? productVariants : null
+              variants: productVariants.length > 0 ? productVariants : null,
+              isOutOfStock
             };
           });
           setProducts(activeProducts);
@@ -261,16 +299,12 @@ export default function POSPage() {
           if (walkIn) setSelectedCustomer(walkIn);
           else if (data.length > 0) setSelectedCustomer(data[0]);
         }
-        if (recRes.ok) {
-          const data = await recRes.json();
-          setRecipes(data);
-        }
       } catch (err) {
         console.error("Failed to load POS data", err);
       }
     };
     fetchData();
-  }, [user])
+  }, [user, posBranch])
 
   // --- Customer Management ---
   const handleAddCustomer = async (e: React.FormEvent) => {
@@ -633,16 +667,23 @@ export default function POSPage() {
               const addons = product.addons || []
               return (
                 <button 
-                  key={product.id} onClick={() => handleProductClick(product)}
-                  className={`flex flex-col text-left rounded-2xl border-2 overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1 group bg-white ${product.color.replace('bg-', 'border-').split(' ')[2] || 'border-gray-100'}`}
+                  key={product.id} 
+                  onClick={() => !product.isOutOfStock && handleProductClick(product)}
+                  disabled={product.isOutOfStock}
+                  className={`relative flex flex-col text-left rounded-2xl border-2 overflow-hidden transition-all duration-200 bg-white ${product.isOutOfStock ? 'opacity-50 grayscale cursor-not-allowed border-gray-200' : `hover:shadow-lg hover:-translate-y-1 group ${product.color.replace('bg-', 'border-').split(' ')[2] || 'border-gray-100'}`}`}
                 >
+                  {product.isOutOfStock && (
+                    <div className="absolute inset-0 bg-white/40 z-10 flex items-center justify-center backdrop-blur-[1px]">
+                      <span className="bg-red-500 text-white font-black text-xs px-3 py-1 rounded-full uppercase tracking-widest rotate-[-12deg] shadow-lg border-2 border-white">Out of Stock</span>
+                    </div>
+                  )}
                   <div className={`h-32 w-full flex items-center justify-center ${product.color.split(' ')[0]} bg-opacity-30`}>
                     <span className={`text-4xl font-black opacity-20 ${product.color.split(' ')[1]}`}>
                       {product.name.substring(0,2).toUpperCase()}
                     </span>
                   </div>
                   <div className="p-4 flex-1 flex flex-col justify-between w-full">
-                    <h3 className="font-bold text-gray-800 leading-tight mb-2 group-hover:text-orange-600 transition-colors">
+                    <h3 className={`font-bold leading-tight mb-2 transition-colors ${product.isOutOfStock ? 'text-gray-500' : 'text-gray-800 group-hover:text-orange-600'}`}>
                       {product.name}
                     </h3>
                     <div className="flex items-center justify-between mt-auto">
@@ -1141,7 +1182,7 @@ export default function POSPage() {
           <p className="text-lg text-gray-600">{posBranch || "Colombo 07"}</p>
           <div className="mt-4 flex justify-between text-sm font-bold border-b border-dashed border-gray-400 pb-2">
             <span>Ref: {lastOrderRef}</span>
-            <span>{new Date().toLocaleString()}</span>
+            <span suppressHydrationWarning>{new Date().toLocaleString()}</span>
           </div>
           <div className="flex justify-between text-sm font-bold border-b border-dashed border-gray-400 pb-2 mt-2">
             <span>Customer: {saleDetails?.customer || "Walk-In Customer"}</span>
