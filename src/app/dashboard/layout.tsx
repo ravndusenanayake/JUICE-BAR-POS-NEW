@@ -30,6 +30,7 @@ export default function DashboardLayout({
   const pathname = usePathname()
   const [isMounted, setIsMounted] = useState(false)
   const [isReportsOpen, setIsReportsOpen] = useState(false)
+  const [isGrnOpen, setIsGrnOpen] = useState(false)
 
   // Protect Dashboard Routes
   useEffect(() => {
@@ -144,9 +145,29 @@ export default function DashboardLayout({
               <Link href="/dashboard/purchase-orders" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/purchase-orders') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
                 <Truck className="h-4 w-4" /> Purchase Orders
               </Link>
-              <Link href="/dashboard/grn" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/grn') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
-                <FileText className="h-4 w-4" /> GRN
-              </Link>
+              
+              <div className="pt-2">
+                <button 
+                  onClick={() => setIsGrnOpen(!isGrnOpen)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${isGrnOpen || pathname.includes('/dashboard/grn') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}
+                >
+                  <FileText className="h-4 w-4" /> 
+                  <span className="flex-1 text-left">GRN</span>
+                  {isGrnOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+                
+                {(isGrnOpen || pathname.includes('/dashboard/grn')) && (
+                  <div className="mt-1 space-y-1">
+                    <Link href="/dashboard/grn/create" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all text-sm pl-9 ${isActive('/dashboard/grn/create') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                      Create GRN
+                    </Link>
+                    <Link href="/dashboard/grn/all" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all text-sm pl-9 ${isActive('/dashboard/grn/all') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                      All GRN
+                    </Link>
+                  </div>
+                )}
+              </div>
+
               <Link href="/dashboard/stock-transfers" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/stock-transfers') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
                 <ArrowRightLeft className="h-4 w-4" /> Stock Transfers
               </Link>

@@ -27,6 +27,13 @@ export async function POST(req: Request) {
     await connectToDatabase();
     const body = await req.json();
     
+    // Always generate a unique GRN Number server-side to prevent duplicate keys
+    body.grnNumber = `GRN-${Date.now().toString().slice(-7)}${Math.floor(Math.random() * 100)}`;
+    
+    // Default payment status
+    body.paidAmount = 0;
+    body.paymentStatus = 'Unpaid';
+    
     const grn = new GRN(body);
     await grn.save();
     

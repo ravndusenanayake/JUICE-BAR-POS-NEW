@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/context/AuthContext"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -64,12 +65,7 @@ export default function PurchaseOrdersPage() {
   const [rawMaterials, setRawMaterials] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
 
-  // GRN Modal State
-  const [isGrnOpen, setIsGrnOpen] = useState(false)
-  const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null)
-  const [grnItems, setGrnItems] = useState<{ id: string, receivedQty: string, damagedQty: string }[]>([])
-  const [receivedBy, setReceivedBy] = useState("")
-  const [grnNotes, setGrnNotes] = useState("")
+  // GRN flow is now handled in /dashboard/grn/create
 
   useEffect(() => {
     fetchPOs()
@@ -201,133 +197,10 @@ export default function PurchaseOrdersPage() {
     }
   }
 
-  // --- GRN Logic ---
-  const openGrnModal = (po: PurchaseOrder) => {
-    setSelectedPO(po)
-    setReceivedBy(user?.name || "")
-    setGrnNotes("")
-    
-    setGrnItems(po.items.map(item => {
-      const remainingQty = item.quantity - (item.receivedQuantity || 0)
-      return {
-        id: item.id,
-        receivedQty: remainingQty > 0 ? remainingQty.toString() : "0",
-        damagedQty: "0"
-      }
-    }))
-    setIsGrnOpen(true)
-  }
+  const router = useRouter(); // Need to import this at the top
 
-  const updateGrnItem = (id: string, field: 'receivedQty' | 'damagedQty', value: string) => {
-    setGrnItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item))
-  }
-
-  const handleSubmitGRN = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!selectedPO) return
-
-    const grnNumber = `GRN-${new Date().getFullYear()}-${Date.now().toString().slice(-5)}`
-    let isCompletelyReceived = true
-    let atLeastOneItemReceived = false
-
-    const grnDocument = {
-      grnNumber,
-      poNumber: selectedPO.poNumber,
-      supplierName: selectedPO.supplierName,
-      branch: selectedPO.branch,
-      receivedDate: new Date().toISOString(),
-      receivedBy,
-      notes: grnNotes,
-      items: [] as any[]
-    }
-
-    const updatedPOItems = selectedPO.items.map(poItem => {
-      const grnState = grnItems.find(g => g.id === poItem.id)
-      if (!grnState) return poItem
-
-      const newlyReceived = parseFloat(grnState.receivedQty) || 0
-      const newlyDamaged = parseFloat(grnState.damagedQty) || 0
-      const totalNewlyProcessed = newlyReceived + newlyDamaged
-      const prevReceived = poItem.receivedQuantity || 0
-      const newTotalReceived = prevReceived + totalNewlyProcessed
-
-      if (totalNewlyProcessed > 0) {
-        atLeastOneItemReceived = true
-        grnDocument.items.push({
-          itemName: poItem.name,
-          unit: poItem.unit,
-          orderedQty: poItem.quantity,
-          receivedGoodQty: newlyReceived,
-          damagedQty: newlyDamaged
-        })
-      }
-
-      if (newTotalReceived < poItem.quantity) {
-        isCompletelyReceived = false
-      }
-
-      return { ...poItem, receivedQuantity: newTotalReceived }
-    })
-
-    if (!atLeastOneItemReceived) {
-      alert("Please enter at least some received quantity.")
-      return
-    }
-
-    const newPOStatus = isCompletelyReceived ? "Fully Received" : "Partially Received"
-    
-    try {
-      // 1. Update PO
-      await fetch('/api/purchase-orders', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: selectedPO._id, status: newPOStatus, items: updatedPOItems })
-      })
-
-      // 2. Save GRN
-      await fetch('/api/grn', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(grnDocument)
-      })
-
-      // 3. Inject into Stock Inventory via API
-      for (const poItem of selectedPO.items) {
-        const grnState = grnItems.find(g => g.id === poItem.id)
-        if (!grnState) continue
-        
-        const goodQty = parseFloat(grnState.receivedQty) || 0
-        if (goodQty <= 0) continue
-
-        // Convert PO bulk units (Kg, L) back to Inventory base units (g, ml) if needed
-        let inventoryQty = goodQty;
-        const originalRm = rawMaterials.find(r => r.sku === poItem.id);
-        if (originalRm) {
-          if (poItem.unit === 'Kg' && originalRm.unit === 'g') inventoryQty = goodQty * 1000;
-          if (poItem.unit === 'L' && originalRm.unit === 'ml') inventoryQty = goodQty * 1000;
-        }
-
-        // Inventory adjustment using the actual SKU stored in poItem.id
-        await fetch('/api/inventory/adjust', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            branch: selectedPO.branch,
-            sku: poItem.id, // Now poItem.id holds the true SKU!
-            quantity: inventoryQty,
-            type: 'IN', // GRN
-            reference: grnNumber,
-            remarks: 'GRN Received'
-          })
-        }).catch(err => console.error("Failed to adjust inventory for GRN", err))
-      }
-
-      fetchPOs()
-      setIsGrnOpen(false)
-    } catch (e) {
-      console.error(e)
-      alert("Failed to process GRN")
-    }
+  const handleReceiveGRN = (poId: string) => {
+    router.push(`/dashboard/grn/create?poId=${poId}`)
   }
 
   return (
@@ -446,7 +319,7 @@ export default function PurchaseOrdersPage() {
                         <Button 
                           size="sm"
                           className="bg-green-600 hover:bg-green-700 h-8"
-                          onClick={() => openGrnModal(po)}
+                          onClick={() => handleReceiveGRN(po._id)}
                         >
                           <PackageOpen className="w-4 h-4 mr-1.5" /> Receive GRN
                         </Button>
@@ -585,101 +458,7 @@ export default function PurchaseOrdersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* --- GRN MODAL --- */}
-      <Dialog open={isGrnOpen} onOpenChange={setIsGrnOpen}>
-        <DialogContent className="sm:max-w-[750px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <PackageOpen className="w-5 h-5 text-green-600" /> Receive Goods (GRN)
-            </DialogTitle>
-            <DialogDescription>
-              Processing delivery for <strong className="text-gray-900">{selectedPO?.poNumber}</strong> from {selectedPO?.supplierName}.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSubmitGRN} className="space-y-6 pt-4">
-            <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border">
-              <div>
-                <Label className="text-xs text-gray-500">Destination Branch</Label>
-                <div className="font-bold text-gray-900">{selectedPO?.branch}</div>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Received By</Label>
-                <div className="relative">
-                  <User className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input 
-                    value={receivedBy} onChange={e => setReceivedBy(e.target.value)} required
-                    className="pl-8 h-9 text-sm" placeholder="Staff Name"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader className="bg-gray-100">
-                  <TableRow>
-                    <TableHead className="py-3 text-xs font-bold text-gray-700">Item</TableHead>
-                    <TableHead className="py-3 text-xs font-bold text-gray-700 text-center">Ordered</TableHead>
-                    <TableHead className="py-3 text-xs font-bold text-gray-700 text-center">Prev. Received</TableHead>
-                    <TableHead className="py-3 text-xs font-bold text-blue-700 bg-blue-50/50">Receive Good Qty</TableHead>
-                    <TableHead className="py-3 text-xs font-bold text-red-700 bg-red-50/50">Receive Damaged</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {selectedPO?.items.map(item => {
-                    const remainingQty = item.quantity - (item.receivedQuantity || 0)
-                    const isFullyReceived = remainingQty <= 0
-                    const grnState = grnItems.find(g => g.id === item.id)
-
-                    return (
-                      <TableRow key={item.id} className={isFullyReceived ? "bg-gray-50/50 opacity-60" : ""}>
-                        <TableCell className="py-3">
-                          <div className="font-medium text-sm">{item.name}</div>
-                          <div className="text-xs text-gray-500">Unit: {item.unit}</div>
-                        </TableCell>
-                        <TableCell className="text-center font-mono text-sm">{item.quantity}</TableCell>
-                        <TableCell className="text-center font-mono text-sm text-gray-600">{item.receivedQuantity || 0}</TableCell>
-                        <TableCell className="bg-blue-50/20">
-                          <Input 
-                            type="number" min="0" step="0.01" 
-                            disabled={isFullyReceived}
-                            value={grnState?.receivedQty || ""}
-                            onChange={e => updateGrnItem(item.id, 'receivedQty', e.target.value)}
-                            className="w-24 mx-auto text-center h-8 font-mono border-blue-200 focus-visible:ring-blue-500"
-                          />
-                        </TableCell>
-                        <TableCell className="bg-red-50/20">
-                          <Input 
-                            type="number" min="0" step="0.01"
-                            disabled={isFullyReceived}
-                            value={grnState?.damagedQty || ""}
-                            onChange={e => updateGrnItem(item.id, 'damagedQty', e.target.value)}
-                            className="w-24 mx-auto text-center h-8 font-mono border-red-200 focus-visible:ring-red-500"
-                          />
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Delivery Notes / Invoice Number</Label>
-              <Input 
-                value={grnNotes} onChange={e => setGrnNotes(e.target.value)}
-                placeholder="e.g. INV-10023, Vehicle No: WP-2342"
-              />
-            </div>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsGrnOpen(false)}>Cancel</Button>
-              <Button type="submit" className="bg-green-600 hover:bg-green-700">Confirm & Add to Stock</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* GRN Modal removed, now handled on dedicated page */}
     </div>
   )
 }
