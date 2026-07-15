@@ -252,7 +252,7 @@ function CreateGRNContent() {
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-gray-600">Purchase Orders *</Label>
                 <p className="text-[10px] text-gray-500 leading-tight mb-1">(Pending and Approved POs available for GRN creation)</p>
-                <Select value={selectedPOId} onValueChange={setSelectedPOId}>
+                <Select value={selectedPOId} onValueChange={(val) => setSelectedPOId(val || "")}>
                   <SelectTrigger className="border-gray-300 shadow-sm">
                     <SelectValue placeholder="Select purchase order" />
                   </SelectTrigger>

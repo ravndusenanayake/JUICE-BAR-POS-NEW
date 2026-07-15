@@ -371,7 +371,7 @@ export default function PurchaseOrdersPage() {
               <div className="grid grid-cols-12 gap-2 items-end">
                 <div className="col-span-2 space-y-1">
                   <Label className="text-xs">Type</Label>
-                  <Select value={itemType} onValueChange={(v: "Raw Material" | "Product") => { setItemType(v); setSelectedItemSku(""); }}>
+                  <Select value={itemType} onValueChange={(v) => { if(v) { setItemType(v as "Raw Material" | "Product"); setSelectedItemSku(""); } }}>
                     <SelectTrigger className="px-2 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Raw Material">Raw Material</SelectItem>
@@ -381,7 +381,7 @@ export default function PurchaseOrdersPage() {
                 </div>
                 <div className="col-span-4 space-y-1">
                   <Label className="text-xs">Select Item</Label>
-                  <Select value={selectedItemSku} onValueChange={setSelectedItemSku}>
+                  <Select value={selectedItemSku} onValueChange={(val) => setSelectedItemSku(val || "")}>
                     <SelectTrigger className="text-xs truncate"><SelectValue placeholder="Choose..." /></SelectTrigger>
                     <SelectContent>
                       {itemType === "Raw Material" 
