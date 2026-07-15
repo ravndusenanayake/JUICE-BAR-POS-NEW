@@ -126,11 +126,15 @@ export default function PurchaseOrdersPage() {
 
     if (!itemInfo) return
 
+    let poUnit = itemInfo.unit || "Nos";
+    if (poUnit === 'g') poUnit = 'Kg';
+    if (poUnit === 'ml') poUnit = 'L';
+
     const newItem: POItem = {
       id: itemInfo.sku, 
       name: itemInfo.name, 
       category: itemInfo.category || "General", 
-      unit: itemInfo.unit || "Nos",
+      unit: poUnit,
       quantity: qty, 
       unitPrice: cost, 
       totalPrice: qty * cost,
@@ -277,6 +281,14 @@ export default function PurchaseOrdersPage() {
         const goodQty = parseFloat(grnState.receivedQty) || 0
         if (goodQty <= 0) continue
 
+        // Convert PO bulk units (Kg, L) back to Inventory base units (g, ml) if needed
+        let inventoryQty = goodQty;
+        const originalRm = rawMaterials.find(r => r.sku === poItem.id);
+        if (originalRm) {
+          if (poItem.unit === 'Kg' && originalRm.unit === 'g') inventoryQty = goodQty * 1000;
+          if (poItem.unit === 'L' && originalRm.unit === 'ml') inventoryQty = goodQty * 1000;
+        }
+
         // Inventory adjustment using the actual SKU stored in poItem.id
         await fetch('/api/inventory/adjust', {
           method: 'POST',
@@ -284,7 +296,7 @@ export default function PurchaseOrdersPage() {
           body: JSON.stringify({
             branch: selectedPO.branch,
             sku: poItem.id, // Now poItem.id holds the true SKU!
-            quantity: goodQty,
+            quantity: inventoryQty,
             type: 'IN', // GRN
             reference: grnNumber,
             remarks: 'GRN Received'
@@ -463,7 +475,12 @@ export default function PurchaseOrdersPage() {
                     <SelectTrigger className="text-xs truncate"><SelectValue placeholder="Choose..." /></SelectTrigger>
                     <SelectContent>
                       {itemType === "Raw Material" 
-                        ? rawMaterials.map(rm => <SelectItem key={rm.sku} value={rm.sku}>{rm.name} ({rm.unit})</SelectItem>)
+                        ? rawMaterials.map(rm => {
+                            let displayUnit = rm.unit;
+                            if (displayUnit === 'g') displayUnit = 'Kg';
+                            if (displayUnit === 'ml') displayUnit = 'L';
+                            return <SelectItem key={rm.sku} value={rm.sku}>{rm.name} ({displayUnit})</SelectItem>
+                          })
                         : products.map(p => <SelectItem key={p.sku} value={p.sku}>{p.name}</SelectItem>)
                       }
                     </SelectContent>
