@@ -1,39 +1,83 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useAuth } from "@/context/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Settings, Save, AlertCircle } from "lucide-react"
+import { Settings, Save, AlertCircle, AlertTriangle } from "lucide-react"
 
 export default function SystemSettingsPage() {
+  const { role } = useAuth()
   const [maxBranches, setMaxBranches] = useState("3")
   const [maxUsers, setMaxUsers] = useState("10")
   const [isSaved, setIsSaved] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Load from localStorage if available (Mocking DB)
   useEffect(() => {
-    const storedBranches = localStorage.getItem("maxBranches")
-    const storedUsers = localStorage.getItem("maxUsers")
-    if (storedBranches) setMaxBranches(storedBranches)
-    if (storedUsers) setMaxUsers(storedUsers)
-  }, [])
+    if (role === "Super Admin") {
+      fetchSettings()
+    }
+  }, [role])
 
-  const handleSave = (e: React.FormEvent) => {
+  const fetchSettings = async () => {
+    setIsLoading(true)
+    try {
+      const res = await fetch('/api/settings')
+      if (res.ok) {
+        const data = await res.json()
+        setMaxBranches(data.maxBranches?.toString() || "3")
+        setMaxUsers(data.maxUsers?.toString() || "10")
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validate
     if (parseInt(maxBranches) < 1 || parseInt(maxUsers) < 1) {
       alert("Limits must be at least 1")
       return
     }
 
-    // Save to localStorage (Mocking DB)
-    localStorage.setItem("maxBranches", maxBranches)
-    localStorage.setItem("maxUsers", maxUsers)
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          maxBranches: parseInt(maxBranches),
+          maxUsers: parseInt(maxUsers)
+        })
+      })
 
-    setIsSaved(true)
-    setTimeout(() => setIsSaved(false), 3000)
+      if (res.ok) {
+        setIsSaved(true)
+        setTimeout(() => setIsSaved(false), 3000)
+      } else {
+        alert("Failed to save settings")
+      }
+    } catch (e) {
+      console.error(e)
+      alert("An error occurred while saving")
+    }
+  }
+
+  if (role !== "Super Admin") {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
+        <AlertTriangle className="w-12 h-12 text-red-500" />
+        <h2 className="text-2xl font-bold text-gray-900">Access Denied</h2>
+        <p className="text-gray-500">Only Super Admins can access System & Licensing configurations.</p>
+      </div>
+    )
+  }
+
+  if (isLoading) {
+    return <div className="p-6">Loading system settings...</div>
   }
 
   return (
