@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/database/mongoose';
-import GRN from '@/database/models/GRN';
+import GRN from '@/database/models/Grn';
 
 export async function POST(req: Request) {
   try {
