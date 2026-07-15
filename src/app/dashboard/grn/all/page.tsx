@@ -241,7 +241,7 @@ export default function AllGRNPage() {
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-semibold">Payment Method *</Label>
-                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <Select value={paymentMethod} onValueChange={(val) => setPaymentMethod(val || 'Cash')}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Cash">Cash</SelectItem>
