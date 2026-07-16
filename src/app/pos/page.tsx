@@ -246,31 +246,61 @@ export default function POSPage() {
           const activeProducts = data.filter((p: any) => p.status === 'Active').map((p: any) => {
             let isOutOfStock = false;
             
-            if (p.type === 'Finished Good') {
-              // Direct check against inventory SKU
-              const qty = invMapBySku.get(p.sku) || 0;
-              if (qty <= 0) isOutOfStock = true;
-            } else {
-              // Check recipe
-              const recipe = recipesData.find((r: any) => r.productId === p._id && r.variant === 'Default');
-              if (recipe && recipe.ingredients && recipe.ingredients.length > 0) {
-                for (const ing of recipe.ingredients) {
-                   const availableQty = invMapBySku.get(ing.rawMaterialId) || 0;
-                   if (availableQty < ing.quantity) {
-                      isOutOfStock = true;
-                      break;
-                   }
-                }
-              }
-            }
-
             const productVariants = variantsData
               .filter((v: any) => {
                 const variantProdId = typeof v.productId === 'object' && v.productId !== null ? v.productId._id : v.productId;
                 return variantProdId === p._id && v.status === 'Active';
               })
-              .map((v: any) => ({ name: v.name, price: v.sellingPrice }));
+              .map((v: any) => {
+                let vOutOfStock = false;
+                if (p.type !== 'Finished Good') {
+                   const vRecipe = recipesData.find((r: any) => r.productId === p._id && r.variant === v.name);
+                   if (vRecipe && vRecipe.ingredients && vRecipe.ingredients.length > 0) {
+                     for (const ing of vRecipe.ingredients) {
+                        const availableQty = invMapBySku.get(ing.rawMaterialId) || 0;
+                        if (availableQty < ing.quantity) {
+                           vOutOfStock = true;
+                           break;
+                        }
+                     }
+                   }
+                }
+                return { name: v.name, price: v.sellingPrice, isOutOfStock: vOutOfStock };
+              });
               
+            if (p.type === 'Finished Good') {
+              const qty = invMapBySku.get(p.sku) || 0;
+              if (qty <= 0) isOutOfStock = true;
+            } else {
+              if (productVariants.length > 0) {
+                 isOutOfStock = productVariants.every((v: any) => v.isOutOfStock);
+              } else {
+                 const productRecipes = recipesData.filter((r: any) => r.productId === p._id);
+                 if (productRecipes.length > 0) {
+                    let canMakeAtLeastOne = false;
+                    for (const recipe of productRecipes) {
+                       let canMakeThis = true;
+                       if (recipe.ingredients && recipe.ingredients.length > 0) {
+                          for (const ing of recipe.ingredients) {
+                             const qty = invMapBySku.get(ing.rawMaterialId) || 0;
+                             if (qty < ing.quantity) {
+                                canMakeThis = false;
+                                break;
+                             }
+                          }
+                       } else {
+                          canMakeThis = false;
+                       }
+                       if (canMakeThis) {
+                          canMakeAtLeastOne = true;
+                          break;
+                       }
+                    }
+                    if (!canMakeAtLeastOne) isOutOfStock = true;
+                 }
+              }
+            }
+
             const rawAddons = [...(p.addons || []), ...(CATEGORY_ADDONS[p.category || 'General'] || [])];
             const uniqueAddons = Array.from(new Map(rawAddons.map(a => [a.name, a])).values());
 
@@ -886,10 +916,13 @@ export default function POSPage() {
                     </Label>
                     <div className="grid grid-cols-2 gap-3">
                       {selectedProduct.variants.map((v: any) => (
-                        <button key={v.name} type="button" onClick={() => setSelectedVariant(v)}
-                          className={`p-4 rounded-xl border-2 text-left transition-all ${selectedVariant?.name === v.name ? 'border-orange-500 bg-orange-50 shadow-md ring-1 ring-orange-500' : 'border-gray-200 bg-white hover:border-orange-200'}`}
+                        <button key={v.name} type="button" onClick={() => !v.isOutOfStock && setSelectedVariant(v)} disabled={v.isOutOfStock}
+                          className={`p-4 rounded-xl border-2 text-left transition-all ${v.isOutOfStock ? 'opacity-50 cursor-not-allowed bg-gray-50 border-gray-200' : selectedVariant?.name === v.name ? 'border-orange-500 bg-orange-50 shadow-md ring-1 ring-orange-500' : 'border-gray-200 bg-white hover:border-orange-200'}`}
                         >
-                          <div className="font-bold text-gray-900">{v.name}</div>
+                          <div className="flex justify-between items-start">
+                            <div className="font-bold text-gray-900">{v.name}</div>
+                            {v.isOutOfStock && <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded border border-red-100">Out of Stock</span>}
+                          </div>
                           <div className="text-sm font-medium text-orange-600 mt-1">Rs. {v.price.toFixed(2)}</div>
                         </button>
                       ))}
