@@ -1,4 +1,5 @@
 "use client"
+import { toast } from 'sonner';
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -129,13 +130,13 @@ export default function ProductsPage() {
   }
 
   const saveProduct = async () => {
-    if(!name || !category) return alert("Please fill Product Name and Category")
+    if(!name || !category) return toast.error("Please fill Product Name and Category")
 
     // Validate variants if Made to Order
     if (type === "Made to Order") {
       for (let v of formVariants) {
         if (!v.name || !v.sellingPrice) {
-          return alert("Please fill all Variant names and prices, or remove empty rows.")
+          return toast.error("Please fill all Variant names and prices, or remove empty rows.")
         }
       }
     }
@@ -207,7 +208,7 @@ export default function ProductsPage() {
       resetForm()
     } catch (error: any) {
       console.error("Error saving product:", error)
-      alert(error.message || "Error saving product")
+      toast.error(error.message || "Error saving product")
     } finally {
       setIsSaving(false)
     }
@@ -261,7 +262,7 @@ export default function ProductsPage() {
         if (res.ok) {
           fetchData()
         } else {
-          alert("Failed to archive product")
+          toast.error("Failed to archive product")
         }
       } catch (err) {
         console.error(err)
@@ -276,7 +277,7 @@ export default function ProductsPage() {
         if (res.ok) {
           fetchData()
         } else {
-          alert("Failed to delete product")
+          toast.error("Failed to delete product")
         }
       } catch (err) {
         console.error(err)

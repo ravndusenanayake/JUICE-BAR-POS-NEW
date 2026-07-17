@@ -1,4 +1,5 @@
 "use client"
+import { toast } from 'sonner';
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/context/AuthContext"
@@ -63,7 +64,7 @@ export default function WastagePage() {
     e.preventDefault()
     
     if (!selectedItemName || !quantity || !reason) {
-      alert("Please fill all fields")
+      toast.error("Please fill all fields")
       return
     }
 
@@ -72,12 +73,12 @@ export default function WastagePage() {
 
     const invItem = inventory.find(i => i.name === selectedItemName)
     if (!invItem) {
-      alert("Item not found in inventory")
+      toast.error("Item not found in inventory")
       return
     }
 
     if (invItem.quantity < qty) {
-      alert(`Not enough stock to record this wastage. Available: ${invItem.quantity} ${invItem.unit}`)
+      toast.error(`Not enough stock to record this wastage. Available: ${invItem.quantity} ${invItem.unit}`)
       return
     }
 
@@ -116,11 +117,11 @@ export default function WastagePage() {
         setSelectedItemName("")
         setQuantity("")
       } else {
-        alert("Failed to save wastage")
+        toast.error("Failed to save wastage")
       }
     } catch (e) {
       console.error(e)
-      alert("An error occurred")
+      toast.error("An error occurred")
     }
   }
 

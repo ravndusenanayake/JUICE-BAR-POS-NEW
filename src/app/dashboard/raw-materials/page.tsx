@@ -1,4 +1,5 @@
 "use client"
+import { toast } from 'sonner';
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -55,7 +56,7 @@ export default function RawMaterialsPage() {
     e.preventDefault()
     
     if (materials.some(m => m.name.toLowerCase() === name.toLowerCase())) {
-      alert("A raw material with this name already exists!")
+      toast.error("A raw material with this name already exists!")
       return
     }
 
@@ -83,7 +84,7 @@ export default function RawMaterialsPage() {
         setIsDialogOpen(false)
         resetForm()
       } else {
-        alert("Failed to add raw material")
+        toast.error("Failed to add raw material")
       }
     } catch (err) {
       console.error(err)

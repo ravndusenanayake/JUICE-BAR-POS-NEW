@@ -1,4 +1,5 @@
 "use client"
+import { toast } from 'sonner';
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -7,7 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Edit, Trash2, PowerOff, Power, MapPin } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { Plus, Search, Edit, Trash2, MapPin } from "lucide-react"
 
 export default function BranchesPage() {
   const [branches, setBranches] = useState<any[]>([])
@@ -52,12 +54,12 @@ export default function BranchesPage() {
     e.preventDefault()
     
     if (branches.length >= maxBranchesLimit) {
-      alert(`License Limit Reached! You can only create up to ${maxBranchesLimit} branches. Please contact the Super Admin to upgrade your plan.`)
+      toast.error(`License Limit Reached! You can only create up to ${maxBranchesLimit} branches. Please contact the Super Admin to upgrade your plan.`)
       return
     }
 
     if (branches.some(b => b.code.toLowerCase() === code.toLowerCase())) {
-      alert("A branch with this code already exists!")
+      toast.error("A branch with this code already exists!")
       return
     }
 
@@ -81,11 +83,11 @@ export default function BranchesPage() {
         resetForm()
       } else {
         const errorData = await res.json()
-        alert(errorData.error || "Failed to add branch")
+        toast.error(errorData.error || "Failed to add branch")
       }
     } catch (err) {
       console.error("Failed to add branch", err)
-      alert("An error occurred while adding the branch.")
+      toast.error("An error occurred while adding the branch.")
     }
   }
 
@@ -242,20 +244,14 @@ export default function BranchesPage() {
                   <div className="text-xs text-muted-foreground">{branch.address || 'N/A'}</div>
                 </TableCell>
                 <TableCell>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${branch.status === 'Active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
-                    {branch.status}
-                  </span>
+                  <Switch 
+                    checked={branch.status === 'Active'} 
+                    onCheckedChange={() => toggleStatus(branch._id || branch.id, branch.status)} 
+                    className="data-[state=checked]:bg-green-500"
+                  />
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      title={branch.status === 'Active' ? 'Deactivate' : 'Activate'}
-                      onClick={() => toggleStatus(branch._id || branch.id, branch.status)}
-                    >
-                      {branch.status === 'Active' ? <PowerOff className="h-4 w-4 text-orange-500" /> : <Power className="h-4 w-4 text-green-500" />}
-                    </Button>
                     <Button variant="ghost" size="icon" title="Edit">
                       <Edit className="h-4 w-4 text-blue-500" />
                     </Button>

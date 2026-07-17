@@ -1,4 +1,5 @@
 "use client"
+import { toast } from 'sonner';
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/context/AuthContext"
@@ -163,7 +164,7 @@ export default function PurchaseOrdersPage() {
   const handleSubmitPO = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!supplierId || items.length === 0 || !expectedDate) {
-      alert("Please fill all required fields and add at least one item.")
+      toast.error("Please fill all required fields and add at least one item.")
       return
     }
 
@@ -193,7 +194,7 @@ export default function PurchaseOrdersPage() {
       }
     } catch (err) {
       console.error(err)
-      alert("Failed to create PO")
+      toast.error("Failed to create PO")
     }
   }
 

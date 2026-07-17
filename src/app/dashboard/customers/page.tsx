@@ -1,4 +1,5 @@
 "use client"
+import { toast } from 'sonner';
 
 import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
@@ -60,7 +61,7 @@ export default function CustomersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name || !mobile) {
-      alert("Name and Mobile are required.")
+      toast.info("Name and Mobile are required.")
       return
     }
 
@@ -86,7 +87,7 @@ export default function CustomersPage() {
         setEmail("")
         setBirthday("")
       } else {
-        alert("Failed to add customer")
+        toast.error("Failed to add customer")
       }
     } catch (err) {
       console.error("Error adding customer", err)

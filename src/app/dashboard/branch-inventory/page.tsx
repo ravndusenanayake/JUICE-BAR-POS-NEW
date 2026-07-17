@@ -1,4 +1,5 @@
 "use client"
+import { toast } from 'sonner';
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/context/AuthContext"
@@ -77,13 +78,13 @@ export default function BranchInventoryPage() {
     
     const displayQty = parseFloat(adjustmentQuantity)
     if (isNaN(displayQty) || displayQty <= 0) {
-      alert("Please enter a valid quantity.")
+      toast.info("Please enter a valid quantity.")
       return
     }
 
     const isWastageReason = ["Rotten / Expired", "Damaged / Broken", "Spillage"].includes(adjustmentReason)
     if (adjustmentType === "OUT" && isWastageReason && !lossValue) {
-      alert("Please enter the financial loss amount for the wastage.")
+      toast.info("Please enter the financial loss amount for the wastage.")
       return
     }
 
@@ -107,7 +108,7 @@ export default function BranchInventoryPage() {
       fetchInventory() // refresh table
     } catch (e) {
       console.error(e)
-      alert("Failed to save adjustment.")
+      toast.error("Failed to save adjustment.")
     }
   }
 

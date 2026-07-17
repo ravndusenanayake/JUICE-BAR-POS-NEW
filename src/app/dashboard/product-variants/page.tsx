@@ -1,4 +1,5 @@
 "use client"
+import { toast } from 'sonner';
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -68,7 +69,7 @@ export default function ProductVariantsPage() {
   )
 
   const saveVariant = async () => {
-    if(!name || !productId || !sellingPrice) return alert("Please fill all required fields")
+    if(!name || !productId || !sellingPrice) return toast.error("Please fill all required fields")
 
     setIsSaving(true)
     try {
@@ -88,7 +89,7 @@ export default function ProductVariantsPage() {
           setIsDialogOpen(false)
           resetForm()
         } else {
-          alert("Failed to update variant")
+          toast.error("Failed to update variant")
         }
       } else {
         const payload = {
@@ -107,12 +108,12 @@ export default function ProductVariantsPage() {
           resetForm()
         } else {
           const err = await res.json()
-          alert("Failed to save variant: " + (err.error || ""))
+          toast.error("Failed to save variant: " + (err.error || ""))
         }
       }
     } catch (error) {
       console.error("Error saving variant:", error)
-      alert("Error saving variant")
+      toast.error("Error saving variant")
     } finally {
       setIsSaving(false)
     }
@@ -146,7 +147,7 @@ export default function ProductVariantsPage() {
         if (res.ok) {
           fetchVariants()
         } else {
-          alert("Failed to archive variant")
+          toast.error("Failed to archive variant")
         }
       } catch (err) {
         console.error(err)

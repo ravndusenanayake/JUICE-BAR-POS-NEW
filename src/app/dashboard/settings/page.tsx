@@ -1,4 +1,5 @@
 "use client"
+import { toast } from 'sonner';
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/context/AuthContext"
@@ -70,13 +71,13 @@ export default function SettingsPage() {
         })
       })
       if (res.ok) {
-        alert("Settings saved successfully!")
+        toast.success("Settings saved successfully!")
       } else {
-        alert("Failed to save settings")
+        toast.error("Failed to save settings")
       }
     } catch (e) {
       console.error(e)
-      alert("An error occurred while saving")
+      toast.error("An error occurred while saving")
     } finally {
       setIsSaving(false)
     }

@@ -1208,70 +1208,94 @@ export default function POSPage() {
         </DialogContent>
       </Dialog>
 
-      {/* --- Printable Receipt (Hidden from Screen) --- */}
-      <div className="hidden print:block absolute top-0 left-0 w-full bg-white z-50 p-8 text-black">
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-black mb-1">JUICE BAR POS</h1>
-          <p className="text-lg text-gray-600">{posBranch || "Colombo 07"}</p>
-          <div className="mt-4 flex justify-between text-sm font-bold border-b border-dashed border-gray-400 pb-2">
-            <span>Ref: {lastOrderRef}</span>
-            <span suppressHydrationWarning>{new Date().toLocaleString()}</span>
+      {/* --- Printable Receipt (Hidden from Screen, optimized for 80mm thermal printers) --- */}
+      <div className="hidden print:flex absolute inset-0 bg-white z-[9999] justify-center text-black font-mono text-sm leading-tight">
+        <div className="w-[80mm] py-4 px-2">
+          {/* Header */}
+          <div className="text-center mb-4">
+            <h1 className="text-2xl font-bold mb-1 uppercase">JUICE BAR POS</h1>
+            <p className="text-xs">{posBranch || "Colombo 07, Sri Lanka"}</p>
+            <p className="text-xs">Tel: 011-2345678</p>
+            <div className="border-b border-dashed border-gray-400 my-2" />
+            <div className="text-left text-xs">
+              <div className="flex justify-between">
+                <span>Receipt: {lastOrderRef}</span>
+                <span suppressHydrationWarning>{new Date().toLocaleDateString()}</span>
+              </div>
+              <div className="flex justify-between mt-1">
+                <span>Cashier: {user?.name || 'Admin'}</span>
+                <span suppressHydrationWarning>{new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+              </div>
+              <div className="mt-1">
+                <span>Customer: {saleDetails?.customer || "Walk-In"}</span>
+              </div>
+            </div>
+            <div className="border-b border-dashed border-gray-400 my-2" />
           </div>
-          <div className="flex justify-between text-sm font-bold border-b border-dashed border-gray-400 pb-2 mt-2">
-            <span>Customer: {saleDetails?.customer || "Walk-In Customer"}</span>
-            <span>Cashier: {user?.name}</span>
-          </div>
-        </div>
-        <table className="w-full text-left mb-6 text-sm">
-          <thead>
-            <tr className="border-b border-gray-300">
-              <th className="pb-2 font-bold uppercase">Item</th>
-              <th className="pb-2 font-bold uppercase text-center">Qty</th>
-              <th className="pb-2 font-bold uppercase text-right">Price</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-dashed divide-gray-200">
-            {saleDetails?.items?.map((item: any, i: number) => (
-              <tr key={i}>
-                <td className="py-3 font-medium">
-                  {item.name}
-                  {(item.variant || item.addons?.length > 0) && (
-                    <div className="text-xs text-gray-500 mt-1">
-                      {item.variant && <span>[{item.variant}] </span>}
-                      {item.addons?.map((a:any) => a.name).join(", ")}
+
+          {/* Items Table */}
+          <div className="mb-4">
+            <div className="flex justify-between font-bold text-xs border-b border-dashed border-gray-400 pb-1 mb-2 uppercase">
+              <span className="w-1/2">Item</span>
+              <span className="w-1/6 text-center">Qty</span>
+              <span className="w-1/3 text-right">Amount</span>
+            </div>
+            
+            <div className="space-y-2">
+              {saleDetails?.items?.map((item: any, i: number) => (
+                <div key={i} className="text-xs">
+                  <div className="flex justify-between items-start">
+                    <span className="w-1/2 font-semibold pr-1 break-words">{item.name}</span>
+                    <span className="w-1/6 text-center">{item.quantity}</span>
+                    <span className="w-1/3 text-right">Rs. {item.totalPrice?.toFixed(2)}</span>
+                  </div>
+                  {(item.variant || item.addons?.length > 0 || item.note) && (
+                    <div className="w-full text-[10px] text-gray-600 pl-2 mt-0.5 space-y-0.5">
+                      {item.variant && <div>- {item.variant}</div>}
+                      {item.addons?.map((a:any, ai:number) => (
+                        <div key={ai}>+ {a.name} (Rs. {a.price})</div>
+                      ))}
+                      {item.note && <div className="italic">* {item.note}</div>}
                     </div>
                   )}
-                  {item.note && <div className="text-xs text-orange-600 italic mt-0.5">* {item.note}</div>}
-                </td>
-                <td className="py-3 text-center font-bold">{item.quantity}</td>
-                <td className="py-3 text-right font-bold">Rs. {item.totalPrice.toFixed(2)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="space-y-2 text-sm font-bold border-t border-gray-400 pt-4">
-          <div className="flex justify-between text-gray-600">
-            <span>Subtotal</span>
-            <span>Rs. {saleDetails?.subTotal?.toFixed(2)}</span>
-          </div>
-          {saleDetails?.discount > 0 && (
-            <div className="flex justify-between text-gray-600">
-              <span>Discount</span>
-              <span>- Rs. {saleDetails?.discount?.toFixed(2)}</span>
+                </div>
+              ))}
             </div>
-          )}
-          <div className="flex justify-between text-xl font-black text-black mt-2 pt-2 border-t border-dashed border-gray-400">
-            <span>TOTAL</span>
-            <span>Rs. {saleDetails?.total?.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between text-gray-600 pt-2 border-t mt-2 border-gray-200">
-            <span>Payment Method</span>
-            <span>{saleDetails?.paymentMethod}</span>
+
+          {/* Totals */}
+          <div className="border-t border-dashed border-gray-400 pt-2 text-xs space-y-1">
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span>Rs. {saleDetails?.subTotal?.toFixed(2)}</span>
+            </div>
+            {(saleDetails?.discount ?? 0) > 0 && (
+              <div className="flex justify-between">
+                <span>Discount</span>
+                <span>- Rs. {saleDetails?.discount?.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-bold text-sm mt-1 border-t border-dashed border-gray-400 pt-1">
+              <span>TOTAL</span>
+              <span>Rs. {saleDetails?.total?.toFixed(2)}</span>
+            </div>
           </div>
-        </div>
-        <div className="mt-12 text-center text-sm font-bold text-gray-500 border-t border-dashed border-gray-400 pt-6">
-          <p>Thank you for your visit!</p>
-          <p className="text-xs mt-1 font-normal">Please come again.</p>
+
+          {/* Payment info */}
+          <div className="border-t border-dashed border-gray-400 mt-2 pt-2 text-xs">
+            <div className="flex justify-between">
+              <span>Paid by {saleDetails?.paymentMethod}</span>
+              <span>Rs. {saleDetails?.total?.toFixed(2)}</span>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="text-center mt-6 text-xs space-y-1">
+            <p className="font-bold">Thank You, Come Again!</p>
+            <p>WIFI: JuiceBar_Guest / PW: juice123</p>
+            <p>Follow us on IG @juicebar_pos</p>
+            <div className="h-8"></div> {/* Bottom margin for printer cutting */}
+          </div>
         </div>
       </div>
     </div>

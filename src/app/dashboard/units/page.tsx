@@ -1,4 +1,5 @@
 "use client"
+import { toast } from 'sonner';
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -37,7 +38,7 @@ export default function UnitsPage() {
     e.preventDefault()
     
     if (units.some(u => u.code.toLowerCase() === code.toLowerCase())) {
-      alert("A unit with this short code already exists!")
+      toast.error("A unit with this short code already exists!")
       return
     }
 

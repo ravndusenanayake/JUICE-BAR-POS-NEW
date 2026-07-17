@@ -1,4 +1,5 @@
 "use client"
+import { toast } from 'sonner';
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -52,7 +53,7 @@ export default function AddOnsPage() {
   const handleSaveAddon = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!name || !price) return alert("Please fill all required fields")
+    if (!name || !price) return toast.error("Please fill all required fields")
 
     setIsSaving(true)
     try {
@@ -73,7 +74,7 @@ export default function AddOnsPage() {
           resetForm()
         } else {
           const err = await res.json()
-          alert("Failed to update add-on: " + (err.error || ""))
+          toast.error("Failed to update add-on: " + (err.error || ""))
         }
       } else {
         const payload = {
@@ -92,12 +93,12 @@ export default function AddOnsPage() {
           resetForm()
         } else {
           const err = await res.json()
-          alert("Failed to create add-on: " + (err.error || ""))
+          toast.error("Failed to create add-on: " + (err.error || ""))
         }
       }
     } catch (error) {
       console.error("Error saving add-on:", error)
-      alert("Error saving add-on")
+      toast.error("Error saving add-on")
     } finally {
       setIsSaving(false)
     }
@@ -128,7 +129,7 @@ export default function AddOnsPage() {
       if (res.ok) {
         fetchAddons()
       } else {
-        alert("Failed to update add-on status")
+        toast.error("Failed to update add-on status")
       }
     } catch (err) {
       console.error(err)
@@ -142,7 +143,7 @@ export default function AddOnsPage() {
         if (res.ok) {
           fetchAddons()
         } else {
-          alert("Failed to delete add-on")
+          toast.error("Failed to delete add-on")
         }
       } catch (err) {
         console.error(err)

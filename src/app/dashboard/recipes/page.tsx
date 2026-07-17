@@ -1,4 +1,5 @@
 "use client"
+import { toast } from 'sonner';
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -93,7 +94,7 @@ export default function RecipesPage() {
 
   const saveRecipe = async () => {
     if (!selectedVariant || currentIngredients.length === 0) {
-      alert("Please select a product variant and add ingredients.")
+      toast.info("Please select a product variant and add ingredients.")
       return
     }
 
@@ -125,10 +126,10 @@ export default function RecipesPage() {
       }
       
       if (res.ok) {
-        alert("Recipe saved successfully! This will be used for auto-deduction at the POS.")
+        toast.success("Recipe saved successfully! This will be used for auto-deduction at the POS.")
         loadData() // Refresh list
       } else {
-        alert("Failed to save recipe")
+        toast.error("Failed to save recipe")
       }
     } catch (e) {
       console.error(e)

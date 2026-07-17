@@ -1,4 +1,5 @@
 "use client"
+import { toast } from 'sonner';
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -92,7 +93,7 @@ export default function SuppliersPage() {
           fetchSuppliers()
           setIsModalOpen(false)
         } else {
-          alert("Failed to update supplier")
+          toast.error("Failed to update supplier")
         }
       } else {
         const payload = { name, contactPerson, mobile, email, address }
@@ -105,12 +106,12 @@ export default function SuppliersPage() {
           fetchSuppliers()
           setIsModalOpen(false)
         } else {
-          alert("Failed to create supplier")
+          toast.error("Failed to create supplier")
         }
       }
     } catch (err) {
       console.error(err)
-      alert("Error saving supplier")
+      toast.error("Error saving supplier")
     }
   }
 
@@ -121,7 +122,7 @@ export default function SuppliersPage() {
         if (res.ok) {
           fetchSuppliers()
         } else {
-          alert("Failed to delete supplier")
+          toast.error("Failed to delete supplier")
         }
       } catch (err) {
         console.error(err)

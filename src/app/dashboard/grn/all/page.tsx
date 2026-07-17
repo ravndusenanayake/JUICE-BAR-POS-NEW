@@ -1,4 +1,5 @@
 "use client"
+import { toast } from 'sonner';
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/context/AuthContext"
@@ -65,7 +66,7 @@ export default function AllGRNPage() {
 
     const amt = parseFloat(amountPaid)
     if (isNaN(amt) || amt <= 0) {
-      alert("Please enter a valid amount")
+      toast.info("Please enter a valid amount")
       return
     }
 
@@ -87,11 +88,11 @@ export default function AllGRNPage() {
         fetchGRNs()
       } else {
         const error = await res.json()
-        alert(error.error || "Failed to save payment")
+        toast.error(error.error || "Failed to save payment")
       }
     } catch (e) {
       console.error(e)
-      alert("Failed to save payment")
+      toast.error("Failed to save payment")
     }
   }
 

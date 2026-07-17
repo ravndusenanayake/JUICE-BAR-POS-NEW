@@ -1,4 +1,5 @@
 "use client"
+import { toast } from 'sonner';
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/context/AuthContext"
@@ -40,7 +41,7 @@ export default function SystemSettingsPage() {
     e.preventDefault()
     
     if (parseInt(maxBranches) < 1 || parseInt(maxUsers) < 1) {
-      alert("Limits must be at least 1")
+      toast.error("Limits must be at least 1")
       return
     }
 
@@ -58,11 +59,11 @@ export default function SystemSettingsPage() {
         setIsSaved(true)
         setTimeout(() => setIsSaved(false), 3000)
       } else {
-        alert("Failed to save settings")
+        toast.error("Failed to save settings")
       }
     } catch (e) {
       console.error(e)
-      alert("An error occurred while saving")
+      toast.error("An error occurred while saving")
     }
   }
 

@@ -1,4 +1,5 @@
 "use client"
+import { toast } from 'sonner';
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -7,7 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Trash2, PowerOff, Power } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { Plus, Search, Trash2 } from "lucide-react"
 
 export default function UsersPage() {
   const [users, setUsers] = useState<any[]>([])
@@ -53,7 +55,7 @@ export default function UsersPage() {
     
     // Check Limits (SaaS License Logic)
     if (users.length >= maxUsersLimit) {
-      alert(`License Limit Reached! You can only create up to ${maxUsersLimit} users. Please contact the Super Admin to upgrade your plan.`)
+      toast.error(`License Limit Reached! You can only create up to ${maxUsersLimit} users. Please contact the Super Admin to upgrade your plan.`)
       return
     }
 
@@ -79,11 +81,11 @@ export default function UsersPage() {
         resetForm()
       } else {
         const err = await res.json()
-        alert("Failed to create user: " + (err.error || ""))
+        toast.error("Failed to create user: " + (err.error || ""))
       }
     } catch (error) {
       console.error("Error creating user:", error)
-      alert("Error creating user")
+      toast.error("Error creating user")
     }
   }
 
@@ -248,20 +250,14 @@ export default function UsersPage() {
                   <span className="text-sm font-medium">{user.branch}</span>
                 </TableCell>
                 <TableCell>
-                  <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${user.status === 'Active' ? 'bg-green-50 text-green-700 ring-green-600/20' : 'bg-red-50 text-red-700 ring-red-600/20'}`}>
-                    {user.status}
-                  </span>
+                  <Switch 
+                    checked={user.status === 'Active'} 
+                    onCheckedChange={() => toggleStatus(user._id, user.status)} 
+                    className="data-[state=checked]:bg-green-500"
+                  />
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      title={user.status === 'Active' ? 'Deactivate' : 'Activate'}
-                      onClick={() => toggleStatus(user._id, user.status)}
-                    >
-                      {user.status === 'Active' ? <PowerOff className="h-4 w-4 text-orange-500" /> : <Power className="h-4 w-4 text-green-500" />}
-                    </Button>
                     <Button variant="ghost" size="icon" title="Delete" onClick={() => deleteUser(user._id)}>
                       <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>

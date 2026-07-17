@@ -1,4 +1,5 @@
 "use client"
+import { toast } from 'sonner';
 
 import { useState, useEffect, Suspense } from "react"
 import { useAuth } from "@/context/AuthContext"
@@ -134,7 +135,7 @@ function CreateGRNContent() {
     }).filter(i => (i.receivedGoodQty + i.damagedQty) > 0)
 
     if (!atLeastOne) {
-      alert("Please receive at least one item.")
+      toast.info("Please receive at least one item.")
       return
     }
 
@@ -208,12 +209,12 @@ function CreateGRNContent() {
         }).catch(err => console.error("Failed to adjust inventory", err))
       }
 
-      alert("GRN Created Successfully!")
+      toast.success("GRN Created Successfully!")
       router.push('/dashboard/grn/all')
       
     } catch (error) {
       console.error(error)
-      alert("Failed to process GRN")
+      toast.error("Failed to process GRN")
       setIsSubmitting(false)
     }
   }

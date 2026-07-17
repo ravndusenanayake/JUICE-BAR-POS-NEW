@@ -1,4 +1,5 @@
 "use client"
+import { toast } from 'sonner';
 
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/context/AuthContext"
@@ -82,7 +83,7 @@ export default function ExpensesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!amount || parseFloat(amount) <= 0) {
-      alert("Please enter a valid amount.")
+      toast.info("Please enter a valid amount.")
       return
     }
 
@@ -110,11 +111,11 @@ export default function ExpensesPage() {
         setNote("")
         setFileName("")
       } else {
-        alert("Failed to save expense")
+        toast.error("Failed to save expense")
       }
     } catch (e) {
       console.error(e)
-      alert("Error saving expense")
+      toast.error("Error saving expense")
     }
   }
 

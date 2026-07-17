@@ -1,4 +1,5 @@
 "use client"
+import { toast } from 'sonner';
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/context/AuthContext"
@@ -104,13 +105,13 @@ export default function StockTransfersPage() {
 
     const invItem = inventory.find(i => i.name === selectedItemName)
     if (!invItem) {
-      alert("Item not found in source branch inventory.")
+      toast.error("Item not found in source branch inventory.")
       return
     }
 
     // Check if source has enough stock (assuming qty entered is in baseUnit)
     if (invItem.quantity < qty) {
-      alert(`Not enough stock! Available: ${invItem.quantity} ${invItem.unit}`)
+      toast.error(`Not enough stock! Available: ${invItem.quantity} ${invItem.unit}`)
       return
     }
 
@@ -130,11 +131,11 @@ export default function StockTransfersPage() {
   const handleSubmitTransfer = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!destBranch || sourceBranch === destBranch) {
-      alert("Please select a valid destination branch different from the source.")
+      toast.info("Please select a valid destination branch different from the source.")
       return
     }
     if (transferItems.length === 0) {
-      alert("Please add at least one item to transfer.")
+      toast.info("Please add at least one item to transfer.")
       return
     }
 
@@ -171,11 +172,11 @@ export default function StockTransfersPage() {
         setTransferItems([])
         setDestBranch("")
       } else {
-        alert("Failed to create transfer")
+        toast.error("Failed to create transfer")
       }
     } catch (err) {
       console.error(err)
-      alert("Failed to create transfer")
+      toast.error("Failed to create transfer")
     }
   }
 
@@ -208,7 +209,7 @@ export default function StockTransfersPage() {
       if (res.ok) {
         await processSourceDeduction(transfer)
         fetchTransfers()
-        alert("Transfer Approved. Stock has been deducted from the Source Branch.")
+        toast.success("Transfer Approved. Stock has been deducted from the Source Branch.")
       }
     } catch (e) {
       console.error(e)
@@ -241,7 +242,7 @@ export default function StockTransfersPage() {
         
         if (res.ok) {
           fetchTransfers()
-          alert("Stock successfully added to Destination Branch.")
+          toast.success("Stock successfully added to Destination Branch.")
         }
       } catch (e) {
         console.error(e)

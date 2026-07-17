@@ -1,4 +1,5 @@
 "use client"
+import { toast } from 'sonner';
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/context/AuthContext"
@@ -67,7 +68,7 @@ export default function InventoryPage() {
         setRemarks("")
         fetchStock() // Refresh list
       } else {
-        alert("Failed to adjust stock")
+        toast.error("Failed to adjust stock")
       }
     } catch (error) {
       console.error("Error adjusting stock:", error)

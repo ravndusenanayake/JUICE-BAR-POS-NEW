@@ -1,4 +1,5 @@
 "use client"
+import { toast } from 'sonner';
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -7,7 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Edit, Power, PowerOff, Trash2 } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { Plus, Search, Edit, Trash2 } from "lucide-react"
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<any[]>([])
@@ -65,7 +67,7 @@ export default function CategoriesPage() {
           resetForm()
         } else {
           const err = await res.json()
-          alert(err.error || "Failed to update category")
+          toast.error(err.error || "Failed to update category")
         }
       } else {
         const res = await fetch('/api/categories', {
@@ -80,12 +82,12 @@ export default function CategoriesPage() {
           resetForm()
         } else {
           const err = await res.json()
-          alert(err.error || "Failed to create category")
+          toast.error(err.error || "Failed to create category")
         }
       }
     } catch (error) {
       console.error(error)
-      alert("Error saving category")
+      toast.error("Error saving category")
     } finally {
       setIsSaving(false)
     }
@@ -117,7 +119,7 @@ export default function CategoriesPage() {
       if (res.ok) {
         fetchCategories()
       } else {
-        alert("Failed to update status")
+        toast.error("Failed to update status")
       }
     } catch (e) {
       console.error(e)
@@ -132,7 +134,7 @@ export default function CategoriesPage() {
           fetchCategories()
         } else {
           const err = await res.json()
-          alert(err.error || "Failed to delete category")
+          toast.error(err.error || "Failed to delete category")
         }
       } catch (err) {
         console.error(err)
@@ -242,20 +244,14 @@ export default function CategoriesPage() {
                 <TableCell className="font-bold">{cat.name}</TableCell>
                 <TableCell className="text-muted-foreground">{cat.description || "N/A"}</TableCell>
                 <TableCell>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${cat.status === 'Active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
-                    {cat.status}
-                  </span>
+                  <Switch 
+                    checked={cat.status === 'Active'} 
+                    onCheckedChange={() => toggleStatus(cat.id, cat.status)} 
+                    className="data-[state=checked]:bg-green-500"
+                  />
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      title={cat.status === 'Active' ? 'Deactivate' : 'Activate'}
-                      onClick={() => toggleStatus(cat.id, cat.status)}
-                    >
-                      {cat.status === 'Active' ? <PowerOff className="h-4 w-4 text-orange-500" /> : <Power className="h-4 w-4 text-green-500" />}
-                    </Button>
                     <Button variant="ghost" size="icon" title="Edit" onClick={() => handleEdit(cat)}>
                       <Edit className="h-4 w-4 text-blue-500" />
                     </Button>
