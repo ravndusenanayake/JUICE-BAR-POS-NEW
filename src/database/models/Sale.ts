@@ -11,6 +11,15 @@ export interface ISaleItem {
   note?: string;
 }
 
+export interface IReturnedItem {
+  productId: string;
+  name: string;
+  quantity: number;
+  refundAmount: number;
+  reason: string;
+  action: 'Wastage' | 'Restock';
+}
+
 export interface ISale extends Document {
   invoiceNo: string;
   branch: string;
@@ -20,8 +29,9 @@ export interface ISale extends Document {
   discount: number;
   total: number;
   paymentMethod: string;
-  status: 'Completed' | 'Voided';
+  status: 'Completed' | 'Voided' | 'Refunded' | 'Partially Refunded';
   items: ISaleItem[];
+  returnedItems?: IReturnedItem[];
   saleDate: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -38,6 +48,15 @@ const SaleItemSchema = new Schema<ISaleItem>({
   note: { type: String },
 }, { _id: false });
 
+const ReturnedItemSchema = new Schema<IReturnedItem>({
+  productId: { type: String, required: true },
+  name: { type: String, required: true },
+  quantity: { type: Number, required: true },
+  refundAmount: { type: Number, required: true },
+  reason: { type: String },
+  action: { type: String, enum: ['Wastage', 'Restock'], required: true },
+}, { _id: false });
+
 const SaleSchema = new Schema<ISale>(
   {
     invoiceNo: { type: String, required: true, unique: true },
@@ -48,8 +67,9 @@ const SaleSchema = new Schema<ISale>(
     discount: { type: Number, default: 0 },
     total: { type: Number, required: true },
     paymentMethod: { type: String, required: true },
-    status: { type: String, enum: ['Completed', 'Voided'], default: 'Completed' },
+    status: { type: String, enum: ['Completed', 'Voided', 'Refunded', 'Partially Refunded'], default: 'Completed' },
     items: [SaleItemSchema],
+    returnedItems: [ReturnedItemSchema],
     saleDate: { type: Date, default: Date.now },
   },
   { timestamps: true }

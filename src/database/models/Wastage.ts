@@ -4,7 +4,7 @@ export interface IWastage extends Document {
   branchId: mongoose.Types.ObjectId;
   itemId: mongoose.Types.ObjectId;
   quantity: number;
-  reason: 'Expired' | 'Rotten' | 'Damaged' | 'Spillage';
+  reason: 'Expired' | 'Rotten' | 'Damaged' | 'Spillage' | 'Customer Return';
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
 }
@@ -16,7 +16,7 @@ const WastageSchema = new Schema<IWastage>(
     quantity: { type: Number, required: true },
     reason: {
       type: String,
-      enum: ['Expired', 'Rotten', 'Damaged', 'Spillage'],
+      enum: ['Expired', 'Rotten', 'Damaged', 'Spillage', 'Customer Return'],
       required: true,
     },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
