@@ -64,6 +64,11 @@ export default function RolesPage() {
   
   // Form State
   const [roleName, setRoleName] = useState("")
+  const [searchQuery, setSearchQuery] = useState("")
+
+  // Delete Modal State
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [selectedPerms, setSelectedPerms] = useState<string[]>([])
 
   const openCreateDialog = () => {
@@ -119,10 +124,16 @@ export default function RolesPage() {
     setIsDialogOpen(false)
   }
 
-  const deleteRole = (id: string) => {
-    if(confirm("Are you sure you want to delete this role?")) {
-      setRoles(roles.filter(r => r.id !== id))
-    }
+  const confirmDelete = (id: string) => {
+    setDeletingId(id)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const deleteRole = () => {
+    if(!deletingId) return;
+    setRoles(roles.filter(r => r.id !== deletingId))
+    setIsDeleteDialogOpen(false)
+    setDeletingId(null)
   }
 
   return (
@@ -227,9 +238,9 @@ export default function RolesPage() {
               </div>
 
               <div className="bg-white px-6 py-4 border-t shrink-0 flex justify-end gap-3 rounded-b-2xl">
-                <DialogTrigger render={<Button type="button" variant="outline" className="border-gray-300" />}>
+                <Button type="button" variant="outline" className="border-gray-300" onClick={() => setIsDialogOpen(false)}>
                   Cancel
-                </DialogTrigger>
+                </Button>
                 <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white shadow-lg px-8">
                   {editingRole ? 'Update Role' : 'Create Role'}
                 </Button>
@@ -275,8 +286,8 @@ export default function RolesPage() {
                         <Edit className="h-4 w-4" />
                       </Button>
                       {!isSuperAdmin && (
-                        <Button variant="ghost" size="icon" className="hover:bg-red-50 hover:text-red-600 text-gray-400" title="Delete" onClick={() => deleteRole(role.id)}>
-                          <Trash2 className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" title="Delete" onClick={() => confirmDelete(role.id)}>
+                          <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
                         </Button>
                       )}
                     </div>
@@ -287,6 +298,28 @@ export default function RolesPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <Trash2 className="w-5 h-5" /> Confirm Deletion
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              Are you sure you want to delete this role? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" className="bg-red-600 hover:bg-red-700 text-white" onClick={deleteRole}>
+              Yes, Delete Role
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

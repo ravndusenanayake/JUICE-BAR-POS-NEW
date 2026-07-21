@@ -31,6 +31,11 @@ export default function RawMaterialsPage() {
   const [unit, setUnit] = useState("")
   const [threshold, setThreshold] = useState("")
   const [isActive, setIsActive] = useState(true)
+  const [editingId, setEditingId] = useState<string | null>(null)
+
+  // Delete Modal State
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const fetchMaterials = async () => {
     try {
@@ -55,39 +60,59 @@ export default function RawMaterialsPage() {
   const handleAddMaterial = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (materials.some(m => m.name.toLowerCase() === name.toLowerCase())) {
+    if (!editingId && materials.some(m => m.name.toLowerCase() === name.toLowerCase())) {
       toast.error("A raw material with this name already exists!")
       return
     }
 
-    const skuPrefix = name.substring(0, 3).toUpperCase()
-    const skuCode = String(materials.length + 1).padStart(3, '0')
-    const generatedSku = `RM-${skuPrefix}-${skuCode}`
-
     try {
-      const res = await fetch('/api/raw-materials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          sku: generatedSku,
-          category: 'General',
-          unit,
-          minStockLevel: parseFloat(threshold) || 0,
-          currentStock: 0,
-          status: isActive ? 'Active' : 'Inactive'
-        })
-      })
+      const payload = {
+        name,
+        category: 'General',
+        unit,
+        minStockLevel: parseFloat(threshold) || 0,
+        status: isActive ? 'Active' : 'Inactive'
+      }
 
-      if (res.ok) {
-        await fetchMaterials()
-        setIsDialogOpen(false)
-        resetForm()
+      if (editingId) {
+        // Edit mode
+        const res = await fetch('/api/raw-materials', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingId, ...payload })
+        })
+        if (res.ok) {
+          toast.success("Raw material updated!")
+          await fetchMaterials()
+          setIsDialogOpen(false)
+          resetForm()
+        } else {
+          toast.error("Failed to update raw material")
+        }
       } else {
-        toast.error("Failed to add raw material")
+        // Create mode
+        const skuPrefix = name.substring(0, 3).toUpperCase()
+        const skuCode = String(materials.length + 1).padStart(3, '0')
+        const generatedSku = `RM-${skuPrefix}-${skuCode}`
+
+        const res = await fetch('/api/raw-materials', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, sku: generatedSku, currentStock: 0 })
+        })
+
+        if (res.ok) {
+          toast.success("Raw material added!")
+          await fetchMaterials()
+          setIsDialogOpen(false)
+          resetForm()
+        } else {
+          toast.error("Failed to add raw material")
+        }
       }
     } catch (err) {
       console.error(err)
+      toast.error("An error occurred")
     }
   }
 
@@ -96,15 +121,52 @@ export default function RawMaterialsPage() {
     setUnit("")
     setThreshold("")
     setIsActive(true)
+    setEditingId(null)
   }
 
-  const toggleStatus = (id: string) => {
-    // API Call to update status would go here
+  const openEditModal = (m: any) => {
+    setEditingId(m._id)
+    setName(m.name)
+    setUnit(m.unit)
+    setThreshold(m.minStockLevel?.toString() || "0")
+    setIsActive(m.status === 'Active')
+    setIsDialogOpen(true)
   }
 
-  const deleteMaterial = (id: string) => {
-    if(confirm("Are you sure you want to delete this raw material?")) {
-      // API call to delete would go here
+  const toggleStatus = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+    try {
+      const res = await fetch('/api/raw-materials', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: newStatus })
+      });
+      if(res.ok) {
+        fetchMaterials();
+      }
+    } catch(e) { console.error(e) }
+  }
+
+  const confirmDelete = (id: string) => {
+    setDeletingId(id)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const deleteMaterial = async () => {
+    if(!deletingId) return;
+    try {
+      const res = await fetch(`/api/raw-materials?id=${deletingId}`, { method: 'DELETE' });
+      if(res.ok) {
+        toast.success("Raw material deleted!");
+        fetchMaterials();
+      } else {
+        toast.error("Failed to delete raw material.");
+      }
+    } catch(e) { 
+      console.error(e) 
+    } finally {
+      setIsDeleteDialogOpen(false)
+      setDeletingId(null)
     }
   }
 
@@ -123,7 +185,7 @@ export default function RawMaterialsPage() {
           <DialogContent className="sm:max-w-[425px]">
             <form onSubmit={handleAddMaterial}>
               <DialogHeader>
-                <DialogTitle>Add Raw Material</DialogTitle>
+                <DialogTitle>{editingId ? "Edit Raw Material" : "Add Raw Material"}</DialogTitle>
                 <DialogDescription>
                   SKU will be auto-generated based on the name.
                 </DialogDescription>
@@ -172,7 +234,7 @@ export default function RawMaterialsPage() {
                   Cancel
                 </DialogClose>
                 <Button type="submit" className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white">
-                  Save Raw Material
+                  {editingId ? "Update Raw Material" : "Save Raw Material"}
                 </Button>
               </DialogFooter>
             </form>
@@ -218,7 +280,7 @@ export default function RawMaterialsPage() {
                   <div className="font-semibold text-gray-800 flex items-center gap-2">
                     <Droplets className="h-4 w-4 text-orange-400" />
                     {m.name}
-                    {m.currentStock <= m.threshold && (
+                    {m.currentStock <= m.minStockLevel && (
                       <span className="ml-2 text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">
                         LOW STOCK
                       </span>
@@ -232,21 +294,21 @@ export default function RawMaterialsPage() {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm font-medium">{m.threshold} {m.unit}</span>
+                  <span className="text-sm font-medium">{m.minStockLevel} {m.unit}</span>
                 </TableCell>
                 <TableCell>
                   <Switch 
-                    checked={m.status} 
-                    onCheckedChange={() => toggleStatus(m.id)} 
+                    checked={m.status === 'Active'} 
+                    onCheckedChange={() => toggleStatus(m._id, m.status)} 
                     className="data-[state=checked]:bg-green-500"
                   />
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon" title="Edit">
+                    <Button variant="ghost" size="icon" title="Edit" onClick={() => openEditModal(m)}>
                       <Edit className="h-4 w-4 text-gray-400 hover:text-blue-500" />
                     </Button>
-                    <Button variant="ghost" size="icon" title="Delete" onClick={() => deleteMaterial(m.id)}>
+                    <Button variant="ghost" size="icon" title="Delete" onClick={() => confirmDelete(m._id)}>
                       <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
                     </Button>
                   </div>
@@ -256,6 +318,28 @@ export default function RawMaterialsPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <Trash2 className="w-5 h-5" /> Confirm Deletion
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              Are you absolutely sure you want to delete this raw material? This action cannot be undone and may affect inventory calculations.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" className="bg-red-600 hover:bg-red-700 text-white" onClick={deleteMaterial}>
+              Yes, Delete It
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

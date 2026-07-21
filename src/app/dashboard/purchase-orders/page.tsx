@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, CheckCircle, PackageOpen, X, FileText, Download, Truck, AlertTriangle, User } from "lucide-react"
+import { Search, Plus, CheckCircle, PackageOpen, X, FileText, Download, Truck, AlertTriangle, User, Eye } from "lucide-react"
 
 export interface POItem {
   id: string
@@ -66,6 +66,14 @@ export default function PurchaseOrdersPage() {
   const [rawMaterials, setRawMaterials] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
 
+  // View Modal State
+  const [isViewOpen, setIsViewOpen] = useState(false)
+  const [viewPO, setViewPO] = useState<PurchaseOrder | null>(null)
+
+  // Confirm Approve Modal
+  const [isApproveOpen, setIsApproveOpen] = useState(false)
+  const [approvingId, setApprovingId] = useState<string | null>(null)
+
   // GRN flow is now handled in /dashboard/grn/create
 
   useEffect(() => {
@@ -109,19 +117,31 @@ export default function PurchaseOrdersPage() {
     return matchSearch
   })
 
-  const handleApprovePO = async (id: string) => {
-    if (!canApprove) return;
-    if(confirm("Are you sure you want to approve this Purchase Order?")) {
-      try {
-        const res = await fetch('/api/purchase-orders', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, status: 'Approved', approvedBy: user?.name || 'Admin' })
-        });
-        if (res.ok) fetchPOs();
-      } catch (err) {
-        console.error(err);
+  const confirmApprove = (id: string) => {
+    setApprovingId(id)
+    setIsApproveOpen(true)
+  }
+
+  const handleApprovePO = async () => {
+    if (!canApprove || !approvingId) return;
+    try {
+      const res = await fetch(`/api/purchase-orders/${approvingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Approved', approvedBy: user?.name || 'Admin' })
+      });
+      if (res.ok) {
+        toast.success("Purchase Order Approved")
+        fetchPOs();
+      } else {
+        toast.error("Failed to approve PO")
       }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error approving PO")
+    } finally {
+      setIsApproveOpen(false)
+      setApprovingId(null)
     }
   }
 
@@ -198,10 +218,15 @@ export default function PurchaseOrdersPage() {
     }
   }
 
-  const router = useRouter(); // Need to import this at the top
+  const router = useRouter();
 
   const handleReceiveGRN = (poId: string) => {
     router.push(`/dashboard/grn/create?poId=${poId}`)
+  }
+
+  const openViewModal = (po: PurchaseOrder) => {
+    setViewPO(po)
+    setIsViewOpen(true)
   }
 
   return (
@@ -307,24 +332,25 @@ export default function PurchaseOrdersPage() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      {po.status === "Awaiting Approval" && canApprove && (
-                        <Button 
-                          size="sm"
-                          className="bg-purple-600 hover:bg-purple-700 h-8"
-                          onClick={() => handleApprovePO(po._id)}
-                        >
-                          <CheckCircle className="w-4 h-4 mr-1.5" /> Approve
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="ghost" size="icon" title="View Details" onClick={() => openViewModal(po)}>
+                          <Eye className="w-4 h-4 text-gray-500 hover:text-blue-500" />
                         </Button>
-                      )}
-                      {["Approved", "Pending", "Partially Received"].includes(po.status) && (
-                        <Button 
-                          size="sm"
-                          className="bg-green-600 hover:bg-green-700 h-8"
-                          onClick={() => handleReceiveGRN(po._id)}
-                        >
-                          <PackageOpen className="w-4 h-4 mr-1.5" /> Receive GRN
-                        </Button>
-                      )}
+                        {po.status === "Awaiting Approval" && canApprove && (
+                          <Button size="sm" className="bg-green-600 hover:bg-green-700 h-8" onClick={() => confirmApprove(po._id)}>
+                            <CheckCircle className="w-4 h-4 mr-1.5" /> Approve
+                          </Button>
+                        )}
+                        {["Approved", "Pending", "Partially Received"].includes(po.status) && (
+                          <Button 
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 h-8"
+                            onClick={() => handleReceiveGRN(po._id)}
+                          >
+                            <PackageOpen className="w-4 h-4 mr-1.5" /> Receive GRN
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 )
@@ -459,7 +485,77 @@ export default function PurchaseOrdersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* GRN Modal removed, now handled on dedicated page */}
+      {/* View PO Modal */}
+      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex justify-between items-center mr-6">
+              <span>{viewPO?.poNumber}</span>
+              <span className={`text-xs px-2.5 py-1 rounded-full font-bold border ${viewPO?.status === 'Fully Received' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                {viewPO?.status}
+              </span>
+            </DialogTitle>
+            <DialogDescription>
+              Supplier: <strong className="text-gray-900">{viewPO?.supplierName}</strong> | Expected: {viewPO ? new Date(viewPO.expectedDate).toLocaleDateString() : ''}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="border rounded-xl bg-white overflow-hidden shadow-sm mt-4">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50 text-xs uppercase tracking-wider">
+                  <TableHead className="py-3">Item Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead className="text-right">Qty</TableHead>
+                  <TableHead className="text-right">Unit Price</TableHead>
+                  <TableHead className="text-right">Total Price</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {viewPO?.items.map((item, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell className="font-semibold text-gray-800">{item.name}</TableCell>
+                    <TableCell className="text-gray-500 text-sm">{item.category}</TableCell>
+                    <TableCell className="text-right font-medium">{item.quantity} {item.unit}</TableCell>
+                    <TableCell className="text-right">Rs. {item.unitPrice.toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-bold text-gray-900">Rs. {item.totalPrice.toFixed(2)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="flex justify-between items-center p-4 bg-gray-50 rounded-xl mt-4 border border-gray-100">
+            <div className="text-gray-500 text-sm font-medium">Total Purchase Amount:</div>
+            <div className="text-xl font-black text-gray-900">Rs. {viewPO?.totalAmount?.toFixed(2)}</div>
+          </div>
+
+          <DialogFooter className="mt-2">
+            <Button variant="outline" onClick={() => setIsViewOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Approve Confirmation Modal */}
+      <Dialog open={isApproveOpen} onOpenChange={setIsApproveOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-green-600 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5" /> Confirm Approval
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              Are you sure you want to approve this Purchase Order? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => setIsApproveOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" className="bg-green-600 hover:bg-green-700 text-white" onClick={handleApprovePO}>
+              Yes, Approve PO
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

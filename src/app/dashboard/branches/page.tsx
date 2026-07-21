@@ -18,6 +18,10 @@ export default function BranchesPage() {
   const [maxBranchesLimit, setMaxBranchesLimit] = useState(3) // Default 3
   const [isLoading, setIsLoading] = useState(true)
 
+  // Delete Modal State
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
   const fetchBranches = async () => {
     try {
       const res = await fetch('/api/branches')
@@ -115,16 +119,23 @@ export default function BranchesPage() {
     }
   }
 
-  const deleteBranch = async (id: string) => {
-    if(confirm("Are you sure you want to delete this branch?")) {
-      try {
-        const res = await fetch(`/api/branches/${id}`, { method: 'DELETE' })
-        if (res.ok) {
-          fetchBranches()
-        }
-      } catch (err) {
-        console.error("Failed to delete branch", err)
+  const confirmDelete = (id: string) => {
+    setDeletingId(id)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const deleteBranch = async () => {
+    if(!deletingId) return;
+    try {
+      const res = await fetch(`/api/branches/${deletingId}`, { method: 'DELETE' })
+      if (res.ok) {
+        fetchBranches()
       }
+    } catch (err) {
+      console.error("Failed to delete branch", err)
+    } finally {
+      setIsDeleteDialogOpen(false)
+      setDeletingId(null)
     }
   }
 
@@ -137,7 +148,7 @@ export default function BranchesPage() {
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }}>
-          <DialogTrigger render={<Button className="bg-primary hover:bg-primary/90 text-primary-foreground" />}>
+          <DialogTrigger render={<Button className="bg-orange-500 hover:bg-orange-600 text-white" />}>
             <Plus className="mr-2 h-4 w-4" /> Add Branch
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
@@ -255,8 +266,8 @@ export default function BranchesPage() {
                     <Button variant="ghost" size="icon" title="Edit">
                       <Edit className="h-4 w-4 text-blue-500" />
                     </Button>
-                    <Button variant="ghost" size="icon" title="Delete" onClick={() => deleteBranch(branch._id || branch.id)}>
-                      <Trash2 className="h-4 w-4 text-red-500" />
+                    <Button variant="ghost" size="icon" title="Delete" onClick={() => confirmDelete(branch._id || branch.id)}>
+                      <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
                     </Button>
                   </div>
                 </TableCell>
@@ -265,6 +276,28 @@ export default function BranchesPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <Trash2 className="w-5 h-5" /> Confirm Deletion
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              Are you sure you want to delete this branch? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" className="bg-red-600 hover:bg-red-700 text-white" onClick={deleteBranch}>
+              Yes, Delete Branch
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

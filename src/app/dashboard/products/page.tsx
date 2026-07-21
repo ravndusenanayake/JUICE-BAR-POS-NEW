@@ -26,6 +26,25 @@ export default function ProductsPage() {
   
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+
+  // Confirmation Modal State
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    action: 'variant' | 'archive' | 'product';
+    targetId?: string;
+    targetIndex?: number;
+    title: string;
+    description: string;
+    confirmText: string;
+    isDestructive: boolean;
+  }>({
+    isOpen: false,
+    action: 'product',
+    title: '',
+    description: '',
+    confirmText: '',
+    isDestructive: true
+  })
   
   // Form State
   const [name, setName] = useState("")
@@ -101,22 +120,55 @@ export default function ProductsPage() {
     setFormVariants(newVars)
   }
 
-  const removeVariantRow = async (index: number) => {
+  const confirmRemoveVariant = (index: number) => {
     const variant = formVariants[index]
     if (variant.id) {
-      if(confirm("Are you sure you want to delete this variant? It will be permanently removed.")) {
-        try {
-          await fetch(`/api/product-variants?id=${variant.id}`, { method: 'DELETE' })
-        } catch (e) {
-          console.error(e)
-        }
-      } else {
-        return // Cancelled
-      }
+      setConfirmState({
+        isOpen: true,
+        action: 'variant',
+        targetIndex: index,
+        title: 'Delete Variant',
+        description: 'Are you sure you want to delete this variant? It will be permanently removed.',
+        confirmText: 'Yes, Delete Variant',
+        isDestructive: true
+      })
+    } else {
+      const newVars = [...formVariants]
+      newVars.splice(index, 1)
+      setFormVariants(newVars)
     }
-    const newVars = [...formVariants]
-    newVars.splice(index, 1)
-    setFormVariants(newVars)
+  }
+
+  const executeConfirmAction = async () => {
+    const { action, targetId, targetIndex } = confirmState
+    setConfirmState(prev => ({ ...prev, isOpen: false }))
+    
+    try {
+      if (action === 'variant' && targetIndex !== undefined) {
+        const variant = formVariants[targetIndex]
+        if (variant.id) {
+          await fetch(`/api/product-variants?id=${variant.id}`, { method: 'DELETE' })
+          const newVars = [...formVariants]
+          newVars.splice(targetIndex, 1)
+          setFormVariants(newVars)
+        }
+      } else if (action === 'archive' && targetId) {
+        const res = await fetch(`/api/products`, { 
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: targetId, status: false })
+        })
+        if (res.ok) fetchData()
+        else toast.error("Failed to archive product")
+      } else if (action === 'product' && targetId) {
+        const res = await fetch(`/api/products?id=${targetId}`, { method: 'DELETE' })
+        if (res.ok) fetchData()
+        else toast.error("Failed to delete product")
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error("An error occurred")
+    }
   }
 
   // --- Add-ons Handlers ---
@@ -251,38 +303,28 @@ export default function ProductsPage() {
     setIsDialogOpen(true)
   }
 
-  const archiveProduct = async (id: string) => {
-    if(confirm("Are you sure you want to archive this product? It will be marked as Inactive.")) {
-      try {
-        const res = await fetch(`/api/products`, { 
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, status: false })
-        })
-        if (res.ok) {
-          fetchData()
-        } else {
-          toast.error("Failed to archive product")
-        }
-      } catch (err) {
-        console.error(err)
-      }
-    }
+  const confirmArchive = (id: string) => {
+    setConfirmState({
+      isOpen: true,
+      action: 'archive',
+      targetId: id,
+      title: 'Archive Product',
+      description: 'Are you sure you want to archive this product? It will be marked as Inactive and hidden from POS.',
+      confirmText: 'Yes, Archive',
+      isDestructive: false
+    })
   }
 
-  const deleteProduct = async (id: string) => {
-    if(confirm("Are you sure you want to permanently delete this product?")) {
-      try {
-        const res = await fetch(`/api/products?id=${id}`, { method: 'DELETE' })
-        if (res.ok) {
-          fetchData()
-        } else {
-          toast.error("Failed to delete product")
-        }
-      } catch (err) {
-        console.error(err)
-      }
-    }
+  const confirmDelete = (id: string) => {
+    setConfirmState({
+      isOpen: true,
+      action: 'product',
+      targetId: id,
+      title: 'Delete Product',
+      description: 'Are you sure you want to permanently delete this product? This action cannot be undone.',
+      confirmText: 'Yes, Delete',
+      isDestructive: true
+    })
   }
 
   return (
@@ -580,11 +622,11 @@ export default function ProductsPage() {
                     <Button variant="ghost" size="icon" title="Edit" onClick={() => handleEdit(p)}>
                       <Edit className="h-4 w-4 text-blue-500" />
                     </Button>
-                    <Button variant="ghost" size="icon" title="Archive" onClick={() => archiveProduct(p.id)} disabled={p.status === 'Inactive'}>
-                      <Archive className="h-4 w-4 text-orange-500" />
+                    <Button variant="ghost" size="icon" title="Archive" onClick={() => confirmArchive(p.id)} disabled={p.status === 'Inactive'}>
+                      <Archive className="h-4 w-4 text-orange-500 hover:text-orange-600" />
                     </Button>
-                    <Button variant="ghost" size="icon" title="Delete" onClick={() => deleteProduct(p.id)}>
-                      <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
+                    <Button variant="ghost" size="icon" title="Delete" onClick={() => confirmDelete(p.id)}>
+                      <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
                     </Button>
                   </div>
                 </TableCell>
@@ -593,6 +635,33 @@ export default function ProductsPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Confirmation Modal */}
+      <Dialog open={confirmState.isOpen} onOpenChange={(open) => setConfirmState(prev => ({ ...prev, isOpen: open }))}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className={`flex items-center gap-2 ${confirmState.isDestructive ? 'text-red-600' : 'text-orange-600'}`}>
+              {confirmState.isDestructive ? <Trash2 className="w-5 h-5" /> : <Archive className="w-5 h-5" />} 
+              {confirmState.title}
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              {confirmState.description}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}>
+              Cancel
+            </Button>
+            <Button 
+              type="button" 
+              className={confirmState.isDestructive ? "bg-red-600 hover:bg-red-700 text-white" : "bg-orange-600 hover:bg-orange-700 text-white"} 
+              onClick={executeConfirmAction}
+            >
+              {confirmState.confirmText}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

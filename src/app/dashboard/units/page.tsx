@@ -24,6 +24,10 @@ export default function UnitsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   
+  // Delete Modal State
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
+  
   // Form State
   const [name, setName] = useState("")
   const [code, setCode] = useState("")
@@ -66,10 +70,16 @@ export default function UnitsPage() {
     ))
   }
 
-  const deleteUnit = (id: number) => {
-    if(confirm("Are you sure you want to delete this unit?")) {
-      setUnits(units.filter(u => u.id !== id))
-    }
+  const confirmDelete = (id: number) => {
+    setDeletingId(id)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const deleteUnit = () => {
+    if(!deletingId) return;
+    setUnits(units.filter(u => u.id !== deletingId))
+    setIsDeleteDialogOpen(false)
+    setDeletingId(null)
   }
 
   return (
@@ -184,7 +194,7 @@ export default function UnitsPage() {
                     <Button variant="ghost" size="icon" title="Edit">
                       <Edit className="h-4 w-4 text-gray-400 hover:text-blue-500" />
                     </Button>
-                    <Button variant="ghost" size="icon" title="Delete" onClick={() => deleteUnit(u.id)}>
+                    <Button variant="ghost" size="icon" title="Delete" onClick={() => confirmDelete(u.id)}>
                       <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
                     </Button>
                   </div>
@@ -194,6 +204,28 @@ export default function UnitsPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <Trash2 className="w-5 h-5" /> Confirm Deletion
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              Are you sure you want to delete this unit? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" className="bg-red-600 hover:bg-red-700 text-white" onClick={deleteUnit}>
+              Yes, Delete Unit
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

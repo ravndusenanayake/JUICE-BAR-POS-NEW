@@ -16,6 +16,10 @@ export default function AddOnsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+
+  // Delete Modal State
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [editingAddon, setEditingAddon] = useState<any>(null)
   
   // Form State
@@ -136,18 +140,25 @@ export default function AddOnsPage() {
     }
   }
 
-  const deleteAddon = async (id: string) => {
-    if(confirm("Are you sure you want to permanently delete this add-on?")) {
-      try {
-        const res = await fetch(`/api/add-ons?id=${id}`, { method: 'DELETE' })
-        if (res.ok) {
-          fetchAddons()
-        } else {
-          toast.error("Failed to delete add-on")
-        }
-      } catch (err) {
-        console.error(err)
+  const confirmDelete = (id: string) => {
+    setDeletingId(id)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const deleteAddon = async () => {
+    if(!deletingId) return;
+    try {
+      const res = await fetch(`/api/add-ons?id=${deletingId}`, { method: 'DELETE' })
+      if (res.ok) {
+        fetchAddons()
+      } else {
+        toast.error("Failed to delete add-on")
       }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsDeleteDialogOpen(false)
+      setDeletingId(null)
     }
   }
 
@@ -159,10 +170,10 @@ export default function AddOnsPage() {
           <p className="text-muted-foreground">Manage optional extras that customers can add to their orders.</p>
         </div>
         
-        <Button className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => setIsDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" /> Add New Add-On
-        </Button>
         <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }}>
+          <DialogTrigger render={<Button className="bg-orange-500 hover:bg-orange-600 text-white" />}>
+            <Plus className="mr-2 h-4 w-4" /> Add New Add-On
+          </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <form onSubmit={handleSaveAddon}>
               <DialogHeader>
@@ -268,9 +279,9 @@ export default function AddOnsPage() {
                     <Button variant="ghost" size="icon" title="Edit" onClick={() => handleEdit(a)}>
                       <Edit className="h-4 w-4 text-gray-400 hover:text-blue-500" />
                     </Button>
-                    <Button variant="ghost" size="icon" title="Delete" onClick={() => deleteAddon(a.id)}>
-                      <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
-                    </Button>
+                      <Button variant="ghost" size="icon" title="Delete" onClick={() => confirmDelete(a.id)}>
+                        <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                      </Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -278,6 +289,28 @@ export default function AddOnsPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <Trash2 className="w-5 h-5" /> Confirm Deletion
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              Are you sure you want to permanently delete this add-on? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" className="bg-red-600 hover:bg-red-700 text-white" onClick={deleteAddon}>
+              Yes, Delete Add-On
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

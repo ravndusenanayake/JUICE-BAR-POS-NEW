@@ -20,6 +20,10 @@ export default function ProductVariantsPage() {
   
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+
+  // Delete Modal State
+  const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false)
+  const [archivingId, setArchivingId] = useState<string | null>(null)
   
   // Form State
   const [productId, setProductId] = useState("")
@@ -136,22 +140,30 @@ export default function ProductVariantsPage() {
     setIsDialogOpen(true)
   }
 
-  const archiveVariant = async (id: string) => {
-    if(confirm("Are you sure you want to archive this variant? It will be marked as Inactive.")) {
-      try {
-        const res = await fetch(`/api/product-variants`, { 
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, status: false })
-        })
-        if (res.ok) {
-          fetchVariants()
-        } else {
-          toast.error("Failed to archive variant")
-        }
-      } catch (err) {
-        console.error(err)
+  const confirmArchive = (id: string) => {
+    setArchivingId(id)
+    setIsArchiveDialogOpen(true)
+  }
+
+  const archiveVariant = async () => {
+    if(!archivingId) return;
+    try {
+      const res = await fetch(`/api/product-variants`, { 
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: archivingId, status: false })
+      })
+      if (res.ok) {
+        toast.success("Variant archived")
+        fetchVariants()
+      } else {
+        toast.error("Failed to archive variant")
       }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsArchiveDialogOpen(false)
+      setArchivingId(null)
     }
   }
 
@@ -163,11 +175,10 @@ export default function ProductVariantsPage() {
           <p className="text-muted-foreground">Manage selling sizes and prices for your products.</p>
         </div>
         
-        <Button onClick={() => setIsDialogOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-          <Plus className="mr-2 h-4 w-4" /> Add Variant
-        </Button>
-        
         <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }}>
+          <DialogTrigger render={<Button className="bg-primary hover:bg-primary/90 text-primary-foreground" />}>
+            <Plus className="mr-2 h-4 w-4" /> Add Variant
+          </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle className="text-xl">{editingVariant ? "Edit Variant" : "Add New Variant"}</DialogTitle>
@@ -282,9 +293,9 @@ export default function ProductVariantsPage() {
                     <Button variant="ghost" size="icon" title="Edit" onClick={() => handleEdit(v)}>
                       <Edit className="h-4 w-4 text-blue-500" />
                     </Button>
-                    <Button variant="ghost" size="icon" title="Archive" onClick={() => archiveVariant(v.id)} disabled={v.status === 'Inactive'}>
-                      <Archive className="h-4 w-4 text-orange-500" />
-                    </Button>
+                      <Button variant="ghost" size="icon" title="Archive" onClick={() => confirmArchive(v.id)} disabled={v.status === 'Inactive'}>
+                        <Archive className="h-4 w-4 text-orange-500 hover:text-orange-600" />
+                      </Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -292,6 +303,28 @@ export default function ProductVariantsPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Archive Confirmation Modal */}
+      <Dialog open={isArchiveDialogOpen} onOpenChange={setIsArchiveDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-orange-600 flex items-center gap-2">
+              <Archive className="w-5 h-5" /> Confirm Archive
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              Are you sure you want to archive this variant? It will be marked as Inactive and hidden from the POS.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => setIsArchiveDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" className="bg-orange-600 hover:bg-orange-700 text-white" onClick={archiveVariant}>
+              Yes, Archive Variant
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

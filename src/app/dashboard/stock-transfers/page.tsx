@@ -43,6 +43,10 @@ export default function StockTransfersPage() {
   const [inventory, setInventory] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
 
+  // Confirm Modal State
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+  const [confirmTransfer, setConfirmTransfer] = useState<StockTransfer | null>(null)
+
   // Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [sourceBranch, setSourceBranch] = useState(defaultBranch)
@@ -216,37 +220,45 @@ export default function StockTransfersPage() {
     }
   }
 
-  const handleReceive = async (transfer: StockTransfer) => {
-    if (confirm(`Are you sure you want to receive these items at ${transfer.destinationBranch}?`)) {
-      try {
-        for (const item of transfer.items) {
-          await fetch('/api/inventory/adjust', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              branch: transfer.destinationBranch,
-              sku: item.sku,
-              quantity: item.quantity,
-              type: 'IN',
-              reference: transfer.transferNumber,
-              remarks: 'Stock Transfer In from ' + transfer.sourceBranch
-            })
-          })
-        }
-        
-        const res = await fetch('/api/stock-transfers', {
-          method: 'PUT',
+  const handleConfirmReceive = (transfer: StockTransfer) => {
+    setConfirmTransfer(transfer)
+    setIsConfirmOpen(true)
+  }
+
+  const handleReceive = async () => {
+    if (!confirmTransfer) return;
+    
+    try {
+      for (const item of confirmTransfer.items) {
+        await fetch('/api/inventory/adjust', {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: transfer._id || transfer.id, status: "Completed" })
+          body: JSON.stringify({
+            branch: confirmTransfer.destinationBranch,
+            sku: item.sku,
+            quantity: item.quantity,
+            type: 'IN',
+            reference: confirmTransfer.transferNumber,
+            remarks: 'Stock Transfer In from ' + confirmTransfer.sourceBranch
+          })
         })
-        
-        if (res.ok) {
-          fetchTransfers()
-          toast.success("Stock successfully added to Destination Branch.")
-        }
-      } catch (e) {
-        console.error(e)
       }
+      
+      const res = await fetch('/api/stock-transfers', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: confirmTransfer._id || confirmTransfer.id, status: "Completed" })
+      })
+      
+      if (res.ok) {
+        fetchTransfers()
+        toast.success("Stock successfully added to Destination Branch.")
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsConfirmOpen(false)
+      setConfirmTransfer(null)
     }
   }
 
@@ -337,7 +349,11 @@ export default function StockTransfersPage() {
                       </Button>
                     )}
                     {trf.status === "Approved" && (user?.branch === "All Branches" || user?.branch === trf.destinationBranch) && (
-                      <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white font-bold h-8" onClick={() => handleReceive(trf)}>
+                      <Button 
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white font-bold h-8"
+                        onClick={() => handleConfirmReceive(trf)}
+                      >
                         <Download className="w-4 h-4 mr-1.5" /> Receive Stock
                       </Button>
                     )}
@@ -441,6 +457,29 @@ export default function StockTransfersPage() {
               <Button type="submit" className="h-11 px-6 font-bold bg-orange-500 text-white hover:bg-orange-600 shadow-lg">Submit Request</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Receive Confirmation Modal */}
+      <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-blue-600 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5" /> Confirm Receipt
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              Are you sure you want to receive these items at <strong className="text-gray-900">{confirmTransfer?.destinationBranch}</strong>? 
+              This will update the inventory stock levels.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => setIsConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleReceive}>
+              Yes, Receive Items
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

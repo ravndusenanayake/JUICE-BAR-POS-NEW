@@ -26,6 +26,10 @@ export default function AllGRNPage() {
   const [amountPaid, setAmountPaid] = useState("")
   const [paymentNotes, setPaymentNotes] = useState("")
 
+  // View Details Modal State
+  const [isViewOpen, setIsViewOpen] = useState(false)
+  const [viewGrn, setViewGrn] = useState<any>(null)
+
   useEffect(() => {
     fetchGRNs()
   }, [])
@@ -58,6 +62,11 @@ export default function AllGRNPage() {
     setAmountPaid((grn.totalAmount - (grn.paidAmount || 0)).toString())
     setPaymentNotes("")
     setIsPaymentOpen(true)
+  }
+
+  const openViewModal = (grn: any) => {
+    setViewGrn(grn)
+    setIsViewOpen(true)
   }
 
   const handleSavePayment = async (e: React.FormEvent) => {
@@ -195,7 +204,7 @@ export default function AllGRNPage() {
                     </TableCell>
                     <TableCell className="text-right px-4">
                       <div className="flex items-center justify-end gap-2">
-                        <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="View Details">
+                        <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="View Details" onClick={() => openViewModal(grn)}>
                           <Eye className="w-4 h-4 text-gray-500" />
                         </Button>
                         {grn.paymentStatus !== "Fully Paid" && (
@@ -298,6 +307,63 @@ export default function AllGRNPage() {
               <Button type="submit" className="bg-orange-600 hover:bg-orange-700">Save Payment</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Details Modal */}
+      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+        <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden border-0 shadow-2xl rounded-2xl">
+          <div className="p-6 border-b bg-gray-50">
+            <div className="flex justify-between items-start">
+              <div>
+                <DialogTitle className="text-xl font-black text-gray-900 flex items-center gap-2">
+                  <PackageOpen className="text-orange-500" /> {viewGrn?.grnNumber}
+                </DialogTitle>
+                <DialogDescription className="text-gray-600 mt-2 font-medium">
+                  Received from <strong className="text-gray-900">{viewGrn?.supplierName}</strong> on {viewGrn ? new Date(viewGrn.receivedDate).toLocaleDateString() : ''}.
+                </DialogDescription>
+              </div>
+              <div className="text-right">
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">Linked PO</div>
+                <div className="font-black text-blue-600 mt-0.5">{viewGrn?.poNumber}</div>
+              </div>
+            </div>
+            
+            {viewGrn?.notes && (
+              <div className="mt-4 bg-yellow-50 border border-yellow-200 p-3 rounded-lg text-sm text-yellow-800 font-medium">
+                <strong className="text-yellow-900">Notes:</strong> {viewGrn.notes}
+              </div>
+            )}
+          </div>
+
+          <div className="p-6 max-h-[50vh] overflow-y-auto">
+            <div className="border rounded-xl bg-white overflow-hidden shadow-sm">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-100 text-xs uppercase tracking-wider">
+                    <TableHead className="py-3 font-bold">Product</TableHead>
+                    <TableHead className="font-bold">Ordered</TableHead>
+                    <TableHead className="font-bold text-green-700 bg-green-50/50">Good Received</TableHead>
+                    <TableHead className="font-bold text-red-700 bg-red-50/50">Damaged</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {viewGrn?.items?.map((item: any, idx: number) => (
+                    <TableRow key={idx} className="text-sm border-b last:border-0">
+                      <TableCell className="font-bold py-3 text-gray-900">{item.itemName}</TableCell>
+                      <TableCell className="text-gray-500 font-medium">{item.orderedQty} {item.unit}</TableCell>
+                      <TableCell className="bg-green-50/20 font-black text-green-600">{item.receivedGoodQty} {item.unit}</TableCell>
+                      <TableCell className="bg-red-50/20 font-bold text-red-600">{item.damagedQty > 0 ? `${item.damagedQty} ${item.unit}` : '-'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
+          <DialogFooter className="p-6 border-t bg-white flex justify-end">
+            <Button variant="outline" className="h-10 px-6 font-bold" onClick={() => setIsViewOpen(false)}>Close</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -19,6 +19,10 @@ export default function CategoriesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   
+  // Delete Modal State
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  
   // Form State
   const [editingId, setEditingId] = useState<string | null>(null)
   const [newName, setNewName] = useState("")
@@ -126,19 +130,28 @@ export default function CategoriesPage() {
     }
   }
 
-  const deleteCategory = async (id: string) => {
-    if(confirm("Are you sure you want to delete this category?")) {
-      try {
-        const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' })
-        if (res.ok) {
-          fetchCategories()
-        } else {
-          const err = await res.json()
-          toast.error(err.error || "Failed to delete category")
-        }
-      } catch (err) {
-        console.error(err)
+  const confirmDelete = (id: string) => {
+    setDeletingId(id)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const deleteCategory = async () => {
+    if(!deletingId) return;
+    try {
+      const res = await fetch(`/api/categories/${deletingId}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success("Category deleted")
+        fetchCategories()
+      } else {
+        const err = await res.json()
+        toast.error(err.error || "Failed to delete category")
       }
+    } catch (error) {
+      console.error(error)
+      toast.error("Error deleting category")
+    } finally {
+      setIsDeleteDialogOpen(false)
+      setDeletingId(null)
     }
   }
 
@@ -150,11 +163,10 @@ export default function CategoriesPage() {
           <p className="text-muted-foreground">Manage product categories globally across all branches.</p>
         </div>
         
-        <Button onClick={() => setIsDialogOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-          <Plus className="mr-2 h-4 w-4" /> Create Category
-        </Button>
-        
         <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }}>
+          <DialogTrigger render={<Button className="bg-orange-500 hover:bg-orange-600 text-white" />}>
+            <Plus className="mr-2 h-4 w-4" /> Add Category
+          </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <form onSubmit={handleSaveCategory}>
               <DialogHeader>
@@ -255,8 +267,8 @@ export default function CategoriesPage() {
                     <Button variant="ghost" size="icon" title="Edit" onClick={() => handleEdit(cat)}>
                       <Edit className="h-4 w-4 text-blue-500" />
                     </Button>
-                    <Button variant="ghost" size="icon" title="Delete" onClick={() => deleteCategory(cat.id)}>
-                      <Trash2 className="h-4 w-4 text-red-500" />
+                    <Button variant="ghost" size="icon" title="Delete" onClick={() => confirmDelete(cat.id)}>
+                      <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
                     </Button>
                   </div>
                 </TableCell>
@@ -265,6 +277,28 @@ export default function CategoriesPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <Trash2 className="w-5 h-5" /> Confirm Deletion
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              Are you sure you want to delete this category? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" className="bg-red-600 hover:bg-red-700 text-white" onClick={deleteCategory}>
+              Yes, Delete Category
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
