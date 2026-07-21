@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import dbConnect from "@/database/dbConnect";
+import connectToDatabase from "@/database/mongoose";
 import Sale from "@/database/models/Sale";
 import Recipe from "@/database/models/Recipe";
 import BranchInventory from "@/database/models/BranchInventory";
 import StockLedger from "@/database/models/StockLedger";
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  await dbConnect();
+  await connectToDatabase();
   
   try {
     // Await params object before using its properties in Next.js 15+ API routes
