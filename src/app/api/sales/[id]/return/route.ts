@@ -5,7 +5,7 @@ import Recipe from "@/database/models/Recipe";
 import BranchInventory from "@/database/models/BranchInventory";
 import StockLedger from "@/database/models/StockLedger";
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   await connectToDatabase();
   
   try {
