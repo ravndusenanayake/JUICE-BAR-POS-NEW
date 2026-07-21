@@ -2,11 +2,15 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { useAuth } from "@/context/AuthContext"
-import { BarChart3, TrendingUp, TrendingDown, DollarSign, Package, ShoppingBag, Truck, Calendar, Wallet } from "lucide-react"
+import { BarChart3, TrendingUp, TrendingDown, DollarSign, Package, ShoppingBag, Truck, Calendar, Wallet, FileDown, Download } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { jsPDF } from "jspdf"
+import autoTable from "jspdf-autotable"
+import * as XLSX from "xlsx"
 
 export default function ReportsPage() {
   const { user, role } = useAuth()
@@ -117,6 +121,61 @@ export default function ReportsPage() {
   const netProfit = totalSalesRevenue - cogs - totalExpenses - totalWastageCost
   const profitMargin = totalSalesRevenue > 0 ? (netProfit / totalSalesRevenue) * 100 : 0
 
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(20);
+    doc.text("Business Analytics & Reports", 14, 22);
+    
+    doc.setFontSize(12);
+    doc.text(`Branch: ${filterBranch} | Date Filter: ${dateFilter}`, 14, 32);
+
+    doc.setFontSize(14);
+    doc.text("Profitability Summary", 14, 45);
+    
+    autoTable(doc, {
+      startY: 50,
+      head: [['Metric', 'Amount (Rs.)']],
+      body: [
+        ['Total Sales Revenue', totalSalesRevenue.toFixed(2)],
+        ['Cost of Goods Sold (COGS)', cogs.toFixed(2)],
+        ['Gross Profit', (totalSalesRevenue - cogs).toFixed(2)],
+        ['Operational Expenses', totalExpenses.toFixed(2)],
+        ['Wastage / Damages', totalWastageCost.toFixed(2)],
+        ['Net Profit Before Tax', netProfit.toFixed(2)],
+      ],
+      theme: 'grid',
+      headStyles: { fillColor: [249, 115, 22] }
+    });
+    
+    doc.save("business-report.pdf");
+  };
+
+  const handleExportExcel = () => {
+    const data = [
+        ['Metric', 'Amount (Rs.)'],
+        ['Total Sales Revenue', totalSalesRevenue],
+        ['Cost of Goods Sold (COGS)', cogs],
+        ['Gross Profit', (totalSalesRevenue - cogs)],
+        ['Operational Expenses', totalExpenses],
+        ['Wastage / Damages', totalWastageCost],
+        ['Net Profit Before Tax', netProfit],
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Profitability");
+
+    const salesData = [
+      ['Invoice ID', 'Date', 'Branch', 'Payment Method', 'Grand Total (Rs.)'],
+      ...filteredSales.map(s => [s.id, new Date(s.timestamp || s.createdAt).toLocaleString(), s.branch, s.paymentMethod, s.grandTotal])
+    ];
+    const wsSales = XLSX.utils.aoa_to_sheet(salesData);
+    XLSX.utils.book_append_sheet(wb, wsSales, "Sales");
+
+    XLSX.writeFile(wb, "business-report.xlsx");
+  };
+
   return (
     <div className="space-y-6 pb-12">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -127,8 +186,18 @@ export default function ReportsPage() {
           <p className="text-gray-500 font-medium">Business intelligence, profitability, and operational insights.</p>
         </div>
         
-        <div className="flex items-center gap-3 bg-white p-2 rounded-xl shadow-sm border">
-          <Select value={dateFilter} onValueChange={(v) => setDateFilter(v || "")}>
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" className="border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700" onClick={handleExportPDF}>
+              <FileDown className="w-4 h-4 mr-2" /> PDF
+            </Button>
+            <Button variant="outline" className="border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700" onClick={handleExportExcel}>
+              <Download className="w-4 h-4 mr-2" /> Excel
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-3 bg-white p-2 rounded-xl shadow-sm border">
+            <Select value={dateFilter} onValueChange={(v) => setDateFilter(v || "")}>
             <SelectTrigger className="w-[150px] border-0 bg-transparent font-bold"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="Today">Today</SelectItem>
@@ -151,6 +220,7 @@ export default function ReportsPage() {
           </Select>
         </div>
       </div>
+    </div>
 
       <Tabs defaultValue="profit" className="space-y-6">
         <TabsList className="bg-white border shadow-sm p-1 h-auto rounded-xl flex overflow-x-auto hide-scrollbar">
