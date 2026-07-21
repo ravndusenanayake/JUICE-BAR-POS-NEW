@@ -25,6 +25,7 @@ export interface ISale extends Document {
   branch: string;
   cashier: string;
   customer: string;
+  orderType: 'Dine-In' | 'Takeaway' | 'Delivery';
   subtotal: number;
   discount: number;
   total: number;
@@ -63,6 +64,7 @@ const SaleSchema = new Schema<ISale>(
     branch: { type: String, required: true },
     cashier: { type: String, required: true },
     customer: { type: String, default: 'Walk-In Customer' },
+    orderType: { type: String, enum: ['Dine-In', 'Takeaway', 'Delivery'], default: 'Takeaway' },
     subtotal: { type: Number, required: true },
     discount: { type: Number, default: 0 },
     total: { type: Number, required: true },

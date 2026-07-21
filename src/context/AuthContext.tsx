@@ -12,6 +12,7 @@ interface User {
   email: string
   role: Role
   branch: string
+  permissions: string[]
 }
 
 interface AuthContextType {
@@ -20,6 +21,7 @@ interface AuthContextType {
   login: () => void
   logout: () => void
   isAuthenticated: boolean
+  hasPermission: (permission: string) => boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -33,7 +35,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     name: session.user.name || '',
     email: session.user.email || '',
     role: (session.user as any).role || null,
-    branch: (session.user as any).branch || ''
+    branch: (session.user as any).branch || '',
+    permissions: (session.user as any).permissions || []
   } : null
 
   const login = () => {
@@ -45,13 +48,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     router.push("/login")
   }
 
+  const hasPermission = (permission: string) => {
+    if (!user) return false;
+    // Super Admin gets implicit full access
+    if (user.role === "Super Admin") return true;
+    return user.permissions.includes(permission);
+  }
+
   return (
     <AuthContext.Provider value={{ 
       user, 
       role: user?.role || null, 
       login, 
       logout, 
-      isAuthenticated: status === "authenticated" 
+      isAuthenticated: status === "authenticated",
+      hasPermission
     }}>
       {children}
     </AuthContext.Provider>

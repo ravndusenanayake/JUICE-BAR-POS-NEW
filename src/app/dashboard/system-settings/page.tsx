@@ -112,7 +112,7 @@ export default function SystemSettingsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
               <div className="grid gap-2">
                 <Label htmlFor="maxBranches" className="text-sm font-medium text-gray-700">Maximum Branches Allowed</Label>
-                <div className="relative">
+                <div className="relative flex items-center">
                   <Input 
                     id="maxBranches" 
                     type="number" 
@@ -120,16 +120,16 @@ export default function SystemSettingsPage() {
                     value={maxBranches} 
                     onChange={(e) => setMaxBranches(e.target.value)} 
                     required 
-                    className="border-gray-300 font-semibold" 
+                    className="border-gray-300 font-semibold pr-20" 
                   />
-                  <div className="absolute right-3 top-2.5 text-xs text-gray-400">Branches</div>
+                  <div className="absolute right-8 text-xs text-gray-400 pointer-events-none">Branches</div>
                 </div>
                 <p className="text-xs text-gray-500">The total number of branches the Admin can create.</p>
               </div>
 
               <div className="grid gap-2">
                 <Label htmlFor="maxUsers" className="text-sm font-medium text-gray-700">Maximum Users Allowed</Label>
-                <div className="relative">
+                <div className="relative flex items-center">
                   <Input 
                     id="maxUsers" 
                     type="number" 
@@ -137,9 +137,9 @@ export default function SystemSettingsPage() {
                     value={maxUsers} 
                     onChange={(e) => setMaxUsers(e.target.value)} 
                     required 
-                    className="border-gray-300 font-semibold" 
+                    className="border-gray-300 font-semibold pr-16" 
                   />
-                  <div className="absolute right-3 top-2.5 text-xs text-gray-400">Users</div>
+                  <div className="absolute right-8 text-xs text-gray-400 pointer-events-none">Users</div>
                 </div>
                 <p className="text-xs text-gray-500">The total number of staff accounts the Admin can create.</p>
               </div>

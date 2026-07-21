@@ -37,6 +37,7 @@ export async function POST(req: Request) {
       branch: body.branch || 'Colombo 07',
       cashier: body.cashier || 'Unknown',
       customer: body.customer || 'Walk-In Customer',
+      orderType: body.orderType || 'Takeaway',
       subtotal: body.subTotal || 0,
       discount: body.discount || 0,
       total: body.total || 0,

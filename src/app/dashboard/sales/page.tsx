@@ -177,6 +177,7 @@ export default function SalesHistoryPage() {
               <TableHead className="w-[120px]">Invoice</TableHead>
               <TableHead>Date & Time</TableHead>
               <TableHead>Customer</TableHead>
+              <TableHead>Order Type</TableHead>
               <TableHead>Items</TableHead>
               <TableHead>Total Amount</TableHead>
               <TableHead>Status</TableHead>
@@ -198,6 +199,11 @@ export default function SalesHistoryPage() {
                   <TableCell className="font-medium text-primary">{sale.invoiceNo}</TableCell>
                   <TableCell>{new Date(sale.createdAt).toLocaleString()}</TableCell>
                   <TableCell>{sale.customer}</TableCell>
+                  <TableCell>
+                    <span className="px-2 py-1 bg-gray-100 text-gray-700 font-medium text-xs rounded-md">
+                      {sale.orderType || 'Takeaway'}
+                    </span>
+                  </TableCell>
                   <TableCell>{sale.items?.length || 0}</TableCell>
                   <TableCell className="font-bold">Rs. {sale.total?.toFixed(2)}</TableCell>
                   <TableCell>

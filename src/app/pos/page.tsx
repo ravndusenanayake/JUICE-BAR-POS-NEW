@@ -125,6 +125,9 @@ export default function POSPage() {
   const [noteModalItem, setNoteModalItem] = useState<CartItem | null>(null)
   const [itemNote, setItemNote] = useState("")
   
+  // -- Order Type State --
+  const [orderType, setOrderType] = useState<"Dine-In" | "Takeaway" | "Delivery">("Takeaway")
+  
   // -- Customer Selection State --
   const [customers, setCustomers] = useState<any[]>([])
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
@@ -509,6 +512,7 @@ export default function POSPage() {
         branch: posBranch || "Colombo 07",
         cashier: user?.name || "System",
         customer: selectedCustomer?.name || "Walk-In Customer",
+        orderType: orderType,
         subTotal: subtotal,
         discount: discountAmount,
         total: grandTotal,
@@ -826,6 +830,20 @@ export default function POSPage() {
 
         {/* Cart Totals & Pay */}
         <div className="p-5 border-t bg-white shrink-0 shadow-[0_-5px_15px_rgba(0,0,0,0.03)]">
+          <div className="flex bg-gray-100 p-1 rounded-lg mb-4">
+            <button 
+              className={`flex-1 text-sm font-bold py-1.5 rounded-md transition-all ${orderType === 'Takeaway' ? 'bg-white shadow text-orange-600' : 'text-gray-500 hover:text-gray-700'}`}
+              onClick={() => setOrderType('Takeaway')}
+            >
+              Takeaway
+            </button>
+            <button 
+              className={`flex-1 text-sm font-bold py-1.5 rounded-md transition-all ${orderType === 'Dine-In' ? 'bg-white shadow text-orange-600' : 'text-gray-500 hover:text-gray-700'}`}
+              onClick={() => setOrderType('Dine-In')}
+            >
+              Dine-In
+            </button>
+          </div>
           <div className="space-y-2 mb-4">
             <div className="flex justify-between text-sm font-medium text-gray-500">
               <span>Subtotal</span>
@@ -1209,24 +1227,28 @@ export default function POSPage() {
       </Dialog>
 
       {/* --- Printable Receipt (Hidden from Screen, optimized for 80mm thermal printers) --- */}
-      <div className="hidden print:flex absolute inset-0 bg-white z-[9999] justify-center text-black font-mono text-sm leading-tight">
+      <style type="text/css" media="print">
+        {`@page { margin: 0; }`}
+      </style>
+      <div className="hidden print:flex absolute inset-0 bg-white z-[9999] justify-center text-black font-mono text-sm leading-tight pt-4">
         <div className="w-[80mm] py-4 px-2">
           {/* Header */}
           <div className="text-center mb-4">
-            <h1 className="text-2xl font-bold mb-1 uppercase">JUICE BAR POS</h1>
+            <h1 className="text-2xl font-bold mb-1 uppercase">JUICE BAR</h1>
+            <p className="font-black text-lg my-1 py-1 border-y border-dashed border-gray-400">** {saleDetails?.orderType?.toUpperCase()} **</p>
             <p className="text-xs">{posBranch || "Colombo 07, Sri Lanka"}</p>
             <p className="text-xs">Tel: 011-2345678</p>
             <div className="border-b border-dashed border-gray-400 my-2" />
             <div className="text-left text-xs">
               <div className="flex justify-between">
-                <span>Receipt: {lastOrderRef}</span>
+                <span className="font-bold">Receipt: {lastOrderRef}</span>
                 <span suppressHydrationWarning>{new Date().toLocaleDateString()}</span>
               </div>
               <div className="flex justify-between mt-1">
                 <span>Cashier: {user?.name || 'Admin'}</span>
                 <span suppressHydrationWarning>{new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
               </div>
-              <div className="mt-1">
+              <div className="flex justify-between mt-1">
                 <span>Customer: {saleDetails?.customer || "Walk-In"}</span>
               </div>
             </div>
@@ -1267,7 +1289,7 @@ export default function POSPage() {
           <div className="border-t border-dashed border-gray-400 pt-2 text-xs space-y-1">
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span>Rs. {saleDetails?.subTotal?.toFixed(2)}</span>
+              <span>Rs. {saleDetails?.subtotal?.toFixed(2)}</span>
             </div>
             {(saleDetails?.discount ?? 0) > 0 && (
               <div className="flex justify-between">
@@ -1292,7 +1314,11 @@ export default function POSPage() {
           {/* Footer */}
           <div className="text-center mt-6 text-xs space-y-1">
             <p className="font-bold">Thank You, Come Again!</p>
-            <p>WIFI: JuiceBar_Guest / PW: juice123</p>
+            <div className="border-t border-dashed border-gray-400 my-2 pt-2">
+              <p className="font-bold text-[10px]">RETURN POLICY</p>
+              <p className="text-[10px] leading-tight mt-0.5">Returns/Exchanges valid within 3 days with original receipt.</p>
+            </div>
+            <p className="pt-1">WIFI: JuiceBar_Guest / PW: juice123</p>
             <p>Follow us on IG @juicebar_pos</p>
             <div className="h-8"></div> {/* Bottom margin for printer cutting */}
           </div>

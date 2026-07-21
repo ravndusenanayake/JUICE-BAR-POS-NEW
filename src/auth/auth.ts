@@ -3,6 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import connectToDatabase from '@/database/mongoose';
 import User from '@/database/models/User';
+import Role from '@/database/models/Role';
 import { authConfig } from './auth.config';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -32,12 +33,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
+        const roleDoc = await Role.findOne({ name: (user as any).role }).lean();
+        const permissions = (roleDoc as any)?.permissions || [];
+
         return {
           id: user._id.toString(),
           name: user.name,
           email: user.email,
           role: (user as any).role,
           branch: (user as any).branch,
+          permissions: permissions,
         };
       },
     }),
