@@ -162,6 +162,7 @@ export default function POSPage() {
   const [isShiftOpen, setIsShiftOpen] = useState(false)
   const [openingBalance, setOpeningBalance] = useState("")
   const [isCloseShiftOpen, setIsCloseShiftOpen] = useState(false)
+  const [isShiftSummaryOpen, setIsShiftSummaryOpen] = useState(false)
   const [shiftSummaryData, setShiftSummaryData] = useState<any>(null)
   const [isShiftSummaryLoading, setIsShiftSummaryLoading] = useState(false)
   
@@ -643,6 +644,24 @@ export default function POSPage() {
     }
   }
 
+  const openSlideOutSummary = async () => {
+    if (!currentShiftId) return;
+    setIsShiftSummaryLoading(true);
+    setIsShiftSummaryOpen(true);
+    try {
+      const res = await fetch(`/api/shifts/summary?shiftId=${currentShiftId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setShiftSummaryData(data);
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to load shift summary");
+    } finally {
+      setIsShiftSummaryLoading(false);
+    }
+  }
+
   const handleCloseShift = async () => {
     if (!currentShiftId || !shiftSummaryData) return;
     try {
@@ -787,6 +806,9 @@ export default function POSPage() {
             <Button variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50 h-9 px-3 text-xs font-bold" onClick={() => setIsReturnOpen(true)}>
               <RotateCcw className="w-3.5 h-3.5 mr-1" /> Return
             </Button>
+            <Button variant="outline" className="border-purple-200 text-purple-600 hover:bg-purple-50 h-9 px-3 text-xs font-bold" onClick={openSlideOutSummary}>
+              <Printer className="w-3.5 h-3.5 mr-1" /> Shift Summary
+            </Button>
             <Button variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 h-9 px-3 text-xs font-bold" onClick={openShiftSummary}>
               <Power className="w-3.5 h-3.5 mr-1" /> Close Shift
             </Button>
@@ -813,8 +835,8 @@ export default function POSPage() {
         </div>
 
         {/* Product Grid */}
-        <div className="flex-1 overflow-y-auto p-4 bg-gray-50/50">
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3">
+        <div className="flex-1 overflow-y-auto p-3 bg-gray-50/50">
+          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-2">
             {filteredProducts.map(product => {
               const addons = product.addons || []
               return (
@@ -826,15 +848,15 @@ export default function POSPage() {
                 >
                   {product.isOutOfStock && (
                     <div className="absolute inset-0 bg-white/40 z-10 flex items-center justify-center backdrop-blur-[1px]">
-                      <span className="bg-red-500 text-white font-black text-[10px] px-2 py-0.5 rounded-full uppercase tracking-widest rotate-[-12deg] shadow-lg border-2 border-white">Out</span>
+                      <span className="bg-red-500 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-widest rotate-[-12deg] shadow-lg border-2 border-white">Out</span>
                     </div>
                   )}
-                  <div className={`h-20 w-full flex items-center justify-center ${product.color.split(' ')[0]} bg-opacity-30`}>
-                    <span className={`text-2xl font-black opacity-20 ${product.color.split(' ')[1]}`}>
+                  <div className={`h-16 w-full flex items-center justify-center ${product.color.split(' ')[0]} bg-opacity-30`}>
+                    <span className={`text-xl font-black opacity-20 ${product.color.split(' ')[1]}`}>
                       {product.name.substring(0,2).toUpperCase()}
                     </span>
                   </div>
-                  <div className="p-2 flex-1 flex flex-col justify-between w-full">
+                  <div className="p-1.5 flex-1 flex flex-col justify-between w-full">
                     <h3 className={`font-bold text-xs leading-tight mb-1 transition-colors ${product.isOutOfStock ? 'text-gray-500' : 'text-gray-800 group-hover:text-orange-600'}`}>
                       {product.name}
                     </h3>
@@ -890,6 +912,28 @@ export default function POSPage() {
             </div>
           </div>
           <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-full">Change</span>
+        </div>
+
+        {/* Order Type Toggle */}
+        <div className="bg-gray-100 p-2 flex border-b">
+          <button 
+            className={`flex-1 py-1.5 text-sm font-bold rounded-md transition-colors ${orderType === 'Takeaway' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setOrderType('Takeaway')}
+          >
+            Takeaway
+          </button>
+          <button 
+            className={`flex-1 py-1.5 text-sm font-bold rounded-md transition-colors ${orderType === 'Dine-In' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setOrderType('Dine-In')}
+          >
+            Dine-In
+          </button>
+          <button 
+            className={`flex-1 py-1.5 text-sm font-bold rounded-md transition-colors ${orderType === 'Delivery' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setOrderType('Delivery')}
+          >
+            Delivery
+          </button>
         </div>
 
         {/* Cart Items */}
@@ -1593,6 +1637,73 @@ export default function POSPage() {
             <p className="pt-1">WIFI: JuiceBar_Guest / PW: juice123</p>
             <p>Follow us on IG @juicebar_pos</p>
             <div className="h-8"></div> {/* Bottom margin for printer cutting */}
+          </div>
+        </div>
+      </div>
+      {/* Shift Summary Slide-Out Panel */}
+      <div 
+        className={`fixed inset-0 bg-black/40 z-[100] transition-opacity duration-300 ${isShiftSummaryOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`} 
+        onClick={() => setIsShiftSummaryOpen(false)}
+      >
+        <div 
+          className={`absolute top-0 right-0 w-[400px] h-full bg-white shadow-2xl flex flex-col transition-transform duration-300 transform ${isShiftSummaryOpen ? "translate-x-0" : "translate-x-full"}`}
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="flex justify-between items-center px-6 py-4 border-b bg-gray-50">
+            <h2 className="text-xl font-bold flex items-center gap-2 text-gray-800">
+              <Printer className="w-5 h-5 text-purple-500" />
+              Shift Summary
+            </h2>
+            <button onClick={() => setIsShiftSummaryOpen(false)} className="p-2 rounded-full hover:bg-gray-200 text-gray-500">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-6">
+            {isShiftSummaryLoading ? (
+              <div className="flex justify-center items-center h-full">
+                <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+              </div>
+            ) : shiftSummaryData ? (
+              <div className="space-y-4 font-mono text-sm">
+                <div className="flex justify-between pb-3 border-b border-gray-200">
+                  <span className="text-gray-500">Opening Balance:</span>
+                  <span className="font-bold text-gray-800">Rs. {shiftSummaryData.openingBalance?.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Cash Sales:</span>
+                  <span className="font-bold text-green-600">+ Rs. {shiftSummaryData.cashSales?.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Card/Other Sales:</span>
+                  <span className="font-bold text-gray-700">Rs. {(shiftSummaryData.cardSales + shiftSummaryData.otherSales)?.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Petty Cash (Expenses):</span>
+                  <span className="font-bold text-red-500">- Rs. {shiftSummaryData.totalExpenses?.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between pb-3 border-b border-gray-200">
+                  <span className="text-gray-500">Refunds:</span>
+                  <span className="font-bold text-red-500">- Rs. {shiftSummaryData.totalRefunds?.toFixed(2)}</span>
+                </div>
+                
+                <div className="bg-purple-50 p-4 rounded-xl flex justify-between items-center border border-purple-100">
+                  <span className="text-purple-800 font-bold uppercase tracking-wider text-xs">Expected Cash in Till</span>
+                  <span className="text-xl font-black text-purple-700">Rs. {shiftSummaryData.expectedCash?.toFixed(2)}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                <Printer className="w-12 h-12 mb-2 opacity-20" />
+                <p>No shift data available.</p>
+              </div>
+            )}
+          </div>
+          
+          <div className="p-4 border-t bg-gray-50">
+            <Button className="w-full font-bold h-12 rounded-xl bg-purple-600 hover:bg-purple-700" onClick={() => window.print()}>
+              <Printer className="w-4 h-4 mr-2" /> Print Summary
+            </Button>
           </div>
         </div>
       </div>

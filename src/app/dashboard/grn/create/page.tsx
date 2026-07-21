@@ -37,12 +37,23 @@ function CreateGRNContent() {
   
   const [grnItems, setGrnItems] = useState<any[]>([])
   const [rawMaterials, setRawMaterials] = useState<any[]>([])
+  const [unitsList, setUnitsList] = useState<any[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   
   useEffect(() => {
     fetchPOs()
     fetchRawMaterials()
+    fetchUnits()
   }, [])
+
+  const fetchUnits = async () => {
+    try {
+      const res = await fetch('/api/units')
+      if (res.ok) setUnitsList(await res.json())
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   const fetchPOs = async () => {
     try {
@@ -190,9 +201,19 @@ function CreateGRNContent() {
 
         let inventoryQty = item.receivedGoodQty
         const originalRm = rawMaterials.find(r => r.sku === item.id)
-        if (originalRm) {
-          if (item.unit === 'Kg' && originalRm.unit === 'g') inventoryQty = item.receivedGoodQty * 1000
-          if (item.unit === 'L' && originalRm.unit === 'ml') inventoryQty = item.receivedGoodQty * 1000
+        
+        if (originalRm && item.unit !== originalRm.unit) {
+          // Find the received unit configuration
+          const receivedUnitConfig = unitsList.find(u => u.code === item.unit || u.name === item.unit)
+          
+          if (receivedUnitConfig && !receivedUnitConfig.isBaseUnit && receivedUnitConfig.baseUnitCode === originalRm.unit) {
+            // Apply custom conversion factor from the DB
+            inventoryQty = item.receivedGoodQty * (receivedUnitConfig.conversionFactor || 1)
+          } else {
+            // Fallback for hardcoded common units just in case DB doesn't have it set up yet
+            if (item.unit === 'Kg' && originalRm.unit === 'g') inventoryQty = item.receivedGoodQty * 1000
+            if (item.unit === 'L' && originalRm.unit === 'ml') inventoryQty = item.receivedGoodQty * 1000
+          }
         }
 
         await fetch('/api/inventory/adjust', {
