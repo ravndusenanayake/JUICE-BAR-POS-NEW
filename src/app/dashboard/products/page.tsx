@@ -442,7 +442,7 @@ export default function ProductsPage() {
                                   onChange={e => updateVariantRow(idx, 'sellingPrice', e.target.value)} 
                                 />
                               </div>
-                              <Button type="button" size="icon" variant="ghost" onClick={() => removeVariantRow(idx)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50">
+                              <Button type="button" size="icon" variant="ghost" onClick={() => confirmRemoveVariant(idx)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50">
                                 <X className="h-4 w-4" />
                               </Button>
                             </div>

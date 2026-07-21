@@ -59,7 +59,7 @@ export async function GET(req: Request) {
     // Also include partially refunded items
     sales.forEach(sale => {
       if (sale.returnedItems && sale.returnedItems.length > 0) {
-        sale.returnedItems.forEach(item => {
+        sale.returnedItems.forEach((item: any) => {
            totalRefunds += item.refundAmount;
         });
       }
