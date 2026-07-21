@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { 
-  Search, User, ShoppingCart, Power, Minus, Plus, Trash2, Printer, CheckCircle2, ChevronRight, X, Percent, DollarSign, Store, Tag, Coffee, Filter, CalendarClock, Phone, ArrowLeft, Loader2, RotateCcw, Wallet, PauseCircle, PlayCircle, CreditCard
+  Search, User, ShoppingCart, Power, Minus, Plus, Trash2, Printer, CheckCircle2, ChevronRight, X, Percent, DollarSign, Store, Tag, Coffee, Filter, CalendarClock, Phone, ArrowLeft, Loader2, RotateCcw, Wallet, PauseCircle, PlayCircle, CreditCard, MoreVertical, History
 } from "lucide-react"
 import { logAudit } from "@/lib/auditLogger"
 import { toast } from "sonner"
@@ -120,7 +121,7 @@ export default function POSPage() {
   const { user } = useAuth()
   
   // -- UI States --
-  const [activeCategory, setActiveCategory] = useState("All")
+  const [activeCategory, setActiveCategory] = useState("⭐ Quick Picks")
   const [searchQuery, setSearchQuery] = useState("")
   
   // -- Cart State --
@@ -176,8 +177,14 @@ export default function POSPage() {
   const [returnInvoiceNo, setReturnInvoiceNo] = useState("")
   const [returnSaleDetails, setReturnSaleDetails] = useState<any>(null)
   const [returnItems, setReturnItems] = useState<any[]>([])
+  
+  // -- Recent Sales (Last 5) --
+  const [recentSales, setRecentSales] = useState<any[]>([])
+  const [isRecentSalesOpen, setIsRecentSalesOpen] = useState(false)
+  
   // -- Payment & KOT --
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
+  const [tenderedCash, setTenderedCash] = useState<string>("")
   const [paymentMethod, setPaymentMethod] = useState<"Cash" | "Card" | "Bank Transfer" | "Split">("Cash")
   const [splitCash, setSplitCash] = useState("")
   const [splitCard, setSplitCard] = useState("")
@@ -262,7 +269,7 @@ export default function POSPage() {
              });
           }
 
-          const activeProducts = data.filter((p: any) => p.status === 'Active').map((p: any) => {
+          const activeProducts = data.filter((p: any) => p.status === 'Active').map((p: any, index: number) => {
             let isOutOfStock = false;
             
             const productVariants = variantsData
@@ -324,7 +331,7 @@ export default function POSPage() {
             const uniqueAddons = Array.from(new Map(rawAddons.map(a => [a.name, a])).values());
 
             return {
-              id: p.sku,
+              id: p.sku || p._id,
               productId: p._id,
               name: p.name,
               price: p.outletPrice || 0,
@@ -333,11 +340,13 @@ export default function POSPage() {
               addons: uniqueAddons,
               hasVariants: productVariants.length > 0,
               variants: productVariants.length > 0 ? productVariants : null,
-              isOutOfStock
+              isOutOfStock,
+              isQuickPick: index < 10, // Top 10 items default as Quick Picks
+              imageUrl: p.imageUrl || null
             };
           });
           setProducts(activeProducts);
-          const cats = ["All", ...Array.from(new Set(activeProducts.map((p: any) => p.category)))];
+          const cats = ["⭐ Quick Picks", "All", ...Array.from(new Set(activeProducts.map((p: any) => p.category)))];
           setCategories(cats as string[]);
         }
 
@@ -382,7 +391,12 @@ export default function POSPage() {
   // --- Filtering ---
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
-      const matchCategory = activeCategory === "All" || p.category === activeCategory
+      let matchCategory = false;
+      if (activeCategory === "⭐ Quick Picks") {
+        matchCategory = !!p.isQuickPick;
+      } else {
+        matchCategory = activeCategory === "All" || p.category === activeCategory;
+      }
       const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase())
       return matchCategory && matchSearch
     })
@@ -411,12 +425,72 @@ export default function POSPage() {
       addToCart(product, null, [])
     }
   }
+  // --- Keyboard Shortcuts & Barcode Scanner ---
+  useEffect(() => {
+    let barcodeBuffer = "";
+    let lastKeyTime = Date.now();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+
+      // Shortcuts
+      if (e.key === 'F9') {
+        e.preventDefault();
+        if (cart.length > 0) setIsPaymentModalOpen(true);
+      }
+      if (e.key === 'F2') {
+        e.preventDefault();
+        document.getElementById('pos-search-input')?.focus();
+      }
+      if (e.key === 'Escape') {
+        if (!isPaymentModalOpen && !paymentSuccess) {
+          setCart([]);
+        }
+      }
+
+      // Barcode Scanner logic (fast typing < 50ms)
+      if (!isInput) {
+        const currentTime = Date.now();
+        if (currentTime - lastKeyTime > 50) {
+          barcodeBuffer = "";
+        }
+        
+        if (e.key.length === 1) {
+          barcodeBuffer += e.key;
+        } else if (e.key === 'Enter' && barcodeBuffer.length > 3) {
+          e.preventDefault();
+          const scannedProduct = products.find((p: any) => p.id === barcodeBuffer || p.productId === barcodeBuffer);
+          if (scannedProduct && !scannedProduct.isOutOfStock) {
+            handleProductClick(scannedProduct);
+            toast.success(`Scanned: ${scannedProduct.name}`);
+          } else {
+            toast.error("Product not found or out of stock: " + barcodeBuffer);
+          }
+          barcodeBuffer = "";
+        }
+        lastKeyTime = currentTime;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [cart, isPaymentModalOpen, paymentSuccess, products]);
 
   const toggleAddon = (addonObj: {name: string, price: number}) => {
     setSelectedAddons(prev => {
+      const isSugar = addonObj.name.includes("Sugar");
+      const isIce = addonObj.name.includes("Ice") && !addonObj.name.includes("Cream"); // Exclude Ice Cream
+
       const exists = prev.find(a => a.name === addonObj.name)
       if (exists) return prev.filter(a => a.name !== addonObj.name)
-      return [...prev, addonObj]
+
+      // Remove other sugar/ice options if a new one is selected
+      let filtered = prev;
+      if (isSugar) filtered = filtered.filter(a => !a.name.includes("Sugar"));
+      if (isIce) filtered = filtered.filter(a => !(a.name.includes("Ice") && !a.name.includes("Cream")));
+
+      return [...filtered, addonObj]
     })
   }
 
@@ -549,6 +623,7 @@ export default function POSPage() {
       
       const newSale = await res.json()
       setSaleDetails(salePayload)
+      setRecentSales(prev => [newSale, ...prev].slice(0, 5))
 
       // 1. Inventory Deduction Logic (UI state & API)
       const allRecipes = recipes; // Use state instead of localStorage
@@ -661,6 +736,24 @@ export default function POSPage() {
       setIsShiftSummaryLoading(false);
     }
   }
+
+  const handleOpenRecentSales = async () => {
+    setIsRecentSalesOpen(true);
+    try {
+      const res = await fetch('/api/sales?limit=5');
+      if (res.ok) {
+        const data = await res.json();
+        // Since API doesn't actually support ?limit=5 efficiently right now based on our checks,
+        // we might just slice it, or we rely on the backend (we assume the backend handles it or returns all and we slice).
+        // Let's just slice it to be safe.
+        setRecentSales(Array.isArray(data) ? data.slice(0, 5) : []);
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to load recent sales");
+    }
+  }
+
 
   const handleCloseShift = async () => {
     if (!currentShiftId || !shiftSummaryData) return;
@@ -793,7 +886,8 @@ export default function POSPage() {
           <div className="flex flex-1 max-w-md mx-6 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input 
-              type="text" placeholder="Search products..." 
+              id="pos-search-input"
+              type="text" placeholder="Search products (F2)..." 
               className="pl-9 bg-gray-50 border-gray-200 focus-visible:ring-orange-500 rounded-full h-10 w-full"
               value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -806,6 +900,10 @@ export default function POSPage() {
             <Button variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50 h-9 px-3 text-xs font-bold" onClick={() => setIsReturnOpen(true)}>
               <RotateCcw className="w-3.5 h-3.5 mr-1" /> Return
             </Button>
+            <Button variant="outline" className="border-indigo-200 text-indigo-600 hover:bg-indigo-50 h-9 px-3 text-xs font-bold" onClick={handleOpenRecentSales}>
+              <History className="w-3.5 h-3.5 mr-1" /> Recent Sales
+            </Button>
+            <div className="h-4 w-px bg-gray-200 mx-1" />
             <Button variant="outline" className="border-purple-200 text-purple-600 hover:bg-purple-50 h-9 px-3 text-xs font-bold" onClick={openSlideOutSummary}>
               <Printer className="w-3.5 h-3.5 mr-1" /> Shift Summary
             </Button>
@@ -851,11 +949,17 @@ export default function POSPage() {
                       <span className="bg-red-500 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-widest rotate-[-12deg] shadow-lg border-2 border-white">Out</span>
                     </div>
                   )}
-                  <div className={`h-16 w-full flex items-center justify-center ${product.color.split(' ')[0]} bg-opacity-30`}>
-                    <span className={`text-xl font-black opacity-20 ${product.color.split(' ')[1]}`}>
-                      {product.name.substring(0,2).toUpperCase()}
-                    </span>
-                  </div>
+                  {product.imageUrl ? (
+                    <div className="h-16 w-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                      <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className={`h-16 w-full flex items-center justify-center ${product.color.split(' ')[0]} bg-opacity-30`}>
+                      <span className={`text-xl font-black opacity-20 ${product.color.split(' ')[1]}`}>
+                        {product.name.substring(0,2).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
                   <div className="p-1.5 flex-1 flex flex-col justify-between w-full">
                     <h3 className={`font-bold text-xs leading-tight mb-1 transition-colors ${product.isOutOfStock ? 'text-gray-500' : 'text-gray-800 group-hover:text-orange-600'}`}>
                       {product.name}
@@ -992,20 +1096,6 @@ export default function POSPage() {
 
         {/* Cart Totals & Pay */}
         <div className="p-5 border-t bg-white shrink-0 shadow-[0_-5px_15px_rgba(0,0,0,0.03)]">
-          <div className="flex bg-gray-100 p-1 rounded-lg mb-4">
-            <button 
-              className={`flex-1 text-sm font-bold py-1.5 rounded-md transition-all ${orderType === 'Takeaway' ? 'bg-white shadow text-orange-600' : 'text-gray-500 hover:text-gray-700'}`}
-              onClick={() => setOrderType('Takeaway')}
-            >
-              Takeaway
-            </button>
-            <button 
-              className={`flex-1 text-sm font-bold py-1.5 rounded-md transition-all ${orderType === 'Dine-In' ? 'bg-white shadow text-orange-600' : 'text-gray-500 hover:text-gray-700'}`}
-              onClick={() => setOrderType('Dine-In')}
-            >
-              Dine-In
-            </button>
-          </div>
           <div className="space-y-2 mb-4">
             <div className="flex justify-between text-sm font-medium text-gray-500">
               <span>Subtotal</span>
@@ -1250,6 +1340,26 @@ export default function POSPage() {
                 ))}
               </div>
 
+              {paymentMethod === "Cash" && (
+                <div className="bg-white p-4 rounded-xl border space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" className="flex-1 font-bold bg-green-50 text-green-700 hover:bg-green-100 border-green-200" onClick={() => setTenderedCash(grandTotal.toFixed(2))}>Exact</Button>
+                    <Button type="button" variant="outline" className="flex-1 font-bold" onClick={() => setTenderedCash("1000")}>Rs. 1000</Button>
+                    <Button type="button" variant="outline" className="flex-1 font-bold" onClick={() => setTenderedCash("2000")}>Rs. 2000</Button>
+                    <Button type="button" variant="outline" className="flex-1 font-bold" onClick={() => setTenderedCash("5000")}>Rs. 5000</Button>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label className="font-bold text-gray-700">Tendered Cash (Rs.)</Label>
+                    <Input type="number" step="0.01" value={tenderedCash} onChange={e => setTenderedCash(e.target.value)} placeholder="0.00" className="h-11 font-bold text-lg" required />
+                  </div>
+                  {parseFloat(tenderedCash) >= grandTotal && (
+                    <div className="text-sm font-black text-green-600 text-right">
+                      Change: <span className="text-xl">Rs. {(parseFloat(tenderedCash) - grandTotal).toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {paymentMethod === "Split" && (
                 <div className="bg-white p-4 rounded-xl border space-y-4">
                   <div className="grid gap-2">
@@ -1297,9 +1407,9 @@ export default function POSPage() {
                 .filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || (c.mobile && c.mobile.includes(customerSearch)))
                 .map(c => (
                 <button 
-                  key={c.id} 
+                  key={c._id || c.id} 
                   onClick={() => { setSelectedCustomer(c); setIsCustomerSelectOpen(false) }}
-                  className={`w-full text-left p-3 rounded-xl border transition-all ${selectedCustomer?.id === c.id ? 'border-orange-500 bg-orange-50 shadow-sm' : 'border-gray-200 bg-white hover:border-orange-300'}`}
+                  className={`w-full text-left p-3 rounded-xl border transition-all ${(selectedCustomer?._id || selectedCustomer?.id) === (c._id || c.id) ? 'border-orange-500 bg-orange-50 shadow-sm' : 'border-gray-200 bg-white hover:border-orange-300'}`}
                 >
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-gray-900">{c.name}</span>
@@ -1707,6 +1817,36 @@ export default function POSPage() {
           </div>
         </div>
       </div>
+
+      {/* 11. Recent Sales Modal */}
+      <Dialog open={isRecentSalesOpen} onOpenChange={setIsRecentSalesOpen}>
+        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden rounded-2xl border-0 shadow-2xl bg-gray-50">
+          <div className="p-6 bg-white border-b flex justify-between items-center">
+            <div>
+              <DialogTitle className="text-xl font-black text-gray-900">Recent Sales</DialogTitle>
+              <DialogDescription>Last 5 transactions</DialogDescription>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => setIsRecentSalesOpen(false)}><X className="w-5 h-5" /></Button>
+          </div>
+          <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+            {recentSales.length > 0 ? recentSales.map((sale: any) => (
+              <div key={sale._id} className="bg-white p-4 rounded-xl border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
+                <div>
+                  <div className="text-sm font-bold text-gray-900">{sale.receiptNumber}</div>
+                  <div className="text-xs font-medium text-gray-500">{new Date(sale.createdAt).toLocaleString()} &bull; {sale.paymentMethod}</div>
+                  <div className="text-xs text-gray-400 mt-1">{sale.items?.length || 0} items</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-lg font-black text-green-600">Rs. {sale.total?.toFixed(2)}</div>
+                  <Button variant="outline" size="sm" className="mt-2 h-7 text-[10px] font-bold" onClick={() => alert("Printing Receipt: " + sale.receiptNumber)}>Print</Button>
+                </div>
+              </div>
+            )) : (
+              <div className="text-center py-8 text-gray-400 font-medium">No recent sales found.</div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
