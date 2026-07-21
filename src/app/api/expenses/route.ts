@@ -45,20 +45,25 @@ export async function POST(req: Request) {
     await connectToDatabase();
     const body = await req.json();
     
-    const { branch, date, category, amount, note, attachment } = body;
+    const { branch, branchId, shiftId, date, expenseDate, category, amount, note, attachment } = body;
     
-    if (!branch || !category || !amount) {
+    if ((!branch && !branchId) || !category || !amount) {
        return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
     
-    const branchDoc = await Branch.findOne({ name: branch });
-    if (!branchDoc) {
-       return NextResponse.json({ error: 'Branch not found' }, { status: 404 });
+    let finalBranchId = branchId;
+    if (!finalBranchId && branch) {
+      const branchDoc = await Branch.findOne({ name: branch });
+      if (!branchDoc) {
+         return NextResponse.json({ error: 'Branch not found' }, { status: 404 });
+      }
+      finalBranchId = branchDoc._id;
     }
     
     const expense = new Expense({
-      branchId: branchDoc._id,
-      expenseDate: date ? new Date(date) : new Date(),
+      branchId: finalBranchId,
+      shiftId: shiftId || undefined,
+      expenseDate: expenseDate ? new Date(expenseDate) : (date ? new Date(date) : new Date()),
       category,
       amount,
       note,

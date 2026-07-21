@@ -18,11 +18,17 @@ export default function SalesHistoryPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(true)
 
-  // Return Modal State
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false)
   const [selectedSale, setSelectedSale] = useState<any>(null)
   const [returnItems, setReturnItems] = useState<any[]>([])
   const [isProcessingReturn, setIsProcessingReturn] = useState(false)
+
+  // View Details Modal State
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+  const [viewSale, setViewSale] = useState<any>(null)
+
+  // Date Filter State
+  const [dateFilter, setDateFilter] = useState("")
 
   useEffect(() => {
     if (user) {
@@ -46,10 +52,46 @@ export default function SalesHistoryPage() {
     }
   }
 
-  const filteredSales = sales.filter(s => 
-    s.invoiceNo.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    s.customer.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredSales = sales.filter(s => {
+    const matchesSearch = s.invoiceNo.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          s.customer.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesDate = dateFilter ? new Date(s.createdAt).toISOString().split('T')[0] === dateFilter : true
+    return matchesSearch && matchesDate
+  })
+
+  const handleExportCSV = () => {
+    if (filteredSales.length === 0) {
+      toast.error("No sales to export");
+      return;
+    }
+    const headers = ["Invoice", "Date", "Customer", "Order Type", "Items", "Total Amount", "Status"];
+    const csvContent = [
+      headers.join(","),
+      ...filteredSales.map(sale => [
+        sale.invoiceNo,
+        new Date(sale.createdAt).toLocaleString().replace(/,/g, ''),
+        sale.customer,
+        sale.orderType || 'Takeaway',
+        sale.items?.length || 0,
+        sale.total?.toFixed(2),
+        sale.status
+      ].join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `sales_history_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  const openViewModal = (sale: any) => {
+    setViewSale(sale)
+    setIsViewModalOpen(true)
+  }
 
   const openReturnModal = (sale: any) => {
     setSelectedSale(sale)
@@ -149,7 +191,7 @@ export default function SalesHistoryPage() {
           <h2 className="text-2xl font-bold tracking-tight">Sales History</h2>
           <p className="text-muted-foreground">View and export recent transactions.</p>
         </div>
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2" onClick={handleExportCSV}>
           <Download className="h-4 w-4" /> Export CSV
         </Button>
       </div>
@@ -165,9 +207,19 @@ export default function SalesHistoryPage() {
             onChange={e => setSearchQuery(e.target.value)}
           />
         </div>
-        <Button variant="outline" className="gap-2 w-full sm:w-auto">
-          <Calendar className="h-4 w-4" /> Filter by Date
-        </Button>
+        <div className="relative w-full sm:w-auto">
+          <Input 
+            type="date" 
+            className="w-full sm:w-[200px]" 
+            value={dateFilter}
+            onChange={e => setDateFilter(e.target.value)}
+          />
+          {dateFilter && (
+            <Button variant="ghost" size="icon" className="absolute right-1 top-1 h-7 w-7 text-gray-500" onClick={() => setDateFilter("")}>
+              <Undo2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="rounded-md border bg-card">
@@ -213,7 +265,7 @@ export default function SalesHistoryPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="sm" className="text-blue-500 hover:text-blue-700">View Details</Button>
+                      <Button variant="ghost" size="sm" className="text-blue-500 hover:text-blue-700" onClick={() => openViewModal(sale)}>View Details</Button>
                       {sale.status !== 'Refunded' && sale.status !== 'Voided' && (
                         <Button variant="outline" size="sm" className="text-orange-500 border-orange-200 hover:bg-orange-50" onClick={() => openReturnModal(sale)}>
                           <Undo2 className="h-4 w-4 mr-1" /> Return
@@ -313,6 +365,96 @@ export default function SalesHistoryPage() {
             >
               {isProcessingReturn ? "Processing..." : "Confirm Return & Refund"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Details Modal */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Sale Details - {viewSale?.invoiceNo}</DialogTitle>
+            <DialogDescription>
+              {viewSale && new Date(viewSale.createdAt).toLocaleString()} | Cashier: {viewSale?.cashier}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {viewSale && (
+            <div className="space-y-6 mt-4">
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                <div><span className="text-gray-500 block text-xs">Customer</span><span className="font-semibold">{viewSale.customer}</span></div>
+                <div><span className="text-gray-500 block text-xs">Order Type</span><span className="font-semibold">{viewSale.orderType || 'Takeaway'}</span></div>
+                <div><span className="text-gray-500 block text-xs">Payment Method</span><span className="font-semibold">{viewSale.paymentMethod}</span></div>
+                <div><span className="text-gray-500 block text-xs">Status</span><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(viewSale.status)}`}>{viewSale.status}</span></div>
+              </div>
+
+              <div>
+                <h3 className="font-bold mb-2">Items Purchased</h3>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Item</TableHead>
+                      <TableHead>Qty</TableHead>
+                      <TableHead className="text-right">Price</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {viewSale.items?.map((item: any, i: number) => (
+                      <TableRow key={i}>
+                        <TableCell>
+                          <div className="font-medium">{item.name}</div>
+                          {(item.variant || item.addons?.length > 0 || item.note) && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {item.variant && <div>Variant: {item.variant}</div>}
+                              {item.addons?.map((a:any, ai:number) => <div key={ai}>+ {a.name} (Rs.{a.price})</div>)}
+                              {item.note && <div className="italic">Note: {item.note}</div>}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>{item.quantity}</TableCell>
+                        <TableCell className="text-right">Rs. {item.totalPrice?.toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {viewSale.returnedItems?.length > 0 && (
+                <div>
+                  <h3 className="font-bold text-red-600 mb-2">Returned Items</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Item</TableHead>
+                        <TableHead>Qty</TableHead>
+                        <TableHead>Reason</TableHead>
+                        <TableHead className="text-right">Refund Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {viewSale.returnedItems.map((item: any, i: number) => (
+                        <TableRow key={i}>
+                          <TableCell className="font-medium text-red-600">{item.name}</TableCell>
+                          <TableCell>{item.quantity}</TableCell>
+                          <TableCell className="text-xs">{item.reason}</TableCell>
+                          <TableCell className="text-right text-red-600 font-bold">-Rs. {item.refundAmount?.toFixed(2)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              <div className="space-y-1 text-sm text-right pt-4 border-t">
+                <div>Subtotal: Rs. {viewSale.subtotal?.toFixed(2)}</div>
+                {viewSale.discount > 0 && <div>Discount: -Rs. {viewSale.discount?.toFixed(2)}</div>}
+                <div className="text-lg font-bold">Total: Rs. {viewSale.total?.toFixed(2)}</div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button onClick={() => setIsViewModalOpen(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

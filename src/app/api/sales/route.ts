@@ -43,7 +43,8 @@ export async function POST(req: Request) {
       total: body.total || 0,
       paymentMethod: body.paymentMethod || 'Cash',
       items: body.items, 
-      status: 'Completed'
+      status: 'Completed',
+      shiftId: body.shiftId
     });
 
     await newSale.save();
@@ -135,5 +136,65 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error('POST Sale Error:', error);
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+  }
+}
+
+export async function PUT(req: Request) {
+  try {
+    await connectToDatabase();
+    const body = await req.json();
+    const { id, isReturn, returnedItems } = body;
+    
+    if (!id || !isReturn || !returnedItems) {
+      return NextResponse.json({ error: 'Missing return data' }, { status: 400 });
+    }
+
+    const sale = await Sale.findById(id);
+    if (!sale) return NextResponse.json({ error: 'Sale not found' }, { status: 404 });
+
+    // Deduct from total, update status, append returnedItems
+    let returnTotal = 0;
+    returnedItems.forEach((ri: any) => returnTotal += ri.refundAmount);
+
+    sale.returnedItems = [...(sale.returnedItems || []), ...returnedItems];
+    sale.total -= returnTotal;
+    
+    // Check if fully refunded
+    const originalTotal = sale.subtotal - sale.discount;
+    if (sale.total <= 0) sale.status = 'Refunded';
+    else sale.status = 'Partially Refunded';
+
+    await sale.save();
+
+    // Restock logic
+    for (const ri of returnedItems) {
+      if (ri.action === 'Restock') {
+        // Simple restock for direct items (mocked for simplicity here, 
+        // real system would check recipes again if needed)
+        const inventory = await BranchInventory.findOne({
+          branch: sale.branch,
+          $or: [{ sku: ri.productId }, { name: new RegExp('^' + ri.productId + '$', 'i') }]
+        });
+        if (inventory) {
+          inventory.quantity += ri.quantity;
+          inventory.status = inventory.quantity > (inventory.minStockLevel || 0) ? 'In Stock' : 'Low Stock';
+          await inventory.save();
+
+          await StockLedger.create({
+            branch: sale.branch,
+            sku: inventory.sku,
+            type: 'IN',
+            quantity: ri.quantity,
+            reference: sale.invoiceNo,
+            remarks: 'Return Restock'
+          });
+        }
+      }
+    }
+
+    return NextResponse.json(sale, { status: 200 });
+  } catch (error: any) {
+    console.error('PUT Sale Error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

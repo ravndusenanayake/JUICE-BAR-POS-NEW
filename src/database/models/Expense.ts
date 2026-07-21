@@ -2,8 +2,9 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IExpense extends Document {
   branchId: mongoose.Types.ObjectId;
+  shiftId?: mongoose.Types.ObjectId;
   expenseDate: Date;
-  category: 'Rent' | 'Electricity' | 'Water' | 'Internet' | 'Marketing' | 'Transportation';
+  category: 'Rent' | 'Electricity' | 'Water' | 'Internet' | 'Marketing' | 'Transportation' | 'Petty Cash';
   amount: number;
   note?: string;
   attachment?: string;
@@ -14,10 +15,11 @@ export interface IExpense extends Document {
 const ExpenseSchema = new Schema<IExpense>(
   {
     branchId: { type: Schema.Types.ObjectId, ref: 'Branch', required: true },
+    shiftId: { type: Schema.Types.ObjectId, ref: 'Shift' },
     expenseDate: { type: Date, required: true, default: Date.now },
     category: {
       type: String,
-      enum: ['Rent', 'Electricity', 'Water', 'Internet', 'Marketing', 'Transportation'],
+      enum: ['Rent', 'Electricity', 'Water', 'Internet', 'Marketing', 'Transportation', 'Petty Cash'],
       required: true,
     },
     amount: { type: Number, required: true },

@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Search, ShoppingCart, ArrowLeft, Trash2, Plus, Minus, CreditCard, User, CheckCircle2, PauseCircle, PlayCircle, Tag, Printer, Power, Wallet } from "lucide-react"
+import { 
+  Search, User, ShoppingCart, Power, Minus, Plus, Trash2, Printer, CheckCircle2, ChevronRight, X, Percent, DollarSign, Store, Tag, Coffee, Filter, CalendarClock, Phone, ArrowLeft, Loader2, RotateCcw, Wallet, PauseCircle, PlayCircle, CreditCard
+} from "lucide-react"
 import { logAudit } from "@/lib/auditLogger"
 
 // --- Helpers ---
@@ -159,7 +161,19 @@ export default function POSPage() {
   const [isShiftOpen, setIsShiftOpen] = useState(false)
   const [openingBalance, setOpeningBalance] = useState("")
   const [isCloseShiftOpen, setIsCloseShiftOpen] = useState(false)
+  const [shiftSummaryData, setShiftSummaryData] = useState<any>(null)
+  const [isShiftSummaryLoading, setIsShiftSummaryLoading] = useState(false)
   
+  // -- Advanced POS Modals State --
+  const [isExpenseOpen, setIsExpenseOpen] = useState(false)
+  const [expenseAmount, setExpenseAmount] = useState("")
+  const [expenseNote, setExpenseNote] = useState("")
+  const [expenseCategory, setExpenseCategory] = useState("Petty Cash")
+
+  const [isReturnOpen, setIsReturnOpen] = useState(false)
+  const [returnInvoiceNo, setReturnInvoiceNo] = useState("")
+  const [returnSaleDetails, setReturnSaleDetails] = useState<any>(null)
+  const [returnItems, setReturnItems] = useState<any[]>([])
   // -- Payment & KOT --
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<"Cash" | "Card" | "Bank Transfer" | "Split">("Cash")
@@ -517,7 +531,8 @@ export default function POSPage() {
         discount: discountAmount,
         total: grandTotal,
         paymentMethod: paymentInfo,
-        items: cart
+        items: cart,
+        shiftId: currentShiftId
       }
 
       const res = await fetch('/api/sales', {
@@ -609,18 +624,27 @@ export default function POSPage() {
     }
   }
 
-  const handleCloseShift = async () => {
+  const openShiftSummary = async () => {
     if (!currentShiftId) return;
-    const sales = JSON.parse(localStorage.getItem("shift_sales") || "[]")
-    const totalSales = sales.reduce((a:number,b:number)=>a+b, 0)
-    
+    setIsShiftSummaryLoading(true);
+    setIsCloseShiftOpen(true);
     try {
-      // First get current shift to know opening balance
-      const shiftRes = await fetch(`/api/shifts?cashierName=${encodeURIComponent(user?.name || '')}&status=Open`);
-      const shifts = await shiftRes.json();
-      const shift = shifts[0];
-      const expectedCash = (shift?.openingBalance || 0) + totalSales;
+      const res = await fetch(`/api/shifts/summary?shiftId=${currentShiftId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setShiftSummaryData(data);
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to load shift summary");
+    } finally {
+      setIsShiftSummaryLoading(false);
+    }
+  }
 
+  const handleCloseShift = async () => {
+    if (!currentShiftId || !shiftSummaryData) return;
+    try {
       await fetch('/api/shifts', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -628,13 +652,11 @@ export default function POSPage() {
           id: currentShiftId,
           status: 'Closed',
           endTime: new Date(),
-          closingBalance: expectedCash,
-          expectedClosingBalance: expectedCash
+          closingBalance: shiftSummaryData.expectedCash,
+          expectedClosingBalance: shiftSummaryData.expectedCash
         })
       });
-
-      alert(`--- Z-REPORT (SHIFT CLOSED) ---\nOpening Balance: Rs. ${shift?.openingBalance?.toFixed(2)}\nTotal Sales: Rs. ${totalSales.toFixed(2)}\nExpected Cash in Drawer: Rs. ${expectedCash.toFixed(2)}`)
-      
+      toast.success("Shift Closed Successfully!");
       localStorage.removeItem("shift_sales")
       setShiftActive(false)
       setCurrentShiftId(null)
@@ -642,7 +664,96 @@ export default function POSPage() {
       setIsShiftOpen(true) // Force them to open a new one
     } catch (e) {
       console.error(e);
-      alert("Failed to close shift.");
+      toast.error("Failed to close shift.");
+    }
+  }
+
+  const handleAddExpense = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentShiftId || !posBranch) return;
+    try {
+      const branchRes = await fetch(`/api/branches?name=${encodeURIComponent(posBranch)}`);
+      const branches = await branchRes.json();
+      const branchId = branches[0]?._id;
+
+      const res = await fetch('/api/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          branchId,
+          shiftId: currentShiftId,
+          expenseDate: new Date(),
+          category: expenseCategory,
+          amount: parseFloat(expenseAmount),
+          note: expenseNote
+        })
+      });
+      if (res.ok) {
+        toast.success("Expense recorded successfully");
+        setIsExpenseOpen(false);
+        setExpenseAmount("");
+        setExpenseNote("");
+      } else {
+        toast.error("Failed to record expense");
+      }
+    } catch (e) {
+      toast.error("Error recording expense");
+    }
+  }
+
+  const searchReturnInvoice = async () => {
+    if (!returnInvoiceNo) return;
+    try {
+      const res = await fetch(`/api/sales?invoiceNo=${encodeURIComponent(returnInvoiceNo)}`);
+      if (res.ok) {
+        const sales = await res.json();
+        if (sales.length > 0) {
+          setReturnSaleDetails(sales[0]);
+          setReturnItems(sales[0].items.map((i: any) => ({ ...i, returnQty: 0, reason: "Customer Request", action: "Wastage" })));
+        } else {
+          toast.error("Invoice not found");
+        }
+      }
+    } catch (e) {
+      toast.error("Error finding invoice");
+    }
+  }
+
+  const handleProcessReturn = async () => {
+    if (!returnSaleDetails) return;
+    const itemsToReturn = returnItems.filter(i => i.returnQty > 0);
+    if (itemsToReturn.length === 0) {
+      toast.error("No items selected to return");
+      return;
+    }
+    
+    try {
+      const res = await fetch('/api/sales', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: returnSaleDetails._id,
+          isReturn: true,
+          returnedItems: itemsToReturn.map(i => ({
+            productId: i.productId,
+            name: i.name,
+            quantity: i.returnQty,
+            refundAmount: (i.totalPrice / i.quantity) * i.returnQty,
+            reason: i.reason,
+            action: i.action
+          }))
+        })
+      });
+      if (res.ok) {
+        toast.success("Return processed successfully");
+        setIsReturnOpen(false);
+        setReturnInvoiceNo("");
+        setReturnSaleDetails(null);
+      } else {
+        toast.error("Failed to process return");
+      }
+    } catch (e) {
+      toast.error("Error processing return");
     }
   }
 
@@ -668,13 +779,19 @@ export default function POSPage() {
             />
           </div>
 
-          <div className="flex items-center gap-3">
-             <Button variant="outline" className="border-red-200 text-red-600 hover:bg-red-50" onClick={() => setIsCloseShiftOpen(true)}>
-              <Power className="w-4 h-4 mr-2" /> Close Shift
+          <div className="flex items-center gap-2">
+            <Button variant="outline" className="border-green-200 text-green-600 hover:bg-green-50 h-9 px-3 text-xs font-bold" onClick={() => setIsExpenseOpen(true)}>
+              <Wallet className="w-3.5 h-3.5 mr-1" /> Add Expense
             </Button>
-            <div className="flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-full border border-orange-100">
-              <User className="w-4 h-4 text-orange-600" />
-              <span className="text-sm font-semibold text-orange-800">{user?.name} ({posBranch || "Select Branch"})</span>
+            <Button variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50 h-9 px-3 text-xs font-bold" onClick={() => setIsReturnOpen(true)}>
+              <RotateCcw className="w-3.5 h-3.5 mr-1" /> Return
+            </Button>
+            <Button variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 h-9 px-3 text-xs font-bold" onClick={openShiftSummary}>
+              <Power className="w-3.5 h-3.5 mr-1" /> Close Shift
+            </Button>
+            <div className="flex items-center gap-2 bg-orange-50 px-3 py-1.5 rounded-full border border-orange-100 ml-2">
+              <User className="w-3.5 h-3.5 text-orange-600" />
+              <span className="text-xs font-bold text-orange-800">{user?.name} ({posBranch || "Select Branch"})</span>
             </div>
           </div>
         </header>
@@ -695,8 +812,8 @@ export default function POSPage() {
         </div>
 
         {/* Product Grid */}
-        <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
-          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+        <div className="flex-1 overflow-y-auto p-4 bg-gray-50/50">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3">
             {filteredProducts.map(product => {
               const addons = product.addons || []
               return (
@@ -704,30 +821,30 @@ export default function POSPage() {
                   key={product.id} 
                   onClick={() => !product.isOutOfStock && handleProductClick(product)}
                   disabled={product.isOutOfStock}
-                  className={`relative flex flex-col text-left rounded-2xl border-2 overflow-hidden transition-all duration-200 bg-white ${product.isOutOfStock ? 'opacity-50 grayscale cursor-not-allowed border-gray-200' : `hover:shadow-lg hover:-translate-y-1 group ${product.color.replace('bg-', 'border-').split(' ')[2] || 'border-gray-100'}`}`}
+                  className={`relative flex flex-col text-left rounded-xl border-2 overflow-hidden transition-all duration-200 bg-white ${product.isOutOfStock ? 'opacity-50 grayscale cursor-not-allowed border-gray-200' : `hover:shadow-lg hover:-translate-y-1 group ${product.color.replace('bg-', 'border-').split(' ')[2] || 'border-gray-100'}`}`}
                 >
                   {product.isOutOfStock && (
                     <div className="absolute inset-0 bg-white/40 z-10 flex items-center justify-center backdrop-blur-[1px]">
-                      <span className="bg-red-500 text-white font-black text-xs px-3 py-1 rounded-full uppercase tracking-widest rotate-[-12deg] shadow-lg border-2 border-white">Out of Stock</span>
+                      <span className="bg-red-500 text-white font-black text-[10px] px-2 py-0.5 rounded-full uppercase tracking-widest rotate-[-12deg] shadow-lg border-2 border-white">Out</span>
                     </div>
                   )}
-                  <div className={`h-32 w-full flex items-center justify-center ${product.color.split(' ')[0]} bg-opacity-30`}>
-                    <span className={`text-4xl font-black opacity-20 ${product.color.split(' ')[1]}`}>
+                  <div className={`h-20 w-full flex items-center justify-center ${product.color.split(' ')[0]} bg-opacity-30`}>
+                    <span className={`text-2xl font-black opacity-20 ${product.color.split(' ')[1]}`}>
                       {product.name.substring(0,2).toUpperCase()}
                     </span>
                   </div>
-                  <div className="p-4 flex-1 flex flex-col justify-between w-full">
-                    <h3 className={`font-bold leading-tight mb-2 transition-colors ${product.isOutOfStock ? 'text-gray-500' : 'text-gray-800 group-hover:text-orange-600'}`}>
+                  <div className="p-2 flex-1 flex flex-col justify-between w-full">
+                    <h3 className={`font-bold text-xs leading-tight mb-1 transition-colors ${product.isOutOfStock ? 'text-gray-500' : 'text-gray-800 group-hover:text-orange-600'}`}>
                       {product.name}
                     </h3>
                     <div className="flex items-center justify-between mt-auto">
                       {product.hasVariants ? (
-                        <span className="text-xs font-bold text-gray-500">Var. Prices</span>
+                        <span className="text-[10px] font-bold text-gray-500">Var. Prices</span>
                       ) : (
-                        <span className="text-sm font-black text-gray-900">Rs. {product.price.toFixed(2)}</span>
+                        <span className="text-xs font-black text-gray-900">Rs.{product.price.toFixed(2)}</span>
                       )}
                       {(product.hasVariants || addons.length > 0) && (
-                        <span className="bg-gray-100 text-gray-500 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">Custom</span>
+                        <span className="bg-gray-100 text-gray-500 text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full">Cst</span>
                       )}
                     </div>
                   </div>
@@ -1222,6 +1339,160 @@ export default function POSPage() {
             <Button className="flex-1 h-12 text-lg font-bold rounded-xl bg-orange-500 hover:bg-orange-600 text-white shadow-lg" onClick={() => window.print()}>
               <Printer className="w-5 h-5 mr-2" /> Print Receipt
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- Advanced POS Modals --- */}
+      {/* Shift Summary Modal */}
+      <Dialog open={isCloseShiftOpen} onOpenChange={setIsCloseShiftOpen}>
+        <DialogContent className="sm:max-w-md rounded-2xl border-0 shadow-2xl p-0 overflow-hidden bg-white">
+          <div className="bg-red-50 p-6 border-b text-center">
+            <Power className="w-12 h-12 text-red-500 mx-auto mb-2" />
+            <DialogTitle className="text-2xl font-black text-gray-900">Close Shift (Z-Report)</DialogTitle>
+            <DialogDescription className="text-red-700 font-medium">Verify your till before closing</DialogDescription>
+          </div>
+          
+          <div className="p-6">
+            {isShiftSummaryLoading ? (
+              <div className="flex justify-center items-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+              </div>
+            ) : shiftSummaryData ? (
+              <div className="space-y-3 font-mono text-sm">
+                <div className="flex justify-between pb-2 border-b">
+                  <span className="text-gray-500">Opening Balance:</span>
+                  <span className="font-bold">Rs. {shiftSummaryData.openingBalance?.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Cash Sales:</span>
+                  <span className="font-bold text-green-600">+ Rs. {shiftSummaryData.cashSales?.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Card/Other Sales:</span>
+                  <span className="font-bold text-gray-700">Rs. {(shiftSummaryData.cardSales + shiftSummaryData.otherSales)?.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Petty Cash (Expenses):</span>
+                  <span className="font-bold text-red-500">- Rs. {shiftSummaryData.totalExpenses?.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between pb-2 border-b border-dashed border-gray-300">
+                  <span className="text-gray-500">Cash Returns:</span>
+                  <span className="font-bold text-red-500">- Rs. {shiftSummaryData.totalRefunds?.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center pt-2 text-lg">
+                  <span className="font-black text-gray-900">Expected Cash in Drawer:</span>
+                  <span className="font-black text-orange-600 bg-orange-100 px-3 py-1 rounded-md">Rs. {shiftSummaryData.expectedCash?.toFixed(2)}</span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-center text-red-500 font-bold">Failed to load data</p>
+            )}
+          </div>
+          <DialogFooter className="p-4 bg-gray-50 border-t flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={() => setIsCloseShiftOpen(false)}>Cancel</Button>
+            <Button onClick={handleCloseShift} disabled={isShiftSummaryLoading} className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg">Confirm & Close Shift</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Expense Modal */}
+      <Dialog open={isExpenseOpen} onOpenChange={setIsExpenseOpen}>
+        <DialogContent className="sm:max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-black">
+              <Wallet className="w-5 h-5 text-green-500" /> Petty Cash / Expense
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddExpense} className="space-y-4 mt-2">
+            <div className="grid gap-2">
+              <Label className="font-bold">Amount (Rs.) *</Label>
+              <Input type="number" step="0.01" value={expenseAmount} onChange={e=>setExpenseAmount(e.target.value)} required placeholder="e.g. 500" className="h-12 text-lg font-bold" />
+            </div>
+            <div className="grid gap-2">
+              <Label className="font-bold">Category</Label>
+              <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background" value={expenseCategory} onChange={e=>setExpenseCategory(e.target.value)}>
+                <option value="Petty Cash">Petty Cash</option>
+                <option value="Transportation">Transportation</option>
+                <option value="Marketing">Marketing / Promo</option>
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <Label className="font-bold">Note / Reason *</Label>
+              <Input value={expenseNote} onChange={e=>setExpenseNote(e.target.value)} required placeholder="e.g. Bought ice" />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button type="button" variant="outline" className="flex-1" onClick={() => setIsExpenseOpen(false)}>Cancel</Button>
+              <Button type="submit" className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold">Take Cash</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* POS Return Modal */}
+      <Dialog open={isReturnOpen} onOpenChange={setIsReturnOpen}>
+        <DialogContent className="sm:max-w-2xl rounded-2xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+          <div className="p-4 border-b bg-blue-50 shrink-0">
+            <DialogTitle className="flex items-center gap-2 text-xl font-black text-gray-900">
+              <RotateCcw className="w-5 h-5 text-blue-500" /> Process Return
+            </DialogTitle>
+            <div className="flex gap-2 mt-4">
+              <Input value={returnInvoiceNo} onChange={e=>setReturnInvoiceNo(e.target.value)} placeholder="Scan or type Invoice No..." className="flex-1 h-10" />
+              <Button onClick={searchReturnInvoice} className="bg-blue-600 hover:bg-blue-700 text-white"><Search className="w-4 h-4 mr-2" /> Find</Button>
+            </div>
+          </div>
+          
+          <div className="p-4 flex-1 overflow-y-auto">
+            {returnSaleDetails ? (
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-3 rounded-lg flex justify-between text-sm font-semibold text-gray-600">
+                  <span>Bill: {returnSaleDetails.invoiceNo}</span>
+                  <span>Total: Rs. {returnSaleDetails.total?.toFixed(2)}</span>
+                </div>
+                
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-gray-100 text-gray-600 font-bold">
+                      <tr>
+                        <th className="p-2">Item</th>
+                        <th className="p-2">Sold Qty</th>
+                        <th className="p-2 text-center">Return Qty</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {returnItems.map((item, i) => (
+                        <tr key={i} className="hover:bg-gray-50">
+                          <td className="p-2 font-medium">{item.name}</td>
+                          <td className="p-2">{item.quantity}</td>
+                          <td className="p-2 flex justify-center items-center gap-2">
+                            <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => {
+                              const newItems = [...returnItems];
+                              if (newItems[i].returnQty > 0) newItems[i].returnQty--;
+                              setReturnItems(newItems);
+                            }}><Minus className="w-3 h-3" /></Button>
+                            <span className="font-bold w-4 text-center">{item.returnQty}</span>
+                            <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => {
+                              const newItems = [...returnItems];
+                              if (newItems[i].returnQty < item.quantity) newItems[i].returnQty++;
+                              setReturnItems(newItems);
+                            }}><Plus className="w-3 h-3" /></Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <div className="h-40 flex items-center justify-center text-gray-400 italic text-sm">
+                Search for an invoice to process returns.
+              </div>
+            )}
+          </div>
+          
+          <div className="p-4 border-t bg-gray-50 shrink-0 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => { setIsReturnOpen(false); setReturnSaleDetails(null); setReturnInvoiceNo(""); }}>Cancel</Button>
+            <Button disabled={!returnSaleDetails} onClick={handleProcessReturn} className="bg-blue-600 hover:bg-blue-700 text-white font-bold">Confirm Return</Button>
           </div>
         </DialogContent>
       </Dialog>
