@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/database/mongoose';
 import Sale from '@/database/models/Sale';
+import BranchInventory from '@/database/models/BranchInventory';
 
 // GET all sales
 export async function GET(req: Request) {
