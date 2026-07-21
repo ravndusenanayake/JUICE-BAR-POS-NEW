@@ -11,6 +11,7 @@ import {
   Search, User, ShoppingCart, Power, Minus, Plus, Trash2, Printer, CheckCircle2, ChevronRight, X, Percent, DollarSign, Store, Tag, Coffee, Filter, CalendarClock, Phone, ArrowLeft, Loader2, RotateCcw, Wallet, PauseCircle, PlayCircle, CreditCard
 } from "lucide-react"
 import { logAudit } from "@/lib/auditLogger"
+import { toast } from "sonner"
 
 // --- Helpers ---
 const getCategoryColor = (category: string) => {
