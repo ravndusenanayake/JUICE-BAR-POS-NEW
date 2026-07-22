@@ -518,8 +518,7 @@ export default function POSPage() {
   if (discountType === "FIXED") discountAmount = discountValue
   
   const afterDiscount = Math.max(0, subtotal - discountAmount)
-  const tax = afterDiscount * 0.05 // 5% tax mock
-  const totalBeforeRedemption = afterDiscount + tax
+  const totalBeforeRedemption = afterDiscount
   const grandTotal = Math.max(0, totalBeforeRedemption - redeemedPoints)
 
   // --- Cart Handlers ---
@@ -1320,16 +1319,11 @@ export default function POSPage() {
               <span className="text-gray-900">Rs. {subtotal.toFixed(2)}</span>
             </div>
             
-            <div className="flex justify-between items-center text-sm font-bold text-gray-400">
+            <div className="flex justify-between items-center text-xs font-bold text-gray-400 pb-2 border-b border-gray-100">
               <button onClick={() => setIsDiscountOpen(true)} className="flex items-center text-orange-500 hover:text-orange-600 transition-colors">
                 <Tag className="w-3.5 h-3.5 mr-1.5" /> {discountType === "NONE" ? "Add Discount" : `${discountType === "PERCENT" ? `${discountValue}%` : `Rs. ${discountValue}`} Discount`}
               </button>
               {discountAmount > 0 && <span className="text-red-500">- Rs. {discountAmount.toFixed(2)}</span>}
-            </div>
-
-            <div className="flex justify-between text-sm font-bold text-gray-400 pb-3 border-b border-gray-100">
-              <span>Tax (5%)</span>
-              <span className="text-gray-900">Rs. {tax.toFixed(2)}</span>
             </div>
 
             {selectedCustomer && selectedCustomer.loyaltyPoints > 0 && (
