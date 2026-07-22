@@ -60,10 +60,14 @@ export default function DashboardLayout({
         </div>
         <nav className="flex-1 space-y-1 p-4 overflow-y-auto custom-scrollbar">
           {/* Quick Access - POS */}
+          {/* Quick Access - POS */}
           {hasPermission(PERMISSIONS.ACCESS_POS) && (
-            <div className="pb-2">
+            <div className="pb-2 space-y-2">
               <Link href="/pos" className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-all ${isActive('/pos') ? 'bg-orange-500 text-white font-bold shadow-md' : 'bg-orange-100 text-orange-800 hover:bg-orange-200 font-bold'}`}>
                 <Store className="h-5 w-5" /> POS System
+              </Link>
+              <Link href="/kitchen" className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-all ${isActive('/kitchen') ? 'bg-blue-600 text-white font-bold shadow-md' : 'bg-blue-100 text-blue-800 hover:bg-blue-200 font-bold'}`}>
+                <Activity className="h-5 w-5" /> Kitchen Display
               </Link>
             </div>
           )}

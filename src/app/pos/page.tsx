@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from "@/components/ui/label"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { 
-  Search, User, ShoppingCart, Power, Minus, Plus, Trash2, Printer, CheckCircle2, ChevronRight, X, Percent, DollarSign, Store, Tag, Coffee, Filter, CalendarClock, Phone, ArrowLeft, Loader2, RotateCcw, Wallet, PauseCircle, PlayCircle, CreditCard, MoreVertical, History
+  Search, User, ShoppingCart, Power, Minus, Plus, Trash2, Printer, CheckCircle2, ChevronRight, X, Percent, DollarSign, Store, Tag, Coffee, Filter, CalendarClock, Phone, ArrowLeft, Loader2, RotateCcw, Wallet, PauseCircle, PlayCircle, CreditCard, MoreVertical, History, WifiOff, CloudLightning
 } from "lucide-react"
 import { logAudit } from "@/lib/auditLogger"
 import { toast } from "sonner"
@@ -191,8 +191,31 @@ export default function POSPage() {
 
   const [paymentSuccess, setPaymentSuccess] = useState(false)
   const [deductedMaterials, setDeductedMaterials] = useState<any[]>([])
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
+  
+  // -- Offline Mode / Sync --
+  const [isOnline, setIsOnline] = useState(true)
+  const [offlineQueue, setOfflineQueue] = useState<any[]>([])
+  const [isSyncSuccessOpen, setIsSyncSuccessOpen] = useState(false)
+  const [syncSuccessCount, setSyncSuccessCount] = useState(0)
+
   const [lastOrderRef, setLastOrderRef] = useState("")
   const [saleDetails, setSaleDetails] = useState<any>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+  
+  // -- Numpad State --
+  const [numpadItem, setNumpadItem] = useState<CartItem | null>(null)
+  const [numpadValue, setNumpadValue] = useState("")
+  
+  // -- Live Shift Stats --
+  const [shiftSalesCount, setShiftSalesCount] = useState(0)
+  const [shiftRevenue, setShiftRevenue] = useState(0)
+  
+  // -- Loyalty --
+  const [redeemedPoints, setRedeemedPoints] = useState(0)
+
+  // -- Global Order Note --
+  const [globalOrderNote, setGlobalOrderNote] = useState("")
   
   // -- Data State --
   const [products, setProducts] = useState<any[]>([])
@@ -204,9 +227,27 @@ export default function POSPage() {
   const [availableBranches, setAvailableBranches] = useState<any[]>([])
   const [isBranchSelectOpen, setIsBranchSelectOpen] = useState(false)
 
-  // --- Initial Branch Setup ---
+  // --- Initial Branch Setup & Network State ---
   useEffect(() => {
-    if (!user) return;
+    // Network listeners
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    setIsOnline(navigator.onLine);
+
+    // Load offline queue
+    const savedQueue = localStorage.getItem('pos_offline_sales');
+    if (savedQueue) {
+      try {
+        setOfflineQueue(JSON.parse(savedQueue));
+      } catch (e) { console.error("Error parsing offline queue", e) }
+    }
+
+    if (!user) return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
     
     if (user.branch === "All Branches") {
       setIsBranchSelectOpen(true);
@@ -217,6 +258,11 @@ export default function POSPage() {
     } else {
       setPosBranch(user.branch);
     }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, [user]);
 
   // --- Initial Setup (Products, Recipes, Customers & Shift) ---
@@ -226,15 +272,31 @@ export default function POSPage() {
     const fetchData = async () => {
       try {
         // 1. Check Shift from DB
-        const shiftRes = await fetch(`/api/shifts?cashierName=${encodeURIComponent(user.name)}&status=Open&branch=${encodeURIComponent(posBranch)}`);
-        if (shiftRes.ok) {
-          const shifts = await shiftRes.json();
-          if (shifts.length > 0) {
-            setShiftActive(true);
-            setCurrentShiftId(shifts[0]._id);
-          } else {
-            setIsShiftOpen(true);
+        try {
+          const shiftRes = await fetch(`/api/shifts?cashierName=${encodeURIComponent(user.name)}&status=Open&branch=${encodeURIComponent(posBranch)}`);
+          if (shiftRes.ok) {
+            const shifts = await shiftRes.json();
+            if (shifts.length > 0) {
+              setShiftActive(true);
+              setCurrentShiftId(shifts[0]._id);
+              localStorage.setItem('pos_current_shift', JSON.stringify({ active: true, id: shifts[0]._id }));
+            } else {
+              setIsShiftOpen(true);
+              localStorage.setItem('pos_current_shift', JSON.stringify({ active: false, id: null }));
+            }
           }
+        } catch (e) {
+           console.warn("Failed to fetch shift, falling back to cache");
+           const cachedShift = localStorage.getItem('pos_current_shift');
+           if (cachedShift) {
+             const data = JSON.parse(cachedShift);
+             if (data.active) {
+               setShiftActive(true);
+               setCurrentShiftId(data.id);
+             } else {
+               setIsShiftOpen(true);
+             }
+           }
         }
 
         // 2. Load Products, Variants, Customers, Recipes & Branch Inventory
@@ -348,21 +410,67 @@ export default function POSPage() {
           setProducts(activeProducts);
           const cats = ["⭐ Quick Picks", "All", ...Array.from(new Set(activeProducts.map((p: any) => p.category)))];
           setCategories(cats as string[]);
+
+          // CACHE
+          localStorage.setItem('pos_products', JSON.stringify(activeProducts));
+          localStorage.setItem('pos_categories', JSON.stringify(cats));
         }
 
-        if (custRes.ok) {
+        if (custRes && custRes.ok) {
           const data = await custRes.json();
           setCustomers(data);
+          localStorage.setItem('pos_customers', JSON.stringify(data));
           const walkIn = data.find((c: any) => c.name === "Walk-In Customer");
           if (walkIn) setSelectedCustomer(walkIn);
           else if (data.length > 0) setSelectedCustomer(data[0]);
         }
-      } catch (err) {
-        console.error("Failed to load POS data", err);
+      } catch (error) {
+        console.warn("API fetch failed, falling back to local cache:", error);
+        
+        const cachedProducts = localStorage.getItem('pos_products');
+        const cachedCats = localStorage.getItem('pos_categories');
+        const cachedCustomers = localStorage.getItem('pos_customers');
+        
+        if (cachedProducts) setProducts(JSON.parse(cachedProducts));
+        if (cachedCats) setCategories(JSON.parse(cachedCats));
+        if (cachedCustomers) setCustomers(JSON.parse(cachedCustomers));
       }
     };
     fetchData();
   }, [user, posBranch])
+
+  const syncOfflineQueue = async () => {
+    if (offlineQueue.length === 0 || !isOnline) return;
+    
+    let successCount = 0;
+    const remainingQueue = [];
+
+    for (const sale of offlineQueue) {
+      try {
+        const payload = { ...sale };
+        delete payload._id; // Remove offline ID
+        delete payload.createdAt;
+        
+        const res = await fetch('/api/sales', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        
+        if (res.ok) successCount++;
+        else remainingQueue.push(sale);
+      } catch (e) {
+        remainingQueue.push(sale);
+      }
+    }
+
+    setOfflineQueue(remainingQueue);
+    localStorage.setItem('pos_offline_sales', JSON.stringify(remainingQueue));
+    if (successCount > 0) {
+      setSyncSuccessCount(successCount);
+      setIsSyncSuccessOpen(true);
+    }
+  }
 
   // --- Customer Management ---
   const handleAddCustomer = async (e: React.FormEvent) => {
@@ -411,19 +519,29 @@ export default function POSPage() {
   
   const afterDiscount = Math.max(0, subtotal - discountAmount)
   const tax = afterDiscount * 0.05 // 5% tax mock
-  const grandTotal = afterDiscount + tax
+  const totalBeforeRedemption = afterDiscount + tax
+  const grandTotal = Math.max(0, totalBeforeRedemption - redeemedPoints)
 
   // --- Cart Handlers ---
   const handleProductClick = (product: any) => {
-    const addons = product.addons || []
-    if (product.hasVariants || addons.length > 0) {
-      setSelectedProduct(product)
-      setSelectedVariant(null) // Force user to select variant
-      setSelectedAddons([])
-      setIsConfigOpen(true)
-    } else {
+    // Quick add: products without variants go straight to cart
+    if (!product.hasVariants) {
       addToCart(product, null, [])
+      return
     }
+    // Open config modal for products with variants
+    setSelectedProduct(product)
+    setSelectedVariant(null)
+    setSelectedAddons([])
+    setIsConfigOpen(true)
+  }
+
+  // Long press handler: always opens config modal (even for simple products with addons)
+  const handleProductLongPress = (product: any) => {
+    setSelectedProduct(product)
+    setSelectedVariant(null)
+    setSelectedAddons([])
+    setIsConfigOpen(true)
   }
   // --- Keyboard Shortcuts & Barcode Scanner ---
   useEffect(() => {
@@ -576,7 +694,8 @@ export default function POSPage() {
 
   const processPayment = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
-    if (cart.length === 0) return
+    if (cart.length === 0 || isProcessing) return
+    setIsProcessing(true)
 
     if (paymentMethod === "Split") {
       const cashAmt = parseFloat(splitCash) || 0
@@ -602,28 +721,43 @@ export default function POSPage() {
         branch: posBranch || "Colombo 07",
         cashier: user?.name || "System",
         customer: selectedCustomer?.name || "Walk-In Customer",
+        customerId: selectedCustomer?._id || selectedCustomer?.id || undefined,
         orderType: orderType,
         subTotal: subtotal,
         discount: discountAmount,
+        redeemedPoints: redeemedPoints,
         total: grandTotal,
         paymentMethod: paymentInfo,
         items: cart,
-        shiftId: currentShiftId
+        shiftId: currentShiftId,
+        orderNote: globalOrderNote || undefined
       }
 
-      const res = await fetch('/api/sales', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(salePayload)
-      })
+      let newSale: any;
 
-      if (!res.ok) {
-        throw new Error('Failed to save sale to API')
+      if (isOnline) {
+        const res = await fetch('/api/sales', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(salePayload)
+        })
+
+        if (!res.ok) {
+          throw new Error('Failed to save sale to API')
+        }
+        
+        newSale = await res.json()
+        setRecentSales(prev => [newSale, ...prev].slice(0, 5))
+      } else {
+        // OFFLINE MODE: Queue the sale
+        newSale = { ...salePayload, _id: `OFFLINE-${Date.now()}`, createdAt: new Date().toISOString() };
+        const newQueue = [...offlineQueue, newSale];
+        setOfflineQueue(newQueue);
+        localStorage.setItem('pos_offline_sales', JSON.stringify(newQueue));
+        setRecentSales(prev => [newSale, ...prev].slice(0, 5))
       }
-      
-      const newSale = await res.json()
+
       setSaleDetails(salePayload)
-      setRecentSales(prev => [newSale, ...prev].slice(0, 5))
 
       // 1. Inventory Deduction Logic (UI state & API)
       const allRecipes = recipes; // Use state instead of localStorage
@@ -663,9 +797,15 @@ export default function POSPage() {
       setSaleDetails(newSale)
       setIsPaymentModalOpen(false)
       setPaymentSuccess(true)
+      setShiftSalesCount(prev => prev + 1)
+      setShiftRevenue(prev => prev + grandTotal)
+      setGlobalOrderNote("")
+      setRedeemedPoints(0)
     } catch (e) {
       console.error(e)
       alert("Error processing payment via API")
+    } finally {
+      setIsProcessing(false)
     }
   }
 
@@ -887,13 +1027,40 @@ export default function POSPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input 
               id="pos-search-input"
-              type="text" placeholder="Search products (F2)..." 
+              type="text" placeholder="Search products (F2)... Press Enter to quick-add" 
               className="pl-9 bg-gray-50 border-gray-200 focus-visible:ring-orange-500 rounded-full h-10 w-full"
               value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && searchQuery.trim()) {
+                  const matches = filteredProducts.filter(p => !p.isOutOfStock);
+                  if (matches.length === 1) {
+                    handleProductClick(matches[0]);
+                    setSearchQuery("");
+                    (e.target as HTMLInputElement).blur();
+                    toast.success(`Added: ${matches[0].name}`);
+                  } else if (matches.length > 1) {
+                    handleProductClick(matches[0]);
+                    setSearchQuery("");
+                    (e.target as HTMLInputElement).blur();
+                    toast.success(`Added: ${matches[0].name}`);
+                  }
+                }
+              }}
             />
           </div>
 
           <div className="flex items-center gap-2">
+            {!isOnline && (
+              <div className="flex items-center gap-2 bg-red-100 text-red-600 px-3 py-1.5 rounded-full border border-red-200 text-xs font-bold mr-2">
+                <WifiOff className="w-3.5 h-3.5" /> Offline Mode
+              </div>
+            )}
+            {isOnline && offlineQueue.length > 0 && (
+              <Button onClick={syncOfflineQueue} variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50 h-9 px-3 text-xs font-bold mr-2 animate-pulse">
+                <CloudLightning className="w-3.5 h-3.5 mr-1" /> Sync {offlineQueue.length} Sales
+              </Button>
+            )}
+
             <Button variant="outline" className="border-green-200 text-green-600 hover:bg-green-50 h-9 px-3 text-xs font-bold" onClick={() => setIsExpenseOpen(true)}>
               <Wallet className="w-3.5 h-3.5 mr-1" /> Add Expense
             </Button>
@@ -941,6 +1108,7 @@ export default function POSPage() {
                 <button 
                   key={product.id} 
                   onClick={() => !product.isOutOfStock && handleProductClick(product)}
+                  onContextMenu={(e) => { e.preventDefault(); if (!product.isOutOfStock) handleProductLongPress(product); }}
                   disabled={product.isOutOfStock}
                   className={`relative flex flex-col text-left rounded-xl border-2 overflow-hidden transition-all duration-200 bg-white ${product.isOutOfStock ? 'opacity-50 grayscale cursor-not-allowed border-gray-200' : `hover:shadow-lg hover:-translate-y-1 group ${product.color.replace('bg-', 'border-').split(' ')[2] || 'border-gray-100'}`}`}
                 >
@@ -970,8 +1138,8 @@ export default function POSPage() {
                       ) : (
                         <span className="text-xs font-black text-gray-900">Rs.{product.price.toFixed(2)}</span>
                       )}
-                      {(product.hasVariants || addons.length > 0) && (
-                        <span className="bg-gray-100 text-gray-500 text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full">Cst</span>
+                      {product.hasVariants && (
+                        <span className="bg-orange-100 text-orange-600 text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full">⚙️</span>
                       )}
                     </div>
                   </div>
@@ -985,21 +1153,36 @@ export default function POSPage() {
       {/* RIGHT: Cart Sidebar */}
       <div className="w-[400px] bg-white flex flex-col h-full shrink-0 relative z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.05)]">
         {/* Cart Header */}
-        <div className="h-16 flex items-center justify-between px-6 border-b shrink-0 bg-gray-900 text-white">
-          <div className="flex items-center gap-2">
-            <ShoppingCart className="w-5 h-5 text-orange-400" />
-            <h2 className="text-lg font-bold">Current Order</h2>
-          </div>
-          <div className="flex gap-2">
-            {heldBills.length > 0 && (
-              <Button variant="secondary" size="sm" onClick={() => setIsRecallOpen(true)} className="h-7 text-xs bg-orange-500 text-white hover:bg-orange-600 border-0">
-                Recall ({heldBills.length})
+        <div className="shrink-0 bg-gray-900 text-white">
+          <div className="h-16 flex items-center justify-between px-6 border-b border-gray-800">
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5 text-orange-400" />
+              <h2 className="text-lg font-bold">Current Order</h2>
+            </div>
+            <div className="flex gap-2">
+              {heldBills.length > 0 && (
+                <Button variant="secondary" size="sm" onClick={() => setIsRecallOpen(true)} className="h-7 text-xs bg-orange-500 text-white hover:bg-orange-600 border-0">
+                  Recall ({heldBills.length})
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={() => setIsHoldOpen(true)} disabled={cart.length === 0} className="h-7 text-xs bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white">
+                <PauseCircle className="w-3 h-3 mr-1" /> Hold
               </Button>
-            )}
-            <Button variant="outline" size="sm" onClick={() => setIsHoldOpen(true)} disabled={cart.length === 0} className="h-7 text-xs bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white">
-              <PauseCircle className="w-3 h-3 mr-1" /> Hold
-            </Button>
+            </div>
           </div>
+          {/* Live Shift Stats */}
+          {shiftActive && (
+            <div className="flex items-center justify-between px-6 py-2 bg-gray-800/50 text-[11px] font-mono">
+              <div className="flex items-center gap-3">
+                <span className="text-gray-400">Sales: <span className="text-green-400 font-bold">{shiftSalesCount}</span></span>
+                <span className="text-gray-600">|</span>
+                <span className="text-gray-400">Revenue: <span className="text-green-400 font-bold">Rs.{shiftRevenue.toFixed(0)}</span></span>
+                <span className="text-gray-600">|</span>
+                <span className="text-gray-400">Avg: <span className="text-yellow-400 font-bold">Rs.{shiftSalesCount > 0 ? (shiftRevenue / shiftSalesCount).toFixed(0) : '0'}</span></span>
+              </div>
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" title="Shift Active" />
+            </div>
+          )}
         </div>
 
         {/* Customer Selector */}
@@ -1080,7 +1263,7 @@ export default function POSPage() {
                     <button onClick={() => updateQuantity(item.id, -1)} className="w-7 h-7 flex items-center justify-center rounded-md bg-white shadow-sm text-gray-600 hover:text-orange-600">
                       <Minus className="w-3 h-3" />
                     </button>
-                    <span className="w-8 text-center text-sm font-bold text-gray-900">{item.quantity}</span>
+                    <button onClick={() => { setNumpadItem(item); setNumpadValue(String(item.quantity)); }} className="w-8 text-center text-sm font-bold text-gray-900 hover:bg-orange-100 rounded cursor-pointer">{item.quantity}</button>
                     <button onClick={() => updateQuantity(item.id, 1)} className="w-7 h-7 flex items-center justify-center rounded-md bg-white shadow-sm text-gray-600 hover:text-orange-600">
                       <Plus className="w-3 h-3" />
                     </button>
@@ -1117,6 +1300,34 @@ export default function POSPage() {
               <span className="text-base font-bold text-gray-800">Total</span>
               <span className="text-3xl font-black text-orange-600 tracking-tight">Rs. {grandTotal.toFixed(2)}</span>
             </div>
+          </div>
+
+          {/* Loyalty Redeem Button in Cart */}
+          {selectedCustomer && selectedCustomer.loyaltyPoints > 0 && (
+            <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-xl flex items-center justify-between">
+              <div className="text-xs text-yellow-800 font-medium">
+                <strong className="text-yellow-900 font-bold">⭐ {selectedCustomer.loyaltyPoints} Points</strong> available
+              </div>
+              {redeemedPoints > 0 ? (
+                <Button size="sm" variant="outline" className="h-7 text-[10px] border-red-200 text-red-600 hover:bg-red-50" onClick={() => setRedeemedPoints(0)}>
+                  Remove (-Rs. {redeemedPoints})
+                </Button>
+              ) : (
+                <Button size="sm" variant="outline" className="h-7 text-[10px] border-yellow-300 text-yellow-700 bg-yellow-100 hover:bg-yellow-200" onClick={() => setRedeemedPoints(Math.min(selectedCustomer.loyaltyPoints, grandTotal))}>
+                  Redeem
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Global Order Note */}
+          <div className="mb-3">
+            <Input
+              placeholder="🗒️ Order note (e.g. Call when ready, Table 5...)"
+              className="h-9 text-xs bg-gray-50 border-gray-200 rounded-lg"
+              value={globalOrderNote}
+              onChange={(e) => setGlobalOrderNote(e.target.value)}
+            />
           </div>
           
           <Button 
@@ -1378,7 +1589,9 @@ export default function POSPage() {
             </div>
             <div className="p-6 bg-white border-t flex gap-3">
               <Button type="button" variant="outline" className="flex-1 h-12 font-bold rounded-xl" onClick={() => setIsPaymentModalOpen(false)}>Cancel</Button>
-              <Button type="submit" className="flex-1 h-12 font-bold rounded-xl bg-orange-500 hover:bg-orange-600 text-white shadow-lg">Confirm Payment</Button>
+              <Button type="submit" disabled={isProcessing} className="flex-1 h-12 font-bold rounded-xl bg-orange-500 hover:bg-orange-600 text-white shadow-lg disabled:opacity-70">
+                {isProcessing ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Processing...</> : 'Confirm Payment'}
+              </Button>
             </div>
           </form>
         </DialogContent>
@@ -1845,6 +2058,100 @@ export default function POSPage() {
               <div className="text-center py-8 text-gray-400 font-medium">No recent sales found.</div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 12. Numpad Quantity Dialog */}
+      <Dialog open={!!numpadItem} onOpenChange={() => setNumpadItem(null)}>
+        <DialogContent className="sm:max-w-xs p-0 overflow-hidden rounded-2xl border-0 shadow-2xl bg-white">
+          <div className="p-4 bg-gray-900 text-white text-center">
+            <DialogTitle className="text-lg font-black">{numpadItem?.name}</DialogTitle>
+            <DialogDescription className="text-gray-400 text-xs mt-1">Enter quantity</DialogDescription>
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="text-center">
+              <Input 
+                type="number" min="1" max="999"
+                value={numpadValue}
+                onChange={(e) => setNumpadValue(e.target.value)}
+                className="text-center text-4xl font-black h-16 border-2 border-orange-200 focus:border-orange-500 rounded-xl"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const qty = parseInt(numpadValue) || 1;
+                    if (numpadItem && qty > 0) {
+                      setCart(prev => prev.map(item => 
+                        item.id === numpadItem.id 
+                          ? { ...item, quantity: qty, totalPrice: qty * item.basePrice }
+                          : item
+                      ));
+                      setNumpadItem(null);
+                    }
+                  }
+                }}
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(n => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setNumpadValue(prev => prev === "0" ? String(n) : prev + String(n))}
+                  className="h-12 rounded-xl border-2 border-gray-200 font-bold text-xl text-gray-800 hover:bg-orange-50 hover:border-orange-300 transition-all active:scale-95"
+                >
+                  {n}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setNumpadValue(prev => prev.slice(0, -1) || "0")}
+                className="h-12 rounded-xl border-2 border-gray-200 font-bold text-lg text-red-500 hover:bg-red-50 hover:border-red-300 transition-all col-span-2"
+              >
+                ← Clear
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1 h-11 font-bold rounded-xl" onClick={() => setNumpadItem(null)}>Cancel</Button>
+              <Button 
+                className="flex-1 h-11 font-bold rounded-xl bg-orange-500 hover:bg-orange-600 text-white" 
+                onClick={() => {
+                  const qty = parseInt(numpadValue) || 1;
+                  if (numpadItem && qty > 0) {
+                    setCart(prev => prev.map(item => 
+                      item.id === numpadItem.id 
+                        ? { ...item, quantity: qty, totalPrice: qty * item.basePrice }
+                        : item
+                    ));
+                    setNumpadItem(null);
+                  }
+                }}
+              >
+                Set Qty: {numpadValue || "0"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Offline Sync Success Modal */}
+      <Dialog open={isSyncSuccessOpen} onOpenChange={setIsSyncSuccessOpen}>
+        <DialogContent className="sm:max-w-md p-8 text-center bg-white rounded-3xl overflow-hidden shadow-2xl border-0">
+          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-400 to-blue-600"></div>
+          
+          <div className="mx-auto w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6">
+            <CloudLightning className="w-12 h-12 text-blue-500 animate-bounce" />
+          </div>
+          
+          <DialogTitle className="text-3xl font-black tracking-tight text-gray-900 mb-2">Sync Complete!</DialogTitle>
+          <DialogDescription className="text-lg text-gray-600 font-medium mb-8">
+            Successfully synced <span className="font-bold text-blue-600">{syncSuccessCount}</span> offline sales to the central database.
+          </DialogDescription>
+          
+          <Button 
+            onClick={() => setIsSyncSuccessOpen(false)}
+            className="w-full h-14 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-2xl text-xl font-bold shadow-lg shadow-blue-500/30 transition-all hover:scale-[1.02] active:scale-95"
+          >
+            Awesome!
+          </Button>
         </DialogContent>
       </Dialog>
     </div>

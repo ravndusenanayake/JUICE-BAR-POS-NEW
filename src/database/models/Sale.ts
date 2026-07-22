@@ -31,6 +31,7 @@ export interface ISale extends Document {
   total: number;
   paymentMethod: string;
   status: 'Completed' | 'Voided' | 'Refunded' | 'Partially Refunded';
+  kitchenStatus?: 'Pending' | 'Preparing' | 'Ready' | 'Served';
   shiftId?: mongoose.Types.ObjectId;
   items: ISaleItem[];
   returnedItems?: IReturnedItem[];
@@ -71,6 +72,7 @@ const SaleSchema = new Schema<ISale>(
     total: { type: Number, required: true },
     paymentMethod: { type: String, required: true },
     status: { type: String, enum: ['Completed', 'Voided', 'Refunded', 'Partially Refunded'], default: 'Completed' },
+    kitchenStatus: { type: String, enum: ['Pending', 'Preparing', 'Ready', 'Served'], default: 'Pending' },
     shiftId: { type: Schema.Types.ObjectId, ref: 'Shift' },
     items: [SaleItemSchema],
     returnedItems: [ReturnedItemSchema],

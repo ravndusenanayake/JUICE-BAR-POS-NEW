@@ -12,6 +12,7 @@ export interface ISettings extends Document {
   receiptFooter: string;
   maxBranches: number;
   maxUsers: number;
+  managerPin: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,7 +29,8 @@ const SettingsSchema = new Schema<ISettings>(
     packagingCharge: { type: Number, default: 0 },
     receiptFooter: { type: String, default: 'Thank you for choosing Fresh Squeeze! Stay healthy.' },
     maxBranches: { type: Number, default: 3 },
-    maxUsers: { type: Number, default: 10 }
+    maxUsers: { type: Number, default: 10 },
+    managerPin: { type: String, default: '1234' }
   },
   { timestamps: true }
 );

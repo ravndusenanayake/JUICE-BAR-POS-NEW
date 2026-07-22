@@ -11,9 +11,18 @@ export async function GET(req: Request) {
     
     // We can filter by branch using URL params if needed
     const { searchParams } = new URL(req.url);
+    const kitchenStatus = searchParams.get('kitchenStatus');
     const branch = searchParams.get('branch');
 
-    const query = branch && branch !== "All Branches" ? { branch } : {};
+    const query: any = branch && branch !== "All Branches" ? { branch } : {};
+    
+    if (kitchenStatus) {
+      if (kitchenStatus.includes(',')) {
+        query.kitchenStatus = { $in: kitchenStatus.split(',') };
+      } else {
+        query.kitchenStatus = kitchenStatus;
+      }
+    }
 
     const sales = await Sale.find(query).sort({ createdAt: -1 }).limit(100);
     
@@ -46,6 +55,7 @@ export async function POST(req: Request) {
       paymentMethod: body.paymentMethod || 'Cash',
       items: body.items, 
       status: 'Completed',
+      kitchenStatus: 'Pending',
       shiftId: body.shiftId
     });
 
@@ -134,6 +144,31 @@ export async function POST(req: Request) {
     }
     // --------------------------------------------
 
+    // -- LOYALTY POINTS LOGIC --
+    try {
+      if (body.customerId) {
+        const Customer = (await import('@/database/models/Customer')).default;
+        const customer = await Customer.findById(body.customerId);
+        if (customer) {
+          // Add total spend
+          customer.totalSpend = (customer.totalSpend || 0) + newSale.total;
+          
+          // Deduct redeemed points if any
+          const redeemedPoints = body.redeemedPoints || 0;
+          customer.loyaltyPoints = Math.max(0, (customer.loyaltyPoints || 0) - redeemedPoints);
+          
+          // Earn new points (1 point per Rs. 100 spent of the final total paid)
+          const earnedPoints = Math.floor(newSale.total / 100);
+          customer.loyaltyPoints += earnedPoints;
+          
+          await customer.save();
+        }
+      }
+    } catch (loyaltyError) {
+      console.error('Loyalty Update Error:', loyaltyError);
+    }
+    // --------------------------------------------
+
     return NextResponse.json(newSale, { status: 201 });
   } catch (error: any) {
     console.error('POST Sale Error:', error);
@@ -145,14 +180,26 @@ export async function PUT(req: Request) {
   try {
     await connectToDatabase();
     const body = await req.json();
-    const { id, isReturn, returnedItems } = body;
+    const { id, isReturn, returnedItems, kitchenStatus } = body;
     
-    if (!id || !isReturn || !returnedItems) {
-      return NextResponse.json({ error: 'Missing return data' }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ error: 'Missing sale ID' }, { status: 400 });
     }
 
     const sale = await Sale.findById(id);
     if (!sale) return NextResponse.json({ error: 'Sale not found' }, { status: 404 });
+
+    // Handle KDS Update
+    if (kitchenStatus) {
+      sale.kitchenStatus = kitchenStatus;
+      await sale.save();
+      return NextResponse.json(sale, { status: 200 });
+    }
+
+    // Handle Return
+    if (!isReturn || !returnedItems) {
+      return NextResponse.json({ error: 'Missing return data' }, { status: 400 });
+    }
 
     // Deduct from total, update status, append returnedItems
     let returnTotal = 0;
