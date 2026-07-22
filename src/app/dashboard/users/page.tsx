@@ -1,22 +1,21 @@
 "use client"
-import { toast } from 'sonner';
-
 import { useState, useEffect } from "react"
+import { toast } from 'sonner';
+import Swal from 'sweetalert2';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
 import { Plus, Search, Trash2, Pencil } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
 
 export default function UsersPage() {
   const [users, setUsers] = useState<any[]>([])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [editingUserId, setEditingUserId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [maxUsersLimit, setMaxUsersLimit] = useState(10) // Default 10
@@ -166,26 +165,29 @@ export default function UsersPage() {
     }
   }
 
-  const confirmDelete = (id: string) => {
-    setDeletingId(id)
-    setIsDeleteDialogOpen(true)
-  }
+  const confirmDelete = async (id: string) => {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this! The user will lose access to the system.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ea580c',
+      cancelButtonColor: '#9ca3af',
+      confirmButtonText: 'Yes, delete it!'
+    })
 
-  const deleteUser = async () => {
-    if (!deletingId) return;
-    try {
-      const res = await fetch(`/api/users?id=${deletingId}`, { method: 'DELETE' })
-      if (res.ok) {
-        toast.success("User deleted successfully!");
-        fetchUsers();
-      } else {
-        toast.error("Failed to delete user.");
+    if (result.isConfirmed) {
+      try {
+        const res = await fetch(`/api/users?id=${id}`, { method: 'DELETE' })
+        if (res.ok) {
+          fetchUsers();
+          Swal.fire('Deleted!', 'User has been deleted.', 'success')
+        } else {
+          toast.error("Failed to delete user.");
+        }
+      } catch (err) {
+        console.error(err);
       }
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setIsDeleteDialogOpen(false);
-      setDeletingId(null);
     }
   }
 
@@ -401,27 +403,7 @@ export default function UsersPage() {
         </Table>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle className="text-red-600 flex items-center gap-2">
-              <Trash2 className="w-5 h-5" /> Confirm Deletion
-            </DialogTitle>
-            <DialogDescription className="pt-2">
-              Are you sure you want to delete this user? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" className="bg-red-600 hover:bg-red-700 text-white" onClick={deleteUser}>
-              Yes, Delete User
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
     </div>
   )
 }

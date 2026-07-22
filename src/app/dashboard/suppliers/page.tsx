@@ -1,5 +1,6 @@
 "use client"
 import { toast } from 'sonner';
+import Swal from 'sweetalert2';
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -25,8 +26,6 @@ export default function SuppliersPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   
   // Form State
@@ -117,25 +116,29 @@ export default function SuppliersPage() {
     }
   }
 
-  const confirmDelete = (id: string) => {
-    setDeletingId(id)
-    setIsDeleteDialogOpen(true)
-  }
+  const confirmDelete = async (id: string) => {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this! Removing this supplier might affect GRN records.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ea580c',
+      cancelButtonColor: '#9ca3af',
+      confirmButtonText: 'Yes, delete it!'
+    })
 
-  const handleDelete = async () => {
-    if(!deletingId) return;
-    try {
-      const res = await fetch(`/api/suppliers?id=${deletingId}`, { method: 'DELETE' })
-      if (res.ok) {
-        fetchSuppliers()
-      } else {
-        toast.error("Failed to delete supplier")
+    if (result.isConfirmed) {
+      try {
+        const res = await fetch(`/api/suppliers?id=${id}`, { method: 'DELETE' })
+        if (res.ok) {
+          fetchSuppliers()
+          Swal.fire('Deleted!', 'Supplier has been deleted.', 'success')
+        } else {
+          toast.error("Failed to delete supplier")
+        }
+      } catch (err) {
+        console.error(err)
       }
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setIsDeleteDialogOpen(false)
-      setDeletingId(null)
     }
   }
 
@@ -220,27 +223,7 @@ export default function SuppliersPage() {
         </Table>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle className="text-red-600 flex items-center gap-2">
-              <Trash2 className="w-5 h-5" /> Confirm Deletion
-            </DialogTitle>
-            <DialogDescription className="pt-2">
-              Are you sure you want to delete this supplier? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" className="bg-red-600 hover:bg-red-700 text-white" onClick={handleDelete}>
-              Yes, Delete Supplier
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[450px]">

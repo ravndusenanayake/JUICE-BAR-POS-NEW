@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Search, Edit, Trash2, Droplets } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
+import Swal from 'sweetalert2'
 
 // Dummy Data
 const UNITS = [
@@ -32,10 +33,6 @@ export default function RawMaterialsPage() {
   const [threshold, setThreshold] = useState("")
   const [isActive, setIsActive] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
-
-  // Delete Modal State
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const fetchMaterials = async () => {
     try {
@@ -147,26 +144,29 @@ export default function RawMaterialsPage() {
     } catch(e) { console.error(e) }
   }
 
-  const confirmDelete = (id: string) => {
-    setDeletingId(id)
-    setIsDeleteDialogOpen(true)
-  }
+  const confirmDelete = async (id: string) => {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this! It may affect inventory calculations.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ea580c',
+      cancelButtonColor: '#9ca3af',
+      confirmButtonText: 'Yes, delete it!'
+    })
 
-  const deleteMaterial = async () => {
-    if(!deletingId) return;
-    try {
-      const res = await fetch(`/api/raw-materials?id=${deletingId}`, { method: 'DELETE' });
-      if(res.ok) {
-        toast.success("Raw material deleted!");
-        fetchMaterials();
-      } else {
-        toast.error("Failed to delete raw material.");
+    if (result.isConfirmed) {
+      try {
+        const res = await fetch(`/api/raw-materials?id=${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          fetchMaterials();
+          Swal.fire('Deleted!', 'Raw material has been deleted.', 'success')
+        } else {
+          toast.error("Failed to delete raw material.");
+        }
+      } catch (err) {
+        console.error(err);
       }
-    } catch(e) { 
-      console.error(e) 
-    } finally {
-      setIsDeleteDialogOpen(false)
-      setDeletingId(null)
     }
   }
 
@@ -318,28 +318,6 @@ export default function RawMaterialsPage() {
           </TableBody>
         </Table>
       </div>
-
-      {/* Delete Confirmation Modal */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle className="text-red-600 flex items-center gap-2">
-              <Trash2 className="w-5 h-5" /> Confirm Deletion
-            </DialogTitle>
-            <DialogDescription className="pt-2">
-              Are you absolutely sure you want to delete this raw material? This action cannot be undone and may affect inventory calculations.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" className="bg-red-600 hover:bg-red-700 text-white" onClick={deleteMaterial}>
-              Yes, Delete It
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

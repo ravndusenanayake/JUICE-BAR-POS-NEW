@@ -1,5 +1,6 @@
 "use client"
 import { toast } from 'sonner';
+import Swal from 'sweetalert2';
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -17,10 +18,6 @@ export default function BranchesPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [maxBranchesLimit, setMaxBranchesLimit] = useState(3) // Default 3
   const [isLoading, setIsLoading] = useState(true)
-
-  // Delete Modal State
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const fetchBranches = async () => {
     try {
@@ -119,23 +116,29 @@ export default function BranchesPage() {
     }
   }
 
-  const confirmDelete = (id: string) => {
-    setDeletingId(id)
-    setIsDeleteDialogOpen(true)
-  }
+  const confirmDelete = async (id: string) => {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this! Ensure no active shifts or users are associated with this branch.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ea580c',
+      cancelButtonColor: '#9ca3af',
+      confirmButtonText: 'Yes, delete it!'
+    })
 
-  const deleteBranch = async () => {
-    if(!deletingId) return;
-    try {
-      const res = await fetch(`/api/branches/${deletingId}`, { method: 'DELETE' })
-      if (res.ok) {
-        fetchBranches()
+    if (result.isConfirmed) {
+      try {
+        const res = await fetch(`/api/branches/${id}`, { method: 'DELETE' })
+        if (res.ok) {
+          fetchBranches()
+          Swal.fire('Deleted!', 'Branch has been deleted.', 'success')
+        } else {
+          toast.error("Failed to delete branch")
+        }
+      } catch (err) {
+        console.error("Failed to delete branch", err)
       }
-    } catch (err) {
-      console.error("Failed to delete branch", err)
-    } finally {
-      setIsDeleteDialogOpen(false)
-      setDeletingId(null)
     }
   }
 
@@ -276,28 +279,6 @@ export default function BranchesPage() {
           </TableBody>
         </Table>
       </div>
-
-      {/* Delete Confirmation Modal */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle className="text-red-600 flex items-center gap-2">
-              <Trash2 className="w-5 h-5" /> Confirm Deletion
-            </DialogTitle>
-            <DialogDescription className="pt-2">
-              Are you sure you want to delete this branch? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" className="bg-red-600 hover:bg-red-700 text-white" onClick={deleteBranch}>
-              Yes, Delete Branch
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

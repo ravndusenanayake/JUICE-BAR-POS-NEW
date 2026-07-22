@@ -1,5 +1,6 @@
 "use client"
 import { toast } from 'sonner';
+import Swal from 'sweetalert2';
 
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/context/AuthContext"
@@ -52,9 +53,6 @@ export default function ExpensesPage() {
   const [category, setCategory] = useState("Rent")
   const [amount, setAmount] = useState("")
   
-  // Delete Modal State
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [note, setNote] = useState("")
   const [fileName, setFileName] = useState("")
   
@@ -123,23 +121,30 @@ export default function ExpensesPage() {
     }
   }
 
-  const confirmDelete = (id: string) => {
-    setDeletingId(id)
-    setIsDeleteDialogOpen(true)
-  }
+  const confirmDelete = async (id: string) => {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this! The expense record will be permanently removed.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ea580c',
+      cancelButtonColor: '#9ca3af',
+      confirmButtonText: 'Yes, delete it!'
+    })
 
-  const handleDelete = async () => {
-    if(!deletingId) return;
-    try {
-      const res = await fetch(`/api/expenses?id=${deletingId}`, { method: 'DELETE' })
-      if (res.ok) {
-        fetchExpenses()
+    if (result.isConfirmed) {
+      try {
+        const res = await fetch(`/api/expenses?id=${id}`, { method: 'DELETE' })
+        if (res.ok) {
+          fetchExpenses()
+          Swal.fire('Deleted!', 'Expense has been deleted.', 'success')
+        } else {
+          toast.error("Failed to delete expense")
+        }
+      } catch (e) {
+        console.error(e)
+        toast.error("Error deleting expense")
       }
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setIsDeleteDialogOpen(false)
-      setDeletingId(null)
     }
   }
 
@@ -326,28 +331,6 @@ export default function ExpensesPage() {
               <Button type="submit" className="h-11 px-6 font-bold bg-red-600 text-white hover:bg-red-700 shadow-lg">Save Expense</Button>
             </DialogFooter>
           </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Modal */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle className="text-red-600 flex items-center gap-2">
-              <Trash2 className="w-5 h-5" /> Confirm Deletion
-            </DialogTitle>
-            <DialogDescription className="pt-2">
-              Are you sure you want to delete this expense record? This will impact profit reports.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" className="bg-red-600 hover:bg-red-700 text-white" onClick={handleDelete}>
-              Yes, Delete Expense
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

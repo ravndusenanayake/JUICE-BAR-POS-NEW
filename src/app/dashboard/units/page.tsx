@@ -11,6 +11,7 @@ import { Plus, Search, Edit, Trash2, Scale, Droplets, Hash, Box } from "lucide-r
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2 } from "lucide-react"
+import Swal from 'sweetalert2'
 
 export default function UnitsPage() {
   const [units, setUnits] = useState<any[]>([])
@@ -19,10 +20,6 @@ export default function UnitsPage() {
   
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  
-  // Delete Modal State
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
   
   // Form State
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -156,26 +153,29 @@ export default function UnitsPage() {
     }
   }
 
-  const confirmDelete = (id: string) => {
-    setDeletingId(id)
-    setIsDeleteDialogOpen(true)
-  }
+  const confirmDelete = async (id: string) => {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this! Make sure no raw materials or products are using this unit.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ea580c',
+      cancelButtonColor: '#9ca3af',
+      confirmButtonText: 'Yes, delete it!'
+    })
 
-  const deleteUnit = async () => {
-    if(!deletingId) return;
-    try {
-      const res = await fetch(`/api/units/${deletingId}`, { method: 'DELETE' })
-      if (res.ok) {
-        toast.success("Unit deleted")
-        fetchUnits()
-      } else {
-        toast.error("Failed to delete unit")
+    if (result.isConfirmed) {
+      try {
+        const res = await fetch(`/api/units/${id}`, { method: 'DELETE' })
+        if (res.ok) {
+          fetchUnits()
+          Swal.fire('Deleted!', 'Unit has been deleted.', 'success')
+        } else {
+          toast.error("Failed to delete unit")
+        }
+      } catch (error) {
+        toast.error("Error deleting unit")
       }
-    } catch (error) {
-      toast.error("Error deleting unit")
-    } finally {
-      setIsDeleteDialogOpen(false)
-      setDeletingId(null)
     }
   }
 
@@ -393,27 +393,7 @@ export default function UnitsPage() {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle className="text-red-600 flex items-center gap-2">
-              <Trash2 className="w-5 h-5" /> Confirm Deletion
-            </DialogTitle>
-            <DialogDescription className="pt-2">
-              Are you sure you want to delete this unit? This action cannot be undone. Make sure no raw materials or products are using this unit.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" className="bg-red-600 hover:bg-red-700 text-white" onClick={deleteUnit}>
-              Yes, Delete Unit
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
     </div>
   )
 }

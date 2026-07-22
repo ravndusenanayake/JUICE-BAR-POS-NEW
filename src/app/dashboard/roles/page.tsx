@@ -8,6 +8,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label"
 import { Plus, ShieldAlert, Edit, Trash2, ShieldCheck, CheckCircle2, Circle } from "lucide-react"
 import { PERMISSION_GROUPS, PERMISSIONS } from "@/lib/permissions"
+import Swal from 'sweetalert2'
+import { toast } from "sonner"
 
 // Dummy Data mapped exactly to user requirements
 const INITIAL_ROLES = [
@@ -82,9 +84,6 @@ export default function RolesPage() {
   const [roleName, setRoleName] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
 
-  // Delete Modal State
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [selectedPerms, setSelectedPerms] = useState<string[]>([])
 
   const openCreateDialog = () => {
@@ -140,16 +139,30 @@ export default function RolesPage() {
     setIsDialogOpen(false)
   }
 
-  const confirmDelete = (id: string) => {
-    setDeletingId(id)
-    setIsDeleteDialogOpen(true)
-  }
+  const confirmDelete = async (id: string) => {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this! Users assigned to this role might lose access.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ea580c',
+      cancelButtonColor: '#9ca3af',
+      confirmButtonText: 'Yes, delete it!'
+    })
 
-  const deleteRole = () => {
-    if(!deletingId) return;
-    setRoles(roles.filter(r => r.id !== deletingId))
-    setIsDeleteDialogOpen(false)
-    setDeletingId(null)
+    if (result.isConfirmed) {
+      try {
+        const res = await fetch(`/api/roles/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          setRoles(roles.filter(r => r.id !== id));
+          Swal.fire('Deleted!', 'Role has been deleted.', 'success')
+        } else {
+          toast.error("Failed to delete role.");
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
   }
 
   return (
@@ -314,28 +327,6 @@ export default function RolesPage() {
           </TableBody>
         </Table>
       </div>
-
-      {/* Delete Confirmation Modal */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle className="text-red-600 flex items-center gap-2">
-              <Trash2 className="w-5 h-5" /> Confirm Deletion
-            </DialogTitle>
-            <DialogDescription className="pt-2">
-              Are you sure you want to delete this role? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" className="bg-red-600 hover:bg-red-700 text-white" onClick={deleteRole}>
-              Yes, Delete Role
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

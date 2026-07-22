@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Search, Edit, Archive, Trash2, Image as ImageIcon, X, CheckSquare, Square } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useAuth } from "@/context/AuthContext"
+import Swal from 'sweetalert2'
 
 export default function ProductsPage() {
   const { user } = useAuth()
@@ -27,25 +28,6 @@ export default function ProductsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
 
-  // Confirmation Modal State
-  const [confirmState, setConfirmState] = useState<{
-    isOpen: boolean;
-    action: 'variant' | 'archive' | 'product';
-    targetId?: string;
-    targetIndex?: number;
-    title: string;
-    description: string;
-    confirmText: string;
-    isDestructive: boolean;
-  }>({
-    isOpen: false,
-    action: 'product',
-    title: '',
-    description: '',
-    confirmText: '',
-    isDestructive: true
-  })
-  
   // Form State
   const [name, setName] = useState("")
   const [sku, setSku] = useState("")
@@ -120,54 +102,34 @@ export default function ProductsPage() {
     setFormVariants(newVars)
   }
 
-  const confirmRemoveVariant = (index: number) => {
+  const confirmRemoveVariant = async (index: number) => {
     const variant = formVariants[index]
     if (variant.id) {
-      setConfirmState({
-        isOpen: true,
-        action: 'variant',
-        targetIndex: index,
-        title: 'Delete Variant',
-        description: 'Are you sure you want to delete this variant? It will be permanently removed.',
-        confirmText: 'Yes, Delete Variant',
-        isDestructive: true
+      const result = await Swal.fire({
+        title: 'Delete Variant?',
+        text: 'Are you sure you want to delete this variant? It will be permanently removed.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ea580c',
+        cancelButtonColor: '#9ca3af',
+        confirmButtonText: 'Yes, Delete Variant'
       })
+
+      if (result.isConfirmed) {
+        try {
+          await fetch(`/api/product-variants?id=${variant.id}`, { method: 'DELETE' })
+          const newVars = [...formVariants]
+          newVars.splice(index, 1)
+          setFormVariants(newVars)
+          Swal.fire('Deleted!', 'Variant removed.', 'success')
+        } catch(err) {
+          console.error(err)
+        }
+      }
     } else {
       const newVars = [...formVariants]
       newVars.splice(index, 1)
       setFormVariants(newVars)
-    }
-  }
-
-  const executeConfirmAction = async () => {
-    const { action, targetId, targetIndex } = confirmState
-    setConfirmState(prev => ({ ...prev, isOpen: false }))
-    
-    try {
-      if (action === 'variant' && targetIndex !== undefined) {
-        const variant = formVariants[targetIndex]
-        if (variant.id) {
-          await fetch(`/api/product-variants?id=${variant.id}`, { method: 'DELETE' })
-          const newVars = [...formVariants]
-          newVars.splice(targetIndex, 1)
-          setFormVariants(newVars)
-        }
-      } else if (action === 'archive' && targetId) {
-        const res = await fetch(`/api/products`, { 
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: targetId, status: false })
-        })
-        if (res.ok) fetchData()
-        else toast.error("Failed to archive product")
-      } else if (action === 'product' && targetId) {
-        const res = await fetch(`/api/products?id=${targetId}`, { method: 'DELETE' })
-        if (res.ok) fetchData()
-        else toast.error("Failed to delete product")
-      }
-    } catch (err) {
-      console.error(err)
-      toast.error("An error occurred")
     }
   }
 
@@ -303,28 +265,58 @@ export default function ProductsPage() {
     setIsDialogOpen(true)
   }
 
-  const confirmArchive = (id: string) => {
-    setConfirmState({
-      isOpen: true,
-      action: 'archive',
-      targetId: id,
-      title: 'Archive Product',
-      description: 'Are you sure you want to archive this product? It will be marked as Inactive and hidden from POS.',
-      confirmText: 'Yes, Archive',
-      isDestructive: false
+  const confirmArchive = async (id: string) => {
+    const result = await Swal.fire({
+      title: 'Archive Product?',
+      text: 'Are you sure you want to archive this product? It will be marked as Inactive and hidden from POS.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ea580c',
+      cancelButtonColor: '#9ca3af',
+      confirmButtonText: 'Yes, Archive'
     })
+
+    if (result.isConfirmed) {
+      try {
+        const res = await fetch(`/api/products`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, status: 'Inactive' })
+        })
+        if(res.ok) {
+          fetchData()
+          Swal.fire('Archived!', 'Product has been archived.', 'success')
+        } else toast.error("Failed to archive product")
+      } catch (err) {
+        console.error(err)
+        toast.error("An error occurred")
+      }
+    }
   }
 
-  const confirmDelete = (id: string) => {
-    setConfirmState({
-      isOpen: true,
-      action: 'product',
-      targetId: id,
-      title: 'Delete Product',
-      description: 'Are you sure you want to permanently delete this product? This action cannot be undone.',
-      confirmText: 'Yes, Delete',
-      isDestructive: true
+  const confirmDelete = async (id: string) => {
+    const result = await Swal.fire({
+      title: 'Delete Product?',
+      text: 'Are you sure you want to permanently delete this product? This action cannot be undone.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ea580c',
+      cancelButtonColor: '#9ca3af',
+      confirmButtonText: 'Yes, Delete'
     })
+
+    if (result.isConfirmed) {
+      try {
+        const res = await fetch(`/api/products?id=${id}`, { method: 'DELETE' })
+        if(res.ok) {
+          fetchData()
+          Swal.fire('Deleted!', 'Product has been deleted.', 'success')
+        } else toast.error("Failed to delete product")
+      } catch (err) {
+        console.error(err)
+        toast.error("An error occurred")
+      }
+    }
   }
 
   return (
@@ -636,32 +628,6 @@ export default function ProductsPage() {
         </Table>
       </div>
 
-      {/* Confirmation Modal */}
-      <Dialog open={confirmState.isOpen} onOpenChange={(open) => setConfirmState(prev => ({ ...prev, isOpen: open }))}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle className={`flex items-center gap-2 ${confirmState.isDestructive ? 'text-red-600' : 'text-orange-600'}`}>
-              {confirmState.isDestructive ? <Trash2 className="w-5 h-5" /> : <Archive className="w-5 h-5" />} 
-              {confirmState.title}
-            </DialogTitle>
-            <DialogDescription className="pt-2">
-              {confirmState.description}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}>
-              Cancel
-            </Button>
-            <Button 
-              type="button" 
-              className={confirmState.isDestructive ? "bg-red-600 hover:bg-red-700 text-white" : "bg-orange-600 hover:bg-orange-700 text-white"} 
-              onClick={executeConfirmAction}
-            >
-              {confirmState.confirmText}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
