@@ -17,12 +17,23 @@ const UNITS = [
   { id: 1, name: "Grams", code: "g" },
   { id: 2, name: "Kilograms", code: "kg" },
   { id: 3, name: "Milliliters", code: "ml" },
-  { id: 4, name: "Numbers", code: "Nos" },
+  { id: 4, name: "Liters", code: "l" },
+  { id: 5, name: "Numbers", code: "Nos" },
 ]
 
 
 
 export default function RawMaterialsPage() {
+  const getUnitName = (code: string) => {
+    const found = UNITS.find(u => u.code.toLowerCase() === (code || '').toLowerCase());
+    return found ? found.name : code;
+  }
+
+  const getUnitCode = (code: string) => {
+    const found = UNITS.find(u => u.code.toLowerCase() === (code || '').toLowerCase());
+    return found ? found.code : code;
+  }
+
   const [materials, setMaterials] = useState<any[]>([])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
@@ -33,6 +44,18 @@ export default function RawMaterialsPage() {
   const [threshold, setThreshold] = useState("")
   const [isActive, setIsActive] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
+
+  const formatQuantity = (val: number, unitCode: string) => {
+    if (val == null) return `0 ${getUnitCode(unitCode)}`;
+    const lowerUnit = (unitCode || '').toLowerCase();
+    if (lowerUnit === 'g' && val >= 1000) {
+      return `${+(val / 1000).toFixed(3)} kg`;
+    }
+    if (lowerUnit === 'ml' && val >= 1000) {
+      return `${+(val / 1000).toFixed(3)} L`;
+    }
+    return `${val} ${getUnitCode(unitCode)}`;
+  }
 
   const fetchMaterials = async () => {
     try {
@@ -63,11 +86,23 @@ export default function RawMaterialsPage() {
     }
 
     try {
+      let finalUnit = unit;
+      let finalThreshold = parseFloat(threshold) || 0;
+
+      // Auto-convert to base units for consistency
+      if (unit.toLowerCase() === 'kg') {
+        finalUnit = 'g';
+        finalThreshold = finalThreshold * 1000;
+      } else if (unit.toLowerCase() === 'l') {
+        finalUnit = 'ml';
+        finalThreshold = finalThreshold * 1000;
+      }
+
       const payload = {
         name,
         category: 'General',
-        unit,
-        minStockLevel: parseFloat(threshold) || 0,
+        unit: finalUnit,
+        minStockLevel: finalThreshold,
         status: isActive ? 'Active' : 'Inactive'
       }
 
@@ -124,8 +159,22 @@ export default function RawMaterialsPage() {
   const openEditModal = (m: any) => {
     setEditingId(m._id)
     setName(m.name)
-    setUnit(m.unit)
-    setThreshold(m.minStockLevel?.toString() || "0")
+    
+    // Auto-format for editing: if it's stored in base units but large, display as higher unit for ease of editing
+    let displayUnit = m.unit;
+    let displayThreshold = m.minStockLevel || 0;
+    
+    if (m.unit.toLowerCase() === 'g' && displayThreshold >= 1000 && displayThreshold % 1000 === 0) {
+      displayUnit = 'kg';
+      displayThreshold = displayThreshold / 1000;
+    } else if (m.unit.toLowerCase() === 'ml' && displayThreshold >= 1000 && displayThreshold % 1000 === 0) {
+      displayUnit = 'l'; // Assuming 'l' is in UNITS. But 'l' is not in UNITS array. 
+      // Wait, we need to ensure 'l' is in UNITS array or just let them edit in base unit.
+      // Better to just edit in base unit or add 'Liters' to UNITS.
+    }
+
+    setUnit(displayUnit)
+    setThreshold(displayThreshold.toString())
     setIsActive(m.status === 'Active')
     setIsDialogOpen(true)
   }
@@ -289,12 +338,14 @@ export default function RawMaterialsPage() {
                   <div className="text-xs text-gray-400 mt-0.5">{m.sku}</div>
                 </TableCell>
                 <TableCell>
-                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-blue-50 text-blue-700 font-medium">
-                    {m.unit}
+                  <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-semibold border border-slate-200">
+                    {getUnitName(m.unit)} ({getUnitCode(m.unit)})
                   </span>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm font-medium">{m.minStockLevel} {m.unit}</span>
+                  <span className="text-sm font-medium text-slate-700">
+                    {formatQuantity(m.minStockLevel, m.unit)}
+                  </span>
                 </TableCell>
                 <TableCell>
                   <Switch 
