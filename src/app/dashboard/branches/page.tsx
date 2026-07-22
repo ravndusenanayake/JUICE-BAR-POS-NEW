@@ -40,6 +40,7 @@ export default function BranchesPage() {
   }, [])
   
   // Form State
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [code, setCode] = useState("")
   const [name, setName] = useState("")
   const [address, setAddress] = useState("")
@@ -51,20 +52,30 @@ export default function BranchesPage() {
     branch.code.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  const openEditDialog = (branch: any) => {
+    setEditingId(branch._id || branch.id)
+    setCode(branch.code)
+    setName(branch.name)
+    setAddress(branch.address || "")
+    setPhone(branch.phone || "")
+    setStatus(branch.status || "Active")
+    setIsDialogOpen(true)
+  }
+
   const handleAddBranch = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (branches.length >= maxBranchesLimit) {
+    if (!editingId && branches.length >= maxBranchesLimit) {
       toast.error(`License Limit Reached! You can only create up to ${maxBranchesLimit} branches. Please contact the Super Admin to upgrade your plan.`)
       return
     }
 
-    if (branches.some(b => b.code.toLowerCase() === code.toLowerCase())) {
+    if (branches.some(b => b.code.toLowerCase() === code.toLowerCase() && b._id !== editingId && b.id !== editingId)) {
       toast.error("A branch with this code already exists!")
       return
     }
 
-    const newBranch = {
+    const branchData = {
       code: code.toUpperCase(),
       name,
       address,
@@ -73,26 +84,31 @@ export default function BranchesPage() {
     }
 
     try {
-      const res = await fetch('/api/branches', {
-        method: 'POST',
+      const url = editingId ? `/api/branches/${editingId}` : '/api/branches'
+      const method = editingId ? 'PUT' : 'POST'
+      
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newBranch)
+        body: JSON.stringify(branchData)
       })
       if (res.ok) {
         fetchBranches()
         setIsDialogOpen(false)
         resetForm()
+        toast.success(editingId ? "Branch updated successfully" : "Branch added successfully")
       } else {
         const errorData = await res.json()
-        toast.error(errorData.error || "Failed to add branch")
+        toast.error(errorData.error || `Failed to ${editingId ? 'update' : 'add'} branch`)
       }
     } catch (err) {
-      console.error("Failed to add branch", err)
-      toast.error("An error occurred while adding the branch.")
+      console.error(`Failed to ${editingId ? 'update' : 'add'} branch`, err)
+      toast.error(`An error occurred while ${editingId ? 'updating' : 'adding'} the branch.`)
     }
   }
 
   const resetForm = () => {
+    setEditingId(null)
     setCode("")
     setName("")
     setAddress("")
@@ -157,16 +173,16 @@ export default function BranchesPage() {
           <DialogContent className="sm:max-w-[425px]">
             <form onSubmit={handleAddBranch}>
               <DialogHeader>
-                <DialogTitle>Create New Branch</DialogTitle>
+                <DialogTitle>{editingId ? "Edit Branch" : "Create New Branch"}</DialogTitle>
                 <DialogDescription>
-                  Add a new store location to your POS system.
+                  {editingId ? "Update the details for this branch." : "Add a new store location to your POS system."}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="code">Branch Code <span className="text-red-500">*</span></Label>
-                    <Input id="code" placeholder="e.g. COL-07" value={code} onChange={(e) => setCode(e.target.value)} required />
+                    <Input id="code" placeholder="e.g. COL-07" value={code} onChange={(e) => setCode(e.target.value)} required disabled={!!editingId} />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="name">Branch Name <span className="text-red-500">*</span></Label>
@@ -199,7 +215,7 @@ export default function BranchesPage() {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit">Save Branch</Button>
+                <Button type="submit">{editingId ? "Update Branch" : "Save Branch"}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -266,7 +282,7 @@ export default function BranchesPage() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon" title="Edit">
+                    <Button variant="ghost" size="icon" title="Edit" onClick={() => openEditDialog(branch)}>
                       <Edit className="h-4 w-4 text-blue-500" />
                     </Button>
                     <Button variant="ghost" size="icon" title="Delete" onClick={() => confirmDelete(branch._id || branch.id)}>

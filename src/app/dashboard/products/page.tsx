@@ -144,7 +144,7 @@ export default function ProductsPage() {
   }
 
   const saveProduct = async () => {
-    if(!name || !category) return toast.error("Please fill Product Name and Category")
+    if(!name) return toast.error("Please fill Product Name")
 
     // Validate variants if Made to Order
     if (type === "Made to Order") {
@@ -153,6 +153,11 @@ export default function ProductsPage() {
           return toast.error("Please fill all Variant names and prices, or remove empty rows.")
         }
       }
+      if (formVariants.length === 0 && !outletPrice) {
+         return toast.error("Please provide a Base Price or add at least one Variant.")
+      }
+    } else {
+      if (!outletPrice) return toast.error("Please provide a Base Price.")
     }
 
     setIsSaving(true)
@@ -161,7 +166,7 @@ export default function ProductsPage() {
 
       if (editingProduct) {
         const payload = {
-          id: editingProduct.id, name, category, type, description, image,
+          id: editingProduct.id, name, category: category || "General", type, description, image,
           status: isActive, sku, outletPrice: Number(outletPrice) || 0,
           unit, threshold: Number(threshold) || 0,
           addons: type === "Made to Order" ? formAddons : []
@@ -177,7 +182,7 @@ export default function ProductsPage() {
         savedProductId = editingProduct.id
       } else {
         const payload = {
-          name, category, type, description, image, status: isActive, outletPrice: Number(outletPrice) || 0,
+          name, category: category || "General", type, description, image, status: isActive, outletPrice: Number(outletPrice) || 0,
           unit, threshold: Number(threshold) || 0,
           addons: type === "Made to Order" ? formAddons : []
         }
@@ -374,22 +379,31 @@ export default function ProductsPage() {
                     </div>
                   </div>
 
-                  <div className="grid gap-2 mb-6">
-                    <Label className="text-sm font-medium text-gray-700">Category <span className="text-red-500">*</span></Label>
-                    <Select value={category} onValueChange={(val) => setCategory(val || "")}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categoriesList.length === 0 ? (
-                          <SelectItem value="none" disabled>No active categories found</SelectItem>
-                        ) : (
-                          categoriesList.map(cat => (
-                            <SelectItem key={cat._id} value={cat.name}>{cat.name}</SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="grid gap-2">
+                      <Label className="text-sm font-medium text-gray-700">Category (Optional)</Label>
+                      <Select value={category} onValueChange={(val) => setCategory(val || "")}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categoriesList.length === 0 ? (
+                            <SelectItem value="none" disabled>No active categories found</SelectItem>
+                          ) : (
+                            categoriesList.map(cat => (
+                              <SelectItem key={cat._id} value={cat.name}>{cat.name}</SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label className="text-sm font-medium text-gray-700">Base Price (Rs.)</Label>
+                      <Input 
+                        type="number" step="0.01" min="0" placeholder="e.g. 500" 
+                        value={outletPrice} onChange={(e) => setOutletPrice(e.target.value)} 
+                      />
+                    </div>
                   </div>
 
                   {/* MADE TO ORDER SPECIFIC FIELDS */}
@@ -483,33 +497,20 @@ export default function ProductsPage() {
                       <h3 className="font-semibold text-gray-800">Finished Good Details</h3>
                       <p className="text-xs text-muted-foreground mb-2">Configure pricing and inventory tracking for ready-to-sell items.</p>
                       
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                          <Label className="text-sm font-medium text-gray-700">Selling Price (Rs.) <span className="text-red-500">*</span></Label>
-                          <Input 
-                            type="number" 
-                            step="0.01" 
-                            min="0"
-                            placeholder="e.g. 500" 
-                            value={outletPrice} 
-                            onChange={(e) => setOutletPrice(e.target.value)} 
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                          <Label className="text-sm font-medium text-gray-700">Measurement Unit</Label>
-                          <Select value={unit} onValueChange={(val) => setUnit(val || "Nos")}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select Unit" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Nos">Nos (Pieces)</SelectItem>
-                              <SelectItem value="Bottles">Bottles</SelectItem>
-                              <SelectItem value="Cups">Cups</SelectItem>
-                              <SelectItem value="Grams">Grams</SelectItem>
-                              <SelectItem value="Kg">Kilograms</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                      <div className="grid gap-2">
+                        <Label className="text-sm font-medium text-gray-700">Measurement Unit</Label>
+                        <Select value={unit} onValueChange={(val) => setUnit(val || "Nos")}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Unit" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Nos">Nos (Pieces)</SelectItem>
+                            <SelectItem value="Bottles">Bottles</SelectItem>
+                            <SelectItem value="Cups">Cups</SelectItem>
+                            <SelectItem value="Grams">Grams</SelectItem>
+                            <SelectItem value="Kg">Kilograms</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <div className="grid gap-2 mt-2">
