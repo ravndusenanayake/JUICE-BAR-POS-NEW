@@ -1010,88 +1010,106 @@ export default function POSPage() {
     }
   }
 
-  return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden font-sans selection:bg-orange-200">
+    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans selection:bg-orange-200">
       
-      {/* LEFT: Products Area */}
-      <div className="flex-1 flex flex-col h-full bg-white shadow-xl z-10 relative">
-        <header className="h-16 flex items-center justify-between px-6 border-b bg-white shrink-0">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-gray-500 hover:text-gray-900 transition-colors">
-              <ArrowLeft className="w-6 h-6" />
-            </Link>
-            <h1 className="text-xl font-bold tracking-tight text-gray-900">POS Terminal</h1>
+      {/* LEFT: Sleek Navigation Sidebar */}
+      <aside className="w-[80px] sm:w-[100px] flex flex-col items-center bg-gray-900 shadow-2xl py-6 z-30 shrink-0">
+        <div className="mb-8">
+          <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30">
+            <Store className="text-white w-6 h-6" />
           </div>
-          
-          <div className="flex flex-1 max-w-md mx-6 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input 
-              id="pos-search-input"
-              type="text" placeholder="Search products (F2)... Press Enter to quick-add" 
-              className="pl-9 bg-gray-50 border-gray-200 focus-visible:ring-orange-500 rounded-full h-10 w-full"
-              value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && searchQuery.trim()) {
-                  const matches = filteredProducts.filter(p => !p.isOutOfStock);
-                  if (matches.length === 1) {
-                    handleProductClick(matches[0]);
-                    setSearchQuery("");
-                    (e.target as HTMLInputElement).blur();
-                    toast.success(`Added: ${matches[0].name}`);
-                  } else if (matches.length > 1) {
-                    handleProductClick(matches[0]);
-                    setSearchQuery("");
-                    (e.target as HTMLInputElement).blur();
-                    toast.success(`Added: ${matches[0].name}`);
+        </div>
+        
+        <div className="flex flex-col gap-6 flex-1 w-full px-2">
+          <button onClick={() => document.getElementById('pos-search-input')?.focus()} className="flex flex-col items-center gap-1.5 text-gray-400 hover:text-white transition-colors group">
+             <div className="p-3 rounded-xl bg-gray-800 group-hover:bg-gray-700"><Search className="w-5 h-5" /></div>
+             <span className="text-[10px] font-medium">Search</span>
+          </button>
+          <button onClick={() => setIsExpenseOpen(true)} className="flex flex-col items-center gap-1.5 text-gray-400 hover:text-green-400 transition-colors group">
+             <div className="p-3 rounded-xl bg-gray-800 group-hover:bg-green-400/20"><Wallet className="w-5 h-5" /></div>
+             <span className="text-[10px] font-medium">Expense</span>
+          </button>
+          <button onClick={() => setIsReturnOpen(true)} className="flex flex-col items-center gap-1.5 text-gray-400 hover:text-blue-400 transition-colors group">
+             <div className="p-3 rounded-xl bg-gray-800 group-hover:bg-blue-400/20"><RotateCcw className="w-5 h-5" /></div>
+             <span className="text-[10px] font-medium">Return</span>
+          </button>
+          <button onClick={handleOpenRecentSales} className="flex flex-col items-center gap-1.5 text-gray-400 hover:text-indigo-400 transition-colors group">
+             <div className="p-3 rounded-xl bg-gray-800 group-hover:bg-indigo-400/20"><History className="w-5 h-5" /></div>
+             <span className="text-[10px] font-medium">History</span>
+          </button>
+          <button onClick={openSlideOutSummary} className="flex flex-col items-center gap-1.5 text-gray-400 hover:text-purple-400 transition-colors group">
+             <div className="p-3 rounded-xl bg-gray-800 group-hover:bg-purple-400/20"><Printer className="w-5 h-5" /></div>
+             <span className="text-[10px] font-medium text-center leading-tight">Z-Report</span>
+          </button>
+        </div>
+
+        <div className="mt-auto flex flex-col gap-6 items-center w-full px-2">
+           {!isOnline && (
+             <div className="text-red-500 animate-pulse flex flex-col items-center" title="Offline Mode">
+               <WifiOff className="w-5 h-5" />
+               <span className="text-[9px] mt-1 font-bold">OFFLINE</span>
+             </div>
+           )}
+           {isOnline && offlineQueue.length > 0 && (
+             <button onClick={syncOfflineQueue} className="text-blue-400 animate-pulse flex flex-col items-center hover:text-blue-300" title={`Sync ${offlineQueue.length}`}>
+               <CloudLightning className="w-5 h-5" />
+               <span className="text-[9px] mt-1 font-bold">{offlineQueue.length} SYNC</span>
+             </button>
+           )}
+          <button onClick={openShiftSummary} className="flex flex-col items-center gap-1.5 text-gray-400 hover:text-red-500 transition-colors group">
+             <div className="p-3 rounded-xl bg-gray-800 group-hover:bg-red-500/20"><Power className="w-5 h-5" /></div>
+             <span className="text-[10px] font-medium text-center leading-tight">Close<br/>Shift</span>
+          </button>
+          <Link href="/dashboard" className="p-3 rounded-xl bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+        </div>
+      </aside>
+
+      {/* CENTER: Products Area */}
+      <div className="flex-1 flex flex-col h-full bg-slate-50 z-10 relative overflow-hidden">
+        <header className="pt-6 px-8 shrink-0 flex items-center justify-between gap-6">
+           <div className="flex items-center gap-3 shrink-0 min-w-[150px]">
+             <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+               <User className="text-orange-600 w-6 h-6" />
+             </div>
+             <div>
+               <h1 className="text-lg font-black text-gray-900 leading-tight">{user?.name}</h1>
+               <p className="text-xs text-gray-500 font-bold">{posBranch || "Select Branch"}</p>
+             </div>
+           </div>
+           
+           <div className="flex-1 max-w-xl mx-auto relative group shrink-0">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-orange-500 transition-colors" />
+              <Input 
+                id="pos-search-input"
+                type="text" placeholder="Scan barcode or search products (F2)..." 
+                className="pl-12 bg-white border-transparent shadow-[0_4px_20px_rgba(0,0,0,0.03)] focus-visible:ring-2 focus-visible:ring-orange-500 rounded-2xl h-14 w-full text-base font-bold text-gray-700 transition-all"
+                value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && searchQuery.trim()) {
+                    const matches = filteredProducts.filter(p => !p.isOutOfStock);
+                    if (matches.length === 1) {
+                      handleProductClick(matches[0]);
+                      setSearchQuery("");
+                      (e.target as HTMLInputElement).blur();
+                      toast.success(`Added: ${matches[0].name}`);
+                    }
                   }
-                }
-              }}
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            {!isOnline && (
-              <div className="flex items-center gap-2 bg-red-100 text-red-600 px-3 py-1.5 rounded-full border border-red-200 text-xs font-bold mr-2">
-                <WifiOff className="w-3.5 h-3.5" /> Offline Mode
-              </div>
-            )}
-            {isOnline && offlineQueue.length > 0 && (
-              <Button onClick={syncOfflineQueue} variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50 h-9 px-3 text-xs font-bold mr-2 animate-pulse">
-                <CloudLightning className="w-3.5 h-3.5 mr-1" /> Sync {offlineQueue.length} Sales
-              </Button>
-            )}
-
-            <Button variant="outline" className="border-green-200 text-green-600 hover:bg-green-50 h-9 px-3 text-xs font-bold" onClick={() => setIsExpenseOpen(true)}>
-              <Wallet className="w-3.5 h-3.5 mr-1" /> Add Expense
-            </Button>
-            <Button variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50 h-9 px-3 text-xs font-bold" onClick={() => setIsReturnOpen(true)}>
-              <RotateCcw className="w-3.5 h-3.5 mr-1" /> Return
-            </Button>
-            <Button variant="outline" className="border-indigo-200 text-indigo-600 hover:bg-indigo-50 h-9 px-3 text-xs font-bold" onClick={handleOpenRecentSales}>
-              <History className="w-3.5 h-3.5 mr-1" /> Recent Sales
-            </Button>
-            <div className="h-4 w-px bg-gray-200 mx-1" />
-            <Button variant="outline" className="border-purple-200 text-purple-600 hover:bg-purple-50 h-9 px-3 text-xs font-bold" onClick={openSlideOutSummary}>
-              <Printer className="w-3.5 h-3.5 mr-1" /> Shift Summary
-            </Button>
-            <Button variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 h-9 px-3 text-xs font-bold" onClick={openShiftSummary}>
-              <Power className="w-3.5 h-3.5 mr-1" /> Close Shift
-            </Button>
-            <div className="flex items-center gap-2 bg-orange-50 px-3 py-1.5 rounded-full border border-orange-100 ml-2">
-              <User className="w-3.5 h-3.5 text-orange-600" />
-              <span className="text-xs font-bold text-orange-800">{user?.name} ({posBranch || "Select Branch"})</span>
-            </div>
-          </div>
+                }}
+              />
+           </div>
+           <div className="shrink-0 min-w-[150px]"></div> {/* Spacer */}
         </header>
 
-        {/* Categories */}
-        <div className="px-6 py-4 border-b bg-gray-50/50 shrink-0">
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide shrink-0 px-6">
+        {/* Categories (Pills) */}
+        <div className="px-8 py-6 shrink-0 border-b border-gray-100">
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
             {categories.map(cat => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeCategory === cat ? "bg-orange-500 text-white shadow-md shadow-orange-500/20" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+                className={`px-5 py-2.5 rounded-2xl text-sm font-bold whitespace-nowrap transition-all duration-200 ${activeCategory === cat ? "bg-gray-900 text-white shadow-lg shadow-gray-900/20 scale-105" : "bg-white text-gray-600 hover:bg-gray-100 shadow-sm border border-gray-100"}`}
               >
                 {cat}
               </button>
@@ -1100,46 +1118,59 @@ export default function POSPage() {
         </div>
 
         {/* Product Grid */}
-        <div className="flex-1 overflow-y-auto p-3 bg-gray-50/50">
-          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-2">
+        <div className="flex-1 overflow-y-auto px-8 py-6 custom-scrollbar">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-5 pb-20">
             {filteredProducts.map(product => {
-              const addons = product.addons || []
+              // Better background colors for premium look
+              const premiumColorMap: Record<string, string> = {
+                "Fresh Juices": "from-emerald-400 to-teal-500",
+                "Milkshakes": "from-amber-400 to-orange-500",
+                "Desserts": "from-pink-400 to-rose-500",
+                "Snacks": "from-blue-400 to-indigo-500",
+                "Mojitos": "from-cyan-400 to-blue-500",
+                "General": "from-gray-700 to-gray-900"
+              };
+              const bgGradient = premiumColorMap[product.category] || premiumColorMap["General"];
+
               return (
                 <button 
                   key={product.id} 
                   onClick={() => !product.isOutOfStock && handleProductClick(product)}
                   onContextMenu={(e) => { e.preventDefault(); if (!product.isOutOfStock) handleProductLongPress(product); }}
                   disabled={product.isOutOfStock}
-                  className={`relative flex flex-col text-left rounded-xl border-2 overflow-hidden transition-all duration-200 bg-white ${product.isOutOfStock ? 'opacity-50 grayscale cursor-not-allowed border-gray-200' : `hover:shadow-lg hover:-translate-y-1 group ${product.color.replace('bg-', 'border-').split(' ')[2] || 'border-gray-100'}`}`}
+                  className={`relative flex flex-col text-left rounded-3xl overflow-hidden transition-all duration-300 bg-white ${product.isOutOfStock ? 'opacity-60 cursor-not-allowed grayscale border-gray-200' : 'hover:shadow-[0_10px_20px_rgba(0,0,0,0.08)] hover:-translate-y-1 shadow-sm border border-transparent'}`}
                 >
                   {product.isOutOfStock && (
-                    <div className="absolute inset-0 bg-white/40 z-10 flex items-center justify-center backdrop-blur-[1px]">
-                      <span className="bg-red-500 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-widest rotate-[-12deg] shadow-lg border-2 border-white">Out</span>
+                    <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center backdrop-blur-[2px]">
+                      <span className="bg-red-600 text-white font-black text-[10px] px-3 py-1 rounded-full uppercase tracking-widest shadow-2xl rotate-[-12deg]">Sold Out</span>
                     </div>
                   )}
                   {product.imageUrl ? (
-                    <div className="h-16 w-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                      <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                    <div className="h-32 w-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                      <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 hover:scale-110" />
                     </div>
                   ) : (
-                    <div className={`h-16 w-full flex items-center justify-center ${product.color.split(' ')[0]} bg-opacity-30`}>
-                      <span className={`text-xl font-black opacity-20 ${product.color.split(' ')[1]}`}>
+                    <div className={`h-32 w-full flex items-center justify-center bg-gradient-to-br ${bgGradient} relative overflow-hidden`}>
+                      <div className="absolute inset-0 bg-black/10"></div>
+                      <span className="text-4xl font-black text-white/90 drop-shadow-md relative z-10 tracking-tighter">
                         {product.name.substring(0,2).toUpperCase()}
                       </span>
                     </div>
                   )}
-                  <div className="p-1.5 flex-1 flex flex-col justify-between w-full">
-                    <h3 className={`font-bold text-xs leading-tight mb-1 transition-colors ${product.isOutOfStock ? 'text-gray-500' : 'text-gray-800 group-hover:text-orange-600'}`}>
+                  <div className="p-4 flex-1 flex flex-col justify-between w-full bg-white border border-gray-100 border-t-0 rounded-b-3xl">
+                    <h3 className={`font-bold text-sm leading-tight mb-3 transition-colors line-clamp-2 ${product.isOutOfStock ? 'text-gray-500' : 'text-gray-800'}`}>
                       {product.name}
                     </h3>
-                    <div className="flex items-center justify-between mt-auto">
+                    <div className="flex items-end justify-between mt-auto">
                       {product.hasVariants ? (
-                        <span className="text-[10px] font-bold text-gray-500">Var. Prices</span>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Variants</span>
                       ) : (
-                        <span className="text-xs font-black text-gray-900">Rs.{product.price.toFixed(2)}</span>
+                        <span className="text-sm font-black text-gray-900">Rs.{product.price.toFixed(2)}</span>
                       )}
                       {product.hasVariants && (
-                        <span className="bg-orange-100 text-orange-600 text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full">⚙️</span>
+                        <div className="bg-gray-100 text-gray-600 w-6 h-6 rounded-full flex items-center justify-center">
+                          <Plus className="w-3 h-3" />
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1150,192 +1181,187 @@ export default function POSPage() {
         </div>
       </div>
 
-      {/* RIGHT: Cart Sidebar */}
-      <div className="w-[400px] bg-white flex flex-col h-full shrink-0 relative z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.05)]">
-        {/* Cart Header */}
-        <div className="shrink-0 bg-gray-900 text-white">
-          <div className="h-16 flex items-center justify-between px-6 border-b border-gray-800">
-            <div className="flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5 text-orange-400" />
-              <h2 className="text-lg font-bold">Current Order</h2>
-            </div>
-            <div className="flex gap-2">
-              {heldBills.length > 0 && (
-                <Button variant="secondary" size="sm" onClick={() => setIsRecallOpen(true)} className="h-7 text-xs bg-orange-500 text-white hover:bg-orange-600 border-0">
-                  Recall ({heldBills.length})
-                </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={() => setIsHoldOpen(true)} disabled={cart.length === 0} className="h-7 text-xs bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white">
-                <PauseCircle className="w-3 h-3 mr-1" /> Hold
-              </Button>
-            </div>
+      {/* RIGHT: Modern Cart Sidebar */}
+      <div className="w-[420px] bg-white flex flex-col h-full shrink-0 relative z-20 shadow-2xl border-l border-gray-100">
+        
+        {/* Cart Header (Clean) */}
+        <div className="px-6 py-5 flex items-center justify-between border-b border-gray-100">
+           <div>
+             <h2 className="text-2xl font-black text-gray-900 tracking-tight">Current Order</h2>
+             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-0.5">{lastOrderRef ? lastOrderRef : 'New Ticket'}</p>
+           </div>
+           <div className="flex gap-2">
+             {heldBills.length > 0 && (
+               <Button variant="outline" size="icon" onClick={() => setIsRecallOpen(true)} className="w-10 h-10 rounded-xl border-orange-200 text-orange-600 hover:bg-orange-50 relative bg-white">
+                 <History className="w-5 h-5" />
+                 <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{heldBills.length}</span>
+               </Button>
+             )}
+             <Button variant="outline" size="icon" onClick={() => setIsHoldOpen(true)} disabled={cart.length === 0} className="w-10 h-10 rounded-xl border-gray-200 text-gray-600 hover:bg-gray-50 bg-white">
+               <PauseCircle className="w-5 h-5" />
+             </Button>
+           </div>
+        </div>
+
+        {/* Customer & Type Selection */}
+        <div className="px-6 py-4 flex flex-col gap-4 border-b border-gray-100 bg-gray-50/50">
+          <div className="bg-white p-1 flex rounded-xl border border-gray-200 shadow-sm">
+            {['Takeaway', 'Dine-In', 'Delivery'].map(type => (
+              <button 
+                key={type}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 ${orderType === type ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}
+                onClick={() => setOrderType(type as any)}
+              >
+                {type}
+              </button>
+            ))}
           </div>
-          {/* Live Shift Stats */}
-          {shiftActive && (
-            <div className="flex items-center justify-between px-6 py-2 bg-gray-800/50 text-[11px] font-mono">
-              <div className="flex items-center gap-3">
-                <span className="text-gray-400">Sales: <span className="text-green-400 font-bold">{shiftSalesCount}</span></span>
-                <span className="text-gray-600">|</span>
-                <span className="text-gray-400">Revenue: <span className="text-green-400 font-bold">Rs.{shiftRevenue.toFixed(0)}</span></span>
-                <span className="text-gray-600">|</span>
-                <span className="text-gray-400">Avg: <span className="text-yellow-400 font-bold">Rs.{shiftSalesCount > 0 ? (shiftRevenue / shiftSalesCount).toFixed(0) : '0'}</span></span>
+          
+          <button onClick={() => setIsCustomerSelectOpen(true)} className="flex items-center justify-between w-full p-3 bg-white rounded-xl border border-gray-200 hover:border-orange-300 transition-colors group text-left shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 group-hover:scale-110 transition-transform">
+                <User className="w-5 h-5" />
               </div>
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" title="Shift Active" />
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Customer</span>
+                <span className="text-sm font-black text-gray-900 line-clamp-1">
+                  {selectedCustomer?.name || "Walk-In Customer"}
+                </span>
+              </div>
             </div>
-          )}
-        </div>
-
-        {/* Customer Selector */}
-        <div className="px-4 py-3 bg-white border-b flex justify-between items-center shadow-sm z-10 cursor-pointer hover:bg-orange-50 transition-colors" onClick={() => setIsCustomerSelectOpen(true)}>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
-              <User className="w-4 h-4" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Customer</span>
-              <span className="text-sm font-black text-gray-900 leading-tight">
-                {selectedCustomer?.name || "Select Customer"}
-              </span>
-            </div>
-          </div>
-          <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-full">Change</span>
-        </div>
-
-        {/* Order Type Toggle */}
-        <div className="bg-gray-100 p-2 flex border-b">
-          <button 
-            className={`flex-1 py-1.5 text-sm font-bold rounded-md transition-colors ${orderType === 'Takeaway' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-            onClick={() => setOrderType('Takeaway')}
-          >
-            Takeaway
-          </button>
-          <button 
-            className={`flex-1 py-1.5 text-sm font-bold rounded-md transition-colors ${orderType === 'Dine-In' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-            onClick={() => setOrderType('Dine-In')}
-          >
-            Dine-In
-          </button>
-          <button 
-            className={`flex-1 py-1.5 text-sm font-bold rounded-md transition-colors ${orderType === 'Delivery' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-            onClick={() => setOrderType('Delivery')}
-          >
-            Delivery
+            <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-orange-500 transition-colors" />
           </button>
         </div>
 
-        {/* Cart Items */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+        {/* Cart Items (Compact) */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3 custom-scrollbar bg-gray-50/30">
           {cart.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-4">
-              <ShoppingCart className="w-16 h-16 opacity-20" />
-              <p className="font-medium">Cart is empty</p>
+            <div className="h-full flex flex-col items-center justify-center text-gray-300 space-y-4">
+              <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center shadow-inner">
+                 <ShoppingCart className="w-10 h-10 text-gray-300" />
+              </div>
+              <p className="font-bold text-gray-400">Your cart is empty</p>
             </div>
           ) : (
             cart.map(item => (
-              <div key={item.id} className="bg-white p-3 rounded-xl border shadow-sm flex flex-col gap-2">
+              <div key={item.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-3 group relative hover:border-gray-200 transition-colors">
                 <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-bold text-gray-800 leading-none">{item.name}</h4>
+                  <div className="pr-4">
+                    <h4 className="font-bold text-gray-900 leading-tight">{item.name}</h4>
                     {(item.variant || item.addons.length > 0) && (
-                      <div className="text-xs text-gray-500 mt-1.5 space-y-0.5 font-medium">
-                        {item.variant && <div>Size: {item.variant}</div>}
-                        {item.addons.map(a => <div key={a.name}>+ {a.name}</div>)}
+                      <div className="text-[11px] text-gray-500 mt-1 font-medium leading-relaxed flex flex-wrap gap-1">
+                        {item.variant && <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-700">{item.variant}</span>}
+                        {item.addons.map(a => <span key={a.name} className="text-gray-400 block">+ {a.name}</span>)}
                       </div>
                     )}
                   </div>
-                  <div className="text-right">
+                  <div className="text-right shrink-0">
                     <div className="font-black text-gray-900">Rs. {item.totalPrice.toFixed(2)}</div>
-                    <div className="text-[10px] text-gray-400">Rs. {item.basePrice.toFixed(2)} /ea</div>
+                    <div className="text-[10px] font-bold text-gray-400 mt-0.5">Rs.{item.basePrice.toFixed(0)}/ea</div>
                   </div>
                 </div>
                 
-                <div className="mt-1">
-                  <Input 
-                    placeholder="Add kitchen note (e.g. Less sugar)" 
-                    className="h-7 text-xs bg-gray-50 border-gray-200"
-                    value={item.note || ""}
-                    onChange={(e) => updateItemNote(item.id, e.target.value)}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
-                  <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
-                    <button onClick={() => updateQuantity(item.id, -1)} className="w-7 h-7 flex items-center justify-center rounded-md bg-white shadow-sm text-gray-600 hover:text-orange-600">
-                      <Minus className="w-3 h-3" />
-                    </button>
-                    <button onClick={() => { setNumpadItem(item); setNumpadValue(String(item.quantity)); }} className="w-8 text-center text-sm font-bold text-gray-900 hover:bg-orange-100 rounded cursor-pointer">{item.quantity}</button>
-                    <button onClick={() => updateQuantity(item.id, 1)} className="w-7 h-7 flex items-center justify-center rounded-md bg-white shadow-sm text-gray-600 hover:text-orange-600">
-                      <Plus className="w-3 h-3" />
-                    </button>
+                {item.note && (
+                  <div className="bg-orange-50 p-2 rounded-lg text-xs font-medium text-orange-800 border border-orange-100 flex justify-between items-start">
+                     <span>"{item.note}"</span>
+                     <button onClick={() => {
+                        const newCart = cart.map(c => c.id === item.id ? { ...c, note: "" } : c);
+                        setCart(newCart);
+                     }} className="text-orange-400 hover:text-orange-700 p-0.5"><X className="w-3 h-3"/></button>
                   </div>
-                  <button onClick={() => removeFromCart(item.id)} className="w-8 h-8 flex items-center justify-center rounded-md text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors">
-                    <Trash2 className="w-4 h-4" />
+                )}
+                
+                <div className="flex items-center justify-between pt-3 mt-1 border-t border-dashed border-gray-100">
+                  <button onClick={() => {
+                     const newNote = prompt("Enter kitchen note for this item:", item.note || "");
+                     if (newNote !== null) {
+                       const newCart = cart.map(c => c.id === item.id ? { ...c, note: newNote } : c);
+                       setCart(newCart);
+                     }
+                  }} className="text-[10px] font-bold text-gray-400 hover:text-orange-500 uppercase tracking-wider flex items-center gap-1 transition-colors">
+                    <Edit className="w-3 h-3" /> {item.note ? 'Edit Note' : 'Add Note'}
                   </button>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center bg-gray-50 rounded-lg p-1 border border-gray-200">
+                      <button onClick={() => updateQuantity(item.id, -1)} className="w-7 h-7 flex items-center justify-center rounded bg-white text-gray-500 hover:text-orange-600 shadow-sm transition-colors">
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <button onClick={() => { setNumpadItem(item); setNumpadValue(String(item.quantity)); }} className="w-8 text-center text-sm font-black text-gray-900 hover:text-orange-600">{item.quantity}</button>
+                      <button onClick={() => updateQuantity(item.id, 1)} className="w-7 h-7 flex items-center justify-center rounded bg-white text-gray-500 hover:text-orange-600 shadow-sm transition-colors">
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <button onClick={() => removeFromCart(item.id)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))
           )}
         </div>
 
-        {/* Cart Totals & Pay */}
-        <div className="p-5 border-t bg-white shrink-0 shadow-[0_-5px_15px_rgba(0,0,0,0.03)]">
-          <div className="space-y-2 mb-4">
-            <div className="flex justify-between text-sm font-medium text-gray-500">
+        {/* Payment Footer (Premium) */}
+        <div className="p-6 bg-white shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.06)] z-30 rounded-t-[32px]">
+          
+          {/* Quick Cash Buttons */}
+          {cart.length > 0 && grandTotal > 0 && (
+             <div className="flex gap-2 mb-4">
+                <button onClick={() => { setPaymentMethod("Cash"); setTenderedCash(grandTotal.toFixed(2)); setTimeout(initiatePayment, 100); }} className="flex-1 py-2 rounded-xl bg-green-50 border border-green-200 text-green-700 font-bold text-[11px] hover:bg-green-100 transition-colors uppercase tracking-wider">Exact</button>
+                <button onClick={() => { setPaymentMethod("Cash"); setTenderedCash("2000"); setTimeout(initiatePayment, 100); }} className="flex-1 py-2 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 font-bold text-xs hover:bg-gray-100 transition-colors">Rs. 2000</button>
+                <button onClick={() => { setPaymentMethod("Cash"); setTenderedCash("5000"); setTimeout(initiatePayment, 100); }} className="flex-1 py-2 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 font-bold text-xs hover:bg-gray-100 transition-colors">Rs. 5000</button>
+             </div>
+          )}
+
+          <div className="space-y-3 mb-5 px-1">
+            <div className="flex justify-between text-sm font-bold text-gray-400">
               <span>Subtotal</span>
-              <span>Rs. {subtotal.toFixed(2)}</span>
+              <span className="text-gray-900">Rs. {subtotal.toFixed(2)}</span>
             </div>
             
-            <div className="flex justify-between items-center text-sm font-medium">
-              <Button variant="ghost" size="sm" onClick={() => setIsDiscountOpen(true)} className="h-6 px-2 text-blue-600 hover:bg-blue-50 -ml-2">
-                <Tag className="w-3 h-3 mr-1" /> {discountType === "NONE" ? "Add Discount" : `${discountType === "PERCENT" ? `${discountValue}%` : `Rs. ${discountValue}`} Discount`}
-              </Button>
+            <div className="flex justify-between items-center text-sm font-bold text-gray-400">
+              <button onClick={() => setIsDiscountOpen(true)} className="flex items-center text-orange-500 hover:text-orange-600 transition-colors">
+                <Tag className="w-3.5 h-3.5 mr-1.5" /> {discountType === "NONE" ? "Add Discount" : `${discountType === "PERCENT" ? `${discountValue}%` : `Rs. ${discountValue}`} Discount`}
+              </button>
               {discountAmount > 0 && <span className="text-red-500">- Rs. {discountAmount.toFixed(2)}</span>}
             </div>
 
-            <div className="flex justify-between text-sm font-medium text-gray-500 border-b pb-2">
+            <div className="flex justify-between text-sm font-bold text-gray-400 pb-3 border-b border-gray-100">
               <span>Tax (5%)</span>
-              <span>Rs. {tax.toFixed(2)}</span>
+              <span className="text-gray-900">Rs. {tax.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between items-end pt-1">
-              <span className="text-base font-bold text-gray-800">Total</span>
-              <span className="text-3xl font-black text-orange-600 tracking-tight">Rs. {grandTotal.toFixed(2)}</span>
-            </div>
-          </div>
 
-          {/* Loyalty Redeem Button in Cart */}
-          {selectedCustomer && selectedCustomer.loyaltyPoints > 0 && (
-            <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-xl flex items-center justify-between">
-              <div className="text-xs text-yellow-800 font-medium">
-                <strong className="text-yellow-900 font-bold">⭐ {selectedCustomer.loyaltyPoints} Points</strong> available
+            {selectedCustomer && selectedCustomer.loyaltyPoints > 0 && (
+              <div className="flex justify-between items-center pb-3 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">⭐ {selectedCustomer.loyaltyPoints} Pts</span>
+                  {redeemedPoints > 0 ? (
+                    <button onClick={() => setRedeemedPoints(0)} className="text-[10px] font-bold text-red-500 hover:underline">Remove (-Rs.{redeemedPoints})</button>
+                  ) : (
+                    <button onClick={() => setRedeemedPoints(Math.min(selectedCustomer.loyaltyPoints, grandTotal))} className="text-[10px] font-bold text-blue-500 hover:underline">Redeem</button>
+                  )}
+                </div>
               </div>
-              {redeemedPoints > 0 ? (
-                <Button size="sm" variant="outline" className="h-7 text-[10px] border-red-200 text-red-600 hover:bg-red-50" onClick={() => setRedeemedPoints(0)}>
-                  Remove (-Rs. {redeemedPoints})
-                </Button>
-              ) : (
-                <Button size="sm" variant="outline" className="h-7 text-[10px] border-yellow-300 text-yellow-700 bg-yellow-100 hover:bg-yellow-200" onClick={() => setRedeemedPoints(Math.min(selectedCustomer.loyaltyPoints, grandTotal))}>
-                  Redeem
-                </Button>
-              )}
-            </div>
-          )}
+            )}
 
-          {/* Global Order Note */}
-          <div className="mb-3">
-            <Input
-              placeholder="🗒️ Order note (e.g. Call when ready, Table 5...)"
-              className="h-9 text-xs bg-gray-50 border-gray-200 rounded-lg"
-              value={globalOrderNote}
-              onChange={(e) => setGlobalOrderNote(e.target.value)}
-            />
+            <div className="flex justify-between items-end pt-2">
+              <span className="text-lg font-black text-gray-900">Total</span>
+              <span className="text-4xl font-black text-orange-500 tracking-tighter drop-shadow-sm">Rs. {grandTotal.toFixed(2)}</span>
+            </div>
           </div>
           
-          <Button 
-            className="w-full h-14 text-lg font-bold rounded-xl shadow-lg shadow-orange-500/20 bg-orange-500 hover:bg-orange-600 transition-transform active:scale-[0.98] disabled:opacity-50"
-            disabled={cart.length === 0} onClick={initiatePayment}
-          >
-            <CreditCard className="w-6 h-6 mr-2" /> Pay Rs. {grandTotal.toFixed(2)}
-          </Button>
+          <div className="flex gap-2">
+             <button onClick={() => setGlobalOrderNote(prompt("Enter global order note:") || "")} className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center transition-colors ${globalOrderNote ? 'border-orange-500 text-orange-500 bg-orange-50' : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'}`}>
+                <Edit className="w-5 h-5" />
+             </button>
+             <Button 
+               className="flex-1 h-14 text-xl font-black rounded-2xl shadow-[0_10px_20px_rgba(249,115,22,0.3)] bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white transition-all transform active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
+               disabled={cart.length === 0} onClick={initiatePayment}
+             >
+               <CreditCard className="w-6 h-6 mr-2" /> Pay Rs. {grandTotal.toFixed(2)}
+             </Button>
+          </div>
         </div>
       </div>
 
