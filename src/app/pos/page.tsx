@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from "@/components/ui/label"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { 
-  Search, User, ShoppingCart, Power, Minus, Plus, Trash2, Printer, CheckCircle2, ChevronRight, X, Percent, DollarSign, Store, Tag, Coffee, Filter, CalendarClock, Phone, ArrowLeft, Loader2, RotateCcw, Wallet, PauseCircle, PlayCircle, CreditCard, MoreVertical, History, WifiOff, CloudLightning
+  Search, User, ShoppingCart, Power, Minus, Plus, Trash2, Printer, CheckCircle2, ChevronRight, X, Percent, DollarSign, Store, Tag, Coffee, Filter, CalendarClock, Phone, ArrowLeft, Loader2, RotateCcw, Wallet, PauseCircle, PlayCircle, CreditCard, MoreVertical, History, WifiOff, CloudLightning, Edit
 } from "lucide-react"
 import { logAudit } from "@/lib/auditLogger"
 import { toast } from "sonner"
@@ -1009,7 +1009,7 @@ export default function POSPage() {
       toast.error("Error processing return");
     }
   }
-
+  return (
     <div className="flex h-screen bg-gray-50 overflow-hidden font-sans selection:bg-orange-200">
       
       {/* LEFT: Sleek Navigation Sidebar */}
