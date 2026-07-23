@@ -1183,10 +1183,10 @@ export default function POSPage() {
       {/* RIGHT: Modern Cart Sidebar */}
       <div className="w-[420px] bg-white flex flex-col h-full shrink-0 relative z-20 shadow-2xl border-l border-gray-100">
         
-        {/* Cart Header (Clean) */}
-        <div className="px-6 py-5 flex items-center justify-between border-b border-gray-100">
+        {/* Cart Header (Compact) */}
+        <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
            <div>
-             <h2 className="text-2xl font-black text-gray-900 tracking-tight">Current Order</h2>
+             <h2 className="text-xl font-black text-gray-900 tracking-tight">Current Order</h2>
              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-0.5">{lastOrderRef ? lastOrderRef : 'New Ticket'}</p>
            </div>
            <div className="flex gap-2">
@@ -1203,12 +1203,12 @@ export default function POSPage() {
         </div>
 
         {/* Customer & Type Selection */}
-        <div className="px-6 py-4 flex flex-col gap-4 border-b border-gray-100 bg-gray-50/50">
+        <div className="px-4 py-3 flex flex-col gap-2 border-b border-gray-100 bg-gray-50/50">
           <div className="bg-white p-1 flex rounded-xl border border-gray-200 shadow-sm">
             {['Takeaway', 'Dine-In', 'Delivery'].map(type => (
               <button 
                 key={type}
-                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 ${orderType === type ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 ${orderType === type ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}
                 onClick={() => setOrderType(type as any)}
               >
                 {type}
@@ -1216,10 +1216,10 @@ export default function POSPage() {
             ))}
           </div>
           
-          <button onClick={() => setIsCustomerSelectOpen(true)} className="flex items-center justify-between w-full p-3 bg-white rounded-xl border border-gray-200 hover:border-orange-300 transition-colors group text-left shadow-sm">
+          <button onClick={() => setIsCustomerSelectOpen(true)} className="flex items-center justify-between w-full p-2 bg-white rounded-xl border border-gray-200 hover:border-orange-300 transition-colors group text-left shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 group-hover:scale-110 transition-transform">
-                <User className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 group-hover:scale-110 transition-transform">
+                <User className="w-4 h-4" />
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Customer</span>
@@ -1233,23 +1233,23 @@ export default function POSPage() {
         </div>
 
         {/* Cart Items (Compact) */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3 custom-scrollbar bg-gray-50/30">
+        <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2 custom-scrollbar bg-gray-50/30">
           {cart.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-gray-300 space-y-4">
-              <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center shadow-inner">
-                 <ShoppingCart className="w-10 h-10 text-gray-300" />
+              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center shadow-inner">
+                 <ShoppingCart className="w-8 h-8 text-gray-300" />
               </div>
-              <p className="font-bold text-gray-400">Your cart is empty</p>
+              <p className="font-bold text-gray-400 text-sm">Your cart is empty</p>
             </div>
           ) : (
             cart.map(item => (
-              <div key={item.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-3 group relative hover:border-gray-200 transition-colors">
+              <div key={item.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col gap-2 group relative hover:border-gray-200 transition-colors">
                 <div className="flex justify-between items-start">
-                  <div className="pr-4">
-                    <h4 className="font-bold text-gray-900 leading-tight">{item.name}</h4>
+                  <div className="pr-2">
+                    <h4 className="font-bold text-gray-900 text-sm leading-tight">{item.name}</h4>
                     {(item.variant || item.addons.length > 0) && (
-                      <div className="text-[11px] text-gray-500 mt-1 font-medium leading-relaxed flex flex-wrap gap-1">
-                        {item.variant && <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-700">{item.variant}</span>}
+                      <div className="text-[10px] text-gray-500 mt-0.5 font-medium flex flex-wrap gap-1">
+                        {item.variant && <span className="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{item.variant}</span>}
                         {item.addons.map(a => <span key={a.name} className="text-gray-400 block">+ {a.name}</span>)}
                       </div>
                     )}
@@ -1270,7 +1270,7 @@ export default function POSPage() {
                   </div>
                 )}
                 
-                <div className="flex items-center justify-between pt-3 mt-1 border-t border-dashed border-gray-100">
+                <div className="flex items-center justify-between pt-2 mt-1 border-t border-dashed border-gray-100">
                   <button onClick={() => {
                      const newNote = prompt("Enter kitchen note for this item:", item.note || "");
                      if (newNote !== null) {
@@ -1301,20 +1301,20 @@ export default function POSPage() {
           )}
         </div>
 
-        {/* Payment Footer (Premium) */}
-        <div className="p-6 bg-white shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.06)] z-30 rounded-t-[32px]">
+        {/* Payment Footer (Compact) */}
+        <div className="p-4 bg-white shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.06)] z-30 rounded-t-2xl">
           
           {/* Quick Cash Buttons */}
           {cart.length > 0 && grandTotal > 0 && (
-             <div className="flex gap-2 mb-4">
+             <div className="flex gap-2 mb-3">
                 <button onClick={() => { setPaymentMethod("Cash"); setTenderedCash(grandTotal.toFixed(2)); setTimeout(initiatePayment, 100); }} className="flex-1 py-2 rounded-xl bg-green-50 border border-green-200 text-green-700 font-bold text-[11px] hover:bg-green-100 transition-colors uppercase tracking-wider">Exact</button>
                 <button onClick={() => { setPaymentMethod("Cash"); setTenderedCash("2000"); setTimeout(initiatePayment, 100); }} className="flex-1 py-2 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 font-bold text-xs hover:bg-gray-100 transition-colors">Rs. 2000</button>
                 <button onClick={() => { setPaymentMethod("Cash"); setTenderedCash("5000"); setTimeout(initiatePayment, 100); }} className="flex-1 py-2 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 font-bold text-xs hover:bg-gray-100 transition-colors">Rs. 5000</button>
              </div>
           )}
 
-          <div className="space-y-3 mb-5 px-1">
-            <div className="flex justify-between text-sm font-bold text-gray-400">
+          <div className="space-y-2 mb-3 px-1">
+            <div className="flex justify-between text-sm font-bold text-gray-500">
               <span>Subtotal</span>
               <span className="text-gray-900">Rs. {subtotal.toFixed(2)}</span>
             </div>
