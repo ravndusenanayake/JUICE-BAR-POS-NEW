@@ -111,10 +111,10 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-white shadow-sm border h-auto p-1">
-          <TabsTrigger value="general" className="py-2.5">General Info</TabsTrigger>
-          <TabsTrigger value="tax" className="py-2.5">Tax & Fees</TabsTrigger>
-          <TabsTrigger value="receipt" className="py-2.5">Receipt</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 mb-8 h-12 rounded-xl bg-gray-100 p-1">
+          <TabsTrigger value="general" className="rounded-lg text-sm font-bold data-active:bg-white data-active:text-orange-600 data-active:shadow-sm">General Info</TabsTrigger>
+          <TabsTrigger value="tax" className="rounded-lg text-sm font-bold data-active:bg-white data-active:text-orange-600 data-active:shadow-sm">Tax & Fees</TabsTrigger>
+          <TabsTrigger value="receipt" className="rounded-lg text-sm font-bold data-active:bg-white data-active:text-orange-600 data-active:shadow-sm">Receipt</TabsTrigger>
         </TabsList>
         
         <TabsContent value="general">

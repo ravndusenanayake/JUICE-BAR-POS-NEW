@@ -404,7 +404,7 @@ export default function POSPage() {
               variants: productVariants.length > 0 ? productVariants : null,
               isOutOfStock,
               isQuickPick: index < 10, // Top 10 items default as Quick Picks
-              imageUrl: p.imageUrl || null
+              image: p.image || null
             };
           });
           setProducts(activeProducts);
@@ -1144,9 +1144,9 @@ export default function POSPage() {
                       <span className="bg-red-600 text-white font-black text-[10px] px-3 py-1 rounded-full uppercase tracking-widest shadow-2xl rotate-[-12deg]">Sold Out</span>
                     </div>
                   )}
-                  {product.imageUrl ? (
+                  {product.image ? (
                     <div className="h-32 w-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                      <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 hover:scale-110" />
+                      <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 hover:scale-110" />
                     </div>
                   ) : (
                     <div className={`h-32 w-full flex items-center justify-center bg-gradient-to-br ${bgGradient} relative overflow-hidden`}>

@@ -329,11 +329,6 @@ export default function RawMaterialsPage() {
                   <div className="font-semibold text-gray-800 flex items-center gap-2">
                     <Droplets className="h-4 w-4 text-orange-400" />
                     {m.name}
-                    {m.currentStock <= m.minStockLevel && (
-                      <span className="ml-2 text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">
-                        LOW STOCK
-                      </span>
-                    )}
                   </div>
                   <div className="text-xs text-gray-400 mt-0.5">{m.sku}</div>
                 </TableCell>

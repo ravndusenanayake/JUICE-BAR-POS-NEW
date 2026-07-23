@@ -191,7 +191,9 @@ export default function ProductVariantsPage() {
                   <Label className="text-sm font-medium text-gray-700">Product <span className="text-red-500">*</span></Label>
                   <Select value={productId} onValueChange={(val) => setProductId(val || "")}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a master product" />
+                      <SelectValue placeholder="Select a master product">
+                         {productId ? productsList.find(p => p._id === productId)?.name : "Select a master product"}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {productsList.length === 0 ? (
@@ -208,7 +210,18 @@ export default function ProductVariantsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label className="text-sm font-medium text-gray-700">Variant Name <span className="text-red-500">*</span></Label>
-                    <Input placeholder="e.g. Medium" value={name} onChange={(e) => setName(e.target.value)} required />
+                    <Select value={name} onValueChange={(val) => setName(val || "")}>
+                      <SelectTrigger>
+                         <SelectValue placeholder="Select variant" />
+                      </SelectTrigger>
+                      <SelectContent>
+                         <SelectItem value="Small">Small</SelectItem>
+                         <SelectItem value="Medium">Medium</SelectItem>
+                         <SelectItem value="Large">Large</SelectItem>
+                         <SelectItem value="Regular">Regular</SelectItem>
+                         <SelectItem value="Standard">Standard</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="grid gap-2">
                     <Label className="text-sm font-medium text-gray-700">Price (Rs.) <span className="text-red-500">*</span></Label>
