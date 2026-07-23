@@ -12,6 +12,7 @@ import { Settings, Plus, Trash2, Box, Beaker, Save, ChefHat } from "lucide-react
 export default function RecipesPage() {
   const [recipes, setRecipes] = useState<any[]>([])
   const [variants, setVariants] = useState<any[]>([])
+  const [products, setProducts] = useState<any[]>([])
   const [rawMaterials, setRawMaterials] = useState<any[]>([])
   
   // Builder State
@@ -22,19 +23,60 @@ export default function RecipesPage() {
   const [selectedRawMaterialId, setSelectedRawMaterialId] = useState("")
   const [quantity, setQuantity] = useState("")
 
-  const selectedVariant = variants.find(v => v._id === selectedVariantId || v.id === selectedVariantId)
+  // Combine variants and base products that have no variants
+  const getRecipeTargets = () => {
+    const targets: any[] = []
+    
+    // 1. Add all actual variants
+    variants.forEach(v => {
+      targets.push({
+        id: v._id || v.id,
+        productId: typeof v.productId === 'object' && v.productId !== null ? v.productId._id : v.productId,
+        productName: v.productId?.name || "Unknown Product",
+        variantName: v.name,
+        isBaseProduct: false
+      })
+    })
+
+    // 2. Add Made-to-Order products that have NO active variants
+    products.forEach(p => {
+      if (p.type === "Made to Order") {
+        const hasVariants = variants.some(v => {
+          const vProdId = typeof v.productId === 'object' && v.productId !== null ? v.productId._id : v.productId;
+          return vProdId === p._id && v.status === "Active"
+        })
+        
+        if (!hasVariants) {
+          targets.push({
+            id: p._id || p.id,
+            productId: p._id || p.id,
+            productName: p.name,
+            variantName: "Standard",
+            isBaseProduct: true
+          })
+        }
+      }
+    })
+    
+    return targets
+  }
+
+  const recipeTargets = getRecipeTargets()
+  const selectedTarget = recipeTargets.find(t => t.id === selectedVariantId)
   const selectedRawMaterial = rawMaterials.find(r => r._id === selectedRawMaterialId || r.sku === selectedRawMaterialId || r.id === selectedRawMaterialId)
 
   const loadData = async () => {
     try {
-      const [resVar, resRM, resRec] = await Promise.all([
+      const [resVar, resRM, resRec, resProd] = await Promise.all([
         fetch('/api/product-variants'),
         fetch('/api/raw-materials'),
-        fetch('/api/recipes')
+        fetch('/api/recipes'),
+        fetch('/api/products')
       ])
       if(resVar.ok) setVariants(await resVar.json())
       if(resRM.ok) setRawMaterials(await resRM.json())
       if(resRec.ok) setRecipes(await resRec.json())
+      if(resProd.ok) setProducts(await resProd.json())
     } catch (e) {
       console.error(e)
     }
@@ -47,16 +89,10 @@ export default function RecipesPage() {
   // Handlers
   const handleVariantChange = (val: any) => {
     setSelectedVariantId(val)
-    const variant = variants.find(v => v._id === val || v.id === val)
-    if (!variant) return
+    const target = recipeTargets.find(t => t.id === val)
+    if (!target) return
 
-    // Find if a recipe exists for this variant
-    // In our model, Recipe has productId (which we'll use as Variant ID for simplicity or reference) and variant name. 
-    // Wait, the Recipe model has `productId` and `variant`. Let's store `variantId` in `productId` field to link it, or just use `productId` as the master product ID and `variant.name` as variant string.
-    // Given the previous schema: productId (string), productName (string), variant (string).
-    // Find if a recipe exists for this variant
-    const prodIdStr = typeof variant.productId === 'object' && variant.productId !== null ? variant.productId._id : variant.productId;
-    const existing = recipes.find(r => r.productId === prodIdStr && r.variant === variant.name)
+    const existing = recipes.find(r => r.productId === target.productId && r.variant === target.variantName)
     
     if (existing) {
       setCurrentIngredients([...existing.ingredients])
@@ -93,20 +129,19 @@ export default function RecipesPage() {
   }
 
   const saveRecipe = async () => {
-    if (!selectedVariant || currentIngredients.length === 0) {
+    if (!selectedTarget || currentIngredients.length === 0) {
       toast.info("Please select a product variant and add ingredients.")
       return
     }
 
     try {
       // Check if recipe exists to update it, or create a new one
-      const prodIdStr = typeof selectedVariant.productId === 'object' && selectedVariant.productId !== null ? selectedVariant.productId._id : selectedVariant.productId;
-      const existing = recipes.find(r => r.productId === prodIdStr && r.variant === selectedVariant.name)
+      const existing = recipes.find(r => r.productId === selectedTarget.productId && r.variant === selectedTarget.variantName)
 
       const payload = {
-        productId: prodIdStr, // Master Product ID
-        productName: selectedVariant.productId?.name || "Unknown Product",
-        variant: selectedVariant.name, // e.g. Small, Medium
+        productId: selectedTarget.productId, // Master Product ID
+        productName: selectedTarget.productName,
+        variant: selectedTarget.variantName, // e.g. Small, Medium, or Standard
         ingredients: currentIngredients,
       }
 
@@ -159,25 +194,21 @@ export default function RecipesPage() {
                     <SelectValue placeholder="Select a variant">
                       {selectedVariantId ? 
                         (() => {
-                          const v = variants.find(x => x._id === selectedVariantId || x.id === selectedVariantId)
-                          const prodName = v?.productId?.name || "Unknown Product"
-                          return v ? `${prodName} - ${v.name}` : selectedVariantId
+                          const t = recipeTargets.find(x => x.id === selectedVariantId)
+                          return t ? `${t.productName} - ${t.variantName}` : selectedVariantId
                         })() 
                         : null}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {variants.length === 0 ? (
+                    {recipeTargets.length === 0 ? (
                       <SelectItem value="none" disabled>No variants found</SelectItem>
                     ) : (
-                      variants.map(v => {
-                        const prodName = v.productId?.name || "Unknown Product"
-                        return (
-                          <SelectItem key={v._id} value={v._id}>
-                            {prodName} - {v.name}
-                          </SelectItem>
-                        )
-                      })
+                      recipeTargets.map(t => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.productName} - {t.variantName}
+                        </SelectItem>
+                      ))
                     )}
                   </SelectContent>
                 </Select>
@@ -232,7 +263,7 @@ export default function RecipesPage() {
           <div className="bg-white p-6 rounded-xl shadow-sm border h-full flex flex-col">
             <div className="flex items-center justify-between mb-4 border-b pb-2">
               <h3 className="font-bold text-lg text-gray-800">
-                {selectedVariant ? `Recipe for ${selectedVariant.productId?.name || "Unknown Product"} (${selectedVariant.name})` : "Select a product variant to view recipe"}
+                {selectedTarget ? `Recipe for ${selectedTarget.productName} (${selectedTarget.variantName})` : "Select a product variant to view recipe"}
               </h3>
               {currentIngredients.length > 0 && (
                 <Button onClick={saveRecipe} className="bg-gray-900 text-white hover:bg-black shadow-md rounded-lg">

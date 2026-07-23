@@ -125,10 +125,10 @@ export default function PurchaseOrdersPage() {
   const handleApprovePO = async () => {
     if (!canApprove || !approvingId) return;
     try {
-      const res = await fetch(`/api/purchase-orders/${approvingId}`, {
+      const res = await fetch(`/api/purchase-orders`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'Approved', approvedBy: user?.name || 'Admin' })
+        body: JSON.stringify({ id: approvingId, status: 'Approved', approvedBy: user?.name || 'Admin' })
       });
       if (res.ok) {
         toast.success("Purchase Order Approved")
