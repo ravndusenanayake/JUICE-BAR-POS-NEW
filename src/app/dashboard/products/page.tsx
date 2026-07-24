@@ -352,35 +352,7 @@ export default function ProductsPage() {
                   </TabsList>
                   
                   {/* Common Product Fields */}
-                  <div className="flex flex-col items-center justify-center gap-4 mt-6 mb-4">
-                    <Label 
-                      htmlFor="imageUpload"
-                      className="w-32 h-32 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center bg-gray-50 overflow-hidden relative cursor-pointer hover:bg-gray-100 transition-colors group"
-                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                          const file = e.dataTransfer.files[0];
-                          if (file.type.startsWith('image/')) {
-                            const reader = new FileReader();
-                            reader.onloadend = () => setImage(reader.result as string);
-                            reader.readAsDataURL(file);
-                          }
-                        }
-                      }}
-                    >
-                      {image ? (
-                        <img src={image} alt="Preview" className="w-full h-full object-cover" />
-                      ) : (
-                        <>
-                          <ImageIcon className="w-8 h-8 text-gray-300 group-hover:text-orange-500 transition-colors mb-2" />
-                          <span className="text-[10px] text-gray-400 font-medium text-center px-2">Click or Drag Image</span>
-                        </>
-                      )}
-                      <input type="file" id="imageUpload" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                    </Label>
-                  </div>
+                  <div className="mt-6 mb-4"></div>
 
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div className="grid gap-2">
