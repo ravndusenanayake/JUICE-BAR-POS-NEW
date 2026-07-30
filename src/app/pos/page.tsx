@@ -1457,12 +1457,12 @@ export default function POSPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Opening Balance (Rs.)</Label>
-              <Input type="number" placeholder="5000" value={openingBalance} onChange={e => setOpeningBalance(e.target.value)} autoFocus />
+              <Label className="font-bold text-gray-700">Opening Balance (Rs.)</Label>
+              <Input type="number" placeholder="5000" value={openingBalance} onChange={e => setOpeningBalance(e.target.value)} autoFocus className="h-12 text-lg font-bold rounded-xl border-2 border-gray-200 focus:border-orange-500" />
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleOpenShift} disabled={!openingBalance} className="w-full bg-orange-500 hover:bg-orange-600 text-white">Start Shift</Button>
+            <Button onClick={handleOpenShift} disabled={!openingBalance} className="w-full h-12 text-base font-bold bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-lg shadow-orange-500/20">Start Shift</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1676,9 +1676,9 @@ export default function POSPage() {
               <p className="text-center text-red-500 font-bold">Failed to load data</p>
             )}
           </div>
-          <DialogFooter className="p-4 bg-gray-50 border-t flex gap-2">
-            <Button variant="outline" className="flex-1" onClick={() => setIsCloseShiftOpen(false)}>Cancel</Button>
-            <Button onClick={handleCloseShift} disabled={isShiftSummaryLoading} className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg">Confirm & Close Shift</Button>
+          <DialogFooter className="p-4 bg-gray-50 border-t flex gap-3">
+            <Button variant="outline" size="lg" className="flex-1 font-bold h-12 text-base rounded-xl" onClick={() => setIsCloseShiftOpen(false)}>Cancel</Button>
+            <Button variant="destructive" size="lg" onClick={handleCloseShift} disabled={isShiftSummaryLoading} className="flex-1 font-bold h-12 text-base rounded-xl shadow-lg shadow-red-600/20">Confirm & Close Shift</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1708,9 +1708,9 @@ export default function POSPage() {
               <Label className="font-bold">Note / Reason *</Label>
               <Input value={expenseNote} onChange={e=>setExpenseNote(e.target.value)} required placeholder="e.g. Bought ice" />
             </div>
-            <div className="flex gap-2 pt-2">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => setIsExpenseOpen(false)}>Cancel</Button>
-              <Button type="submit" className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold">Take Cash</Button>
+            <div className="flex gap-3 pt-3">
+              <Button type="button" variant="outline" size="lg" className="flex-1 font-bold h-12 text-base rounded-xl" onClick={() => setIsExpenseOpen(false)}>Cancel</Button>
+              <Button type="submit" variant="success" size="lg" className="flex-1 font-bold h-12 text-base rounded-xl">Take Cash</Button>
             </div>
           </form>
         </DialogContent>
@@ -1725,7 +1725,7 @@ export default function POSPage() {
             </DialogTitle>
             <div className="flex gap-2 mt-4">
               <Input value={returnInvoiceNo} onChange={e=>setReturnInvoiceNo(e.target.value)} placeholder="Scan or type Invoice No..." className="flex-1 h-10" />
-              <Button onClick={searchReturnInvoice} className="bg-blue-600 hover:bg-blue-700 text-white"><Search className="w-4 h-4 mr-2" /> Find</Button>
+              <Button onClick={searchReturnInvoice} className="bg-blue-600 hover:bg-blue-700 text-white font-bold"><Search className="w-4 h-4 mr-2" /> Find</Button>
             </div>
           </div>
           
@@ -1777,9 +1777,9 @@ export default function POSPage() {
             )}
           </div>
           
-          <div className="p-4 border-t bg-gray-50 shrink-0 flex justify-end gap-2">
-            <Button variant="outline" onClick={() => { setIsReturnOpen(false); setReturnSaleDetails(null); setReturnInvoiceNo(""); }}>Cancel</Button>
-            <Button disabled={!returnSaleDetails} onClick={handleProcessReturn} className="bg-blue-600 hover:bg-blue-700 text-white font-bold">Confirm Return</Button>
+          <div className="p-4 border-t bg-gray-50 shrink-0 flex justify-end gap-3">
+            <Button variant="outline" size="lg" className="h-12 px-6 font-bold rounded-xl" onClick={() => { setIsReturnOpen(false); setReturnSaleDetails(null); setReturnInvoiceNo(""); }}>Cancel</Button>
+            <Button disabled={!returnSaleDetails} onClick={handleProcessReturn} className="h-12 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-600/20">Confirm Return</Button>
           </div>
         </DialogContent>
       </Dialog>
