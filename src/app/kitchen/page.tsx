@@ -116,7 +116,7 @@ export default function KitchenDisplay() {
     );
   }
 
-  if (!user || (!kitchenBranch && loading)) return <div className="h-screen flex items-center justify-center font-bold text-gray-500">Loading KDS...</div>
+  if (!user || (!kitchenBranch && !isBranchSelectOpen)) return <div className="h-screen flex items-center justify-center font-bold text-gray-500">Loading KDS...</div>
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 font-sans selection:bg-orange-500/30">
