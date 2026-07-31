@@ -5,7 +5,8 @@ import { useAuth } from "@/context/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Clock, CheckCircle2, ChefHat, Timer } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { ArrowLeft, Clock, CheckCircle2, ChefHat, Timer, Filter } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 
@@ -13,13 +14,39 @@ export default function KitchenDisplay() {
   const { user } = useAuth()
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  
+  // -- Branch Selection State --
+  const [kitchenBranch, setKitchenBranch] = useState<string | null>(null)
+  const [availableBranches, setAvailableBranches] = useState<any[]>([])
+  const [isBranchSelectOpen, setIsBranchSelectOpen] = useState(false)
+  
+  // -- Filter State --
+  const [statusFilter, setStatusFilter] = useState<string>("Active") // Active, Pending, Preparing, Ready, All
+
+  useEffect(() => {
+    if (!user) return;
+    
+    if (user.branch === "All Branches") {
+      setIsBranchSelectOpen(true);
+      fetch('/api/branches')
+        .then(res => res.json())
+        .then(data => setAvailableBranches(data.filter((b: any) => b.status === "Active")))
+        .catch(console.error);
+    } else {
+      setKitchenBranch(user.branch);
+    }
+  }, [user]);
 
   const fetchOrders = async () => {
+    if (!kitchenBranch) return;
     try {
-      const branchParam = user?.branch && user.branch !== "All Branches" 
-        ? `&branch=${encodeURIComponent(user.branch)}` 
-        : "";
-      const res = await fetch(`/api/sales?kitchenStatus=Pending,Preparing${branchParam}`);
+      const branchParam = `&branch=${encodeURIComponent(kitchenBranch)}`;
+      let statusParam = "";
+      if (statusFilter === "Active") statusParam = "kitchenStatus=Pending,Preparing";
+      else if (statusFilter === "All") statusParam = "kitchenStatus=Pending,Preparing,Ready";
+      else statusParam = `kitchenStatus=${statusFilter}`;
+      
+      const res = await fetch(`/api/sales?${statusParam}${branchParam}`);
       if (res.ok) {
         const data = await res.json();
         // Sort oldest first
@@ -34,10 +61,12 @@ export default function KitchenDisplay() {
   };
 
   useEffect(() => {
-    fetchOrders();
-    const interval = setInterval(fetchOrders, 5000); // Poll every 5s
-    return () => clearInterval(interval);
-  }, [user]);
+    if (kitchenBranch) {
+      fetchOrders();
+      const interval = setInterval(fetchOrders, 5000); // Poll every 5s
+      return () => clearInterval(interval);
+    }
+  }, [kitchenBranch, statusFilter]);
 
   const updateOrderStatus = async (id: string, newStatus: string) => {
     try {
@@ -87,7 +116,7 @@ export default function KitchenDisplay() {
     );
   }
 
-  if (loading) return <div className="h-screen flex items-center justify-center font-bold text-gray-500">Loading KDS...</div>
+  if (!user || (!kitchenBranch && loading)) return <div className="h-screen flex items-center justify-center font-bold text-gray-500">Loading KDS...</div>
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 font-sans selection:bg-orange-500/30">
@@ -100,9 +129,26 @@ export default function KitchenDisplay() {
           </Link>
           <div className="flex items-center gap-2 text-xl font-bold text-white">
             <ChefHat className="w-6 h-6 text-orange-500" />
-            Kitchen Display <span className="text-gray-500 font-normal text-base ml-2">({user?.branch || "All Branches"})</span>
+            Kitchen Display <span className="text-gray-500 font-normal text-base ml-2">({kitchenBranch || "Select Branch"})</span>
           </div>
         </div>
+
+        {/* Filters */}
+        <div className="hidden md:flex bg-gray-900 rounded-lg p-1 border border-gray-800 absolute left-1/2 -translate-x-1/2">
+          {["Active", "Pending", "Preparing", "Ready", "All"].map(filter => (
+            <button
+              key={filter}
+              onClick={() => {
+                setLoading(true);
+                setStatusFilter(filter);
+              }}
+              className={`px-4 py-1.5 rounded-md text-sm font-bold transition-colors ${statusFilter === filter ? 'bg-gray-800 text-orange-500 shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
+
         <div className="flex items-center gap-4">
           <Badge variant="secondary" className="bg-gray-800 text-gray-300 font-medium">
             {orders.length} Active Orders
@@ -194,12 +240,20 @@ export default function KitchenDisplay() {
                     >
                       Start Preparing
                     </Button>
-                  ) : (
+                  ) : order.kitchenStatus === 'Preparing' ? (
                     <Button 
                       className="w-full h-12 text-lg font-black bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-lg shadow-green-900/20 transition-all active:scale-95"
                       onClick={() => updateOrderStatus(order._id, 'Ready')}
                     >
                       <CheckCircle2 className="w-5 h-5 mr-2" /> BUMP (Ready)
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant="outline"
+                      className="w-full h-12 text-lg font-black bg-gray-800 border-gray-600 text-gray-400 rounded-xl cursor-default"
+                      disabled
+                    >
+                      <CheckCircle2 className="w-5 h-5 mr-2" /> Ready
                     </Button>
                   )}
                 </div>
@@ -208,6 +262,46 @@ export default function KitchenDisplay() {
           </div>
         )}
       </main>
+
+      {/* Branch Selection Modal */}
+      <Dialog open={isBranchSelectOpen} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md p-6 bg-white" showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-gray-900">Select Operating Branch</DialogTitle>
+            <DialogDescription>
+              Please select the branch for the Kitchen Display.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+            {availableBranches.length === 0 ? (
+               <p className="text-sm text-gray-500">Loading branches...</p>
+            ) : (
+              availableBranches.map(b => (
+                <button 
+                  key={b._id} 
+                  type="button"
+                  className={`w-full text-left p-4 rounded-xl border-2 transition-all font-bold ${kitchenBranch === b.name ? 'border-orange-500 bg-orange-50 text-orange-700 shadow-sm' : 'border-gray-200 bg-white hover:border-orange-300'}`}
+                  onClick={() => setKitchenBranch(b.name)}
+                >
+                  {b.name}
+                </button>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button 
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white h-12 text-lg font-bold rounded-xl disabled:opacity-50" 
+              disabled={!kitchenBranch}
+              onClick={() => {
+                setIsBranchSelectOpen(false);
+                setLoading(true);
+              }}
+            >
+              Confirm Branch
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
