@@ -1685,33 +1685,49 @@ export default function POSPage() {
 
       {/* Add Expense Modal */}
       <Dialog open={isExpenseOpen} onOpenChange={setIsExpenseOpen}>
-        <DialogContent className="sm:max-w-sm rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl font-black">
-              <Wallet className="w-5 h-5 text-green-500" /> Petty Cash / Expense
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleAddExpense} className="space-y-4 mt-2">
-            <div className="grid gap-2">
-              <Label className="font-bold">Amount (Rs.) *</Label>
-              <Input type="number" step="0.01" value={expenseAmount} onChange={e=>setExpenseAmount(e.target.value)} required placeholder="e.g. 500" className="h-12 text-lg font-bold" />
+        <DialogContent className="sm:max-w-md rounded-2xl p-0 overflow-hidden border-0 shadow-2xl bg-white font-sans">
+          <form onSubmit={handleAddExpense}>
+            <div className="p-6 bg-slate-50 border-b border-slate-100">
+              <DialogTitle className="flex items-center gap-2.5 text-xl font-black text-slate-900">
+                <div className="w-10 h-10 rounded-xl bg-green-100 text-green-600 flex items-center justify-center">
+                  <Wallet className="w-5 h-5" />
+                </div>
+                Petty Cash / Expense
+              </DialogTitle>
             </div>
-            <div className="grid gap-2">
-              <Label className="font-bold">Category</Label>
-              <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background" value={expenseCategory} onChange={e=>setExpenseCategory(e.target.value)}>
-                <option value="Petty Cash">Petty Cash</option>
-                <option value="Transportation">Transportation</option>
-                <option value="Marketing">Marketing / Promo</option>
-              </select>
+            
+            <div className="p-6 space-y-4">
+              <div className="grid gap-2">
+                <Label className="font-bold text-slate-700 text-sm">Amount (Rs.) *</Label>
+                <Input 
+                  type="number" step="0.01" value={expenseAmount} onChange={e=>setExpenseAmount(e.target.value)} 
+                  required placeholder="e.g. 500" className="h-12 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-green-500" 
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label className="font-bold text-slate-700 text-sm">Category</Label>
+                <select 
+                  className="flex h-12 w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-800 outline-none focus:border-green-500 transition-colors" 
+                  value={expenseCategory} onChange={e=>setExpenseCategory(e.target.value)}
+                >
+                  <option value="Petty Cash">Petty Cash</option>
+                  <option value="Transportation">Transportation</option>
+                  <option value="Marketing">Marketing / Promo</option>
+                </select>
+              </div>
+              <div className="grid gap-2">
+                <Label className="font-bold text-slate-700 text-sm">Note / Reason *</Label>
+                <Input 
+                  value={expenseNote} onChange={e=>setExpenseNote(e.target.value)} 
+                  required placeholder="e.g. Bought ice" className="h-12 text-sm font-medium rounded-xl border-2 border-slate-200 focus:border-green-500" 
+                />
+              </div>
             </div>
-            <div className="grid gap-2">
-              <Label className="font-bold">Note / Reason *</Label>
-              <Input value={expenseNote} onChange={e=>setExpenseNote(e.target.value)} required placeholder="e.g. Bought ice" />
-            </div>
-            <div className="flex gap-3 pt-3">
+
+            <DialogFooter className="p-5 bg-slate-50 border-t border-slate-100 flex gap-3">
               <Button type="button" variant="outline" size="lg" className="flex-1 font-bold h-12 text-base rounded-xl" onClick={() => setIsExpenseOpen(false)}>Cancel</Button>
-              <Button type="submit" variant="success" size="lg" className="flex-1 font-bold h-12 text-base rounded-xl">Take Cash</Button>
-            </div>
+              <Button type="submit" variant="success" size="lg" className="flex-1 font-bold h-12 text-base rounded-xl shadow-md shadow-green-600/20">Take Cash</Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
