@@ -158,6 +158,7 @@ export default function POSPage() {
   const [posBranch, setPosBranch] = useState<string | null>(null)
   const [availableBranches, setAvailableBranches] = useState<any[]>([])
   const [isBranchSelectOpen, setIsBranchSelectOpen] = useState(false)
+  const [isBranchesLoading, setIsBranchesLoading] = useState(true)
 
   // --- Initial Branch Setup & Network State ---
   useEffect(() => {
@@ -183,10 +184,17 @@ export default function POSPage() {
     
     if (user.branch === "All Branches") {
       setIsBranchSelectOpen(true);
+      setIsBranchesLoading(true);
       fetch('/api/branches')
         .then(res => res.json())
-        .then(data => setAvailableBranches(data.filter((b: any) => b.status === "Active")))
-        .catch(console.error);
+        .then(data => {
+          setAvailableBranches(data.filter((b: any) => b.status === "Active"))
+          setIsBranchesLoading(false);
+        })
+        .catch(err => {
+          console.error(err);
+          setIsBranchesLoading(false);
+        });
     } else {
       setPosBranch(user.branch);
     }
@@ -1280,16 +1288,20 @@ export default function POSPage() {
 
       {/* 0. Branch Selection Modal (For Admins) */}
       <Dialog open={isBranchSelectOpen} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-md p-6 bg-white" showCloseButton={false}>
+        <DialogContent className="sm:max-w-md bg-white" showCloseButton={false}>
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-gray-900">Select Operating Branch</DialogTitle>
             <DialogDescription>
               Please select the branch you are operating in for this session.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
-            {availableBranches.length === 0 ? (
+          <div className="space-y-3 px-6 py-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+            {isBranchesLoading ? (
                <p className="text-sm text-gray-500">Loading branches...</p>
+            ) : availableBranches.length === 0 ? (
+               <div className="text-sm text-red-500 font-medium">
+                 No branches available. Please run the <a href="/api/seed" target="_blank" className="underline font-bold text-orange-600">Seed Database</a> API to create branches.
+               </div>
             ) : (
               availableBranches.map(b => (
                 <button 
@@ -1387,7 +1399,7 @@ export default function POSPage() {
             <DialogTitle>Hold Current Bill</DialogTitle>
             <DialogDescription>Enter a reference name to park this sale.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 px-6 py-4">
             <div className="space-y-2">
               <Label>Customer Name / Table / Reference</Label>
               <Input placeholder="e.g. Table 4 or John" value={holdCustomerName} onChange={e => setHoldCustomerName(e.target.value)} autoFocus />
@@ -1407,7 +1419,7 @@ export default function POSPage() {
             <DialogTitle>Recall Held Bills</DialogTitle>
             <DialogDescription>Select a parked sale to resume.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-4 max-h-[60vh] overflow-y-auto">
+          <div className="space-y-3 px-6 py-4 max-h-[60vh] overflow-y-auto">
             {heldBills.map(bill => (
               <div key={bill.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
                 <div>
@@ -1429,7 +1441,7 @@ export default function POSPage() {
           <DialogHeader>
             <DialogTitle>Apply Discount</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 px-6 py-4">
             <div className="flex gap-2">
               <Button variant={discountType === "PERCENT" ? "default" : "outline"} className={discountType === "PERCENT" ? "bg-orange-500" : ""} onClick={() => {setDiscountType("PERCENT"); setDiscountValue(0)}}>Percentage (%)</Button>
               <Button variant={discountType === "FIXED" ? "default" : "outline"} className={discountType === "FIXED" ? "bg-orange-500" : ""} onClick={() => {setDiscountType("FIXED"); setDiscountValue(0)}}>Fixed Amount (Rs)</Button>
@@ -1455,7 +1467,7 @@ export default function POSPage() {
             <DialogTitle className="flex items-center gap-2"><Wallet className="text-orange-500" /> Open Register</DialogTitle>
             <DialogDescription>Enter the opening cash balance in the drawer to start your shift.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 px-6 py-4">
             <div className="space-y-2">
               <Label className="font-bold text-gray-700">Opening Balance (Rs.)</Label>
               <Input type="number" placeholder="5000" value={openingBalance} onChange={e => setOpeningBalance(e.target.value)} autoFocus className="h-12 text-lg font-bold rounded-xl border-2 border-gray-200 focus:border-orange-500" />
