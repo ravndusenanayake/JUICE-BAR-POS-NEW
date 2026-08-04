@@ -176,7 +176,7 @@ export default function CategoriesPage() {
                   Categories are visible to all branches. Inactive categories cannot be selected for new products.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-4 py-4 px-6">
                 <div className="grid gap-2">
                   <Label htmlFor="name">Category Name <span className="text-red-500">*</span></Label>
                   <Input 

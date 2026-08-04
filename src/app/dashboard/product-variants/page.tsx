@@ -185,7 +185,7 @@ export default function ProductVariantsPage() {
               <DialogDescription>Define a specific size/variant and its price for a master product.</DialogDescription>
             </DialogHeader>
               
-              <div className="grid gap-6 py-4 px-2">
+              <div className="grid gap-6 py-4 px-6">
                 
                 <div className="grid gap-2">
                   <Label className="text-sm font-medium text-gray-700">Product <span className="text-red-500">*</span></Label>

@@ -209,7 +209,7 @@ export default function UnitsPage() {
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="grid gap-6 py-4 max-h-[60vh] overflow-y-auto px-1">
+              <div className="grid gap-6 py-4 max-h-[60vh] overflow-y-auto px-6">
                 <div className="grid gap-2">
                   <Label htmlFor="name" className="text-sm font-medium text-gray-700">Unit Name *</Label>
                   <Input id="name" placeholder="e.g. Kilogram" value={name} onChange={(e) => setName(e.target.value)} required className="border-gray-300" />

@@ -240,7 +240,7 @@ export default function RawMaterialsPage() {
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="grid gap-6 py-4">
+              <div className="grid gap-6 py-4 px-6">
                 <div className="grid gap-2">
                   <Label htmlFor="name" className="text-sm font-medium text-gray-700">Name *</Label>
                   <Input id="name" placeholder="e.g. Sugar" value={name} onChange={(e) => setName(e.target.value)} required className="border-gray-300" />

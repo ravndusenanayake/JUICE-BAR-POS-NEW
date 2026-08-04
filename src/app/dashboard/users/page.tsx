@@ -211,7 +211,7 @@ export default function UsersPage() {
                   Create a new staff account and assign their role and branch.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-4 py-4 px-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="name">Full Name <span className="text-red-500">*</span></Label>
@@ -275,7 +275,7 @@ export default function UsersPage() {
                   Update the user's details, role, and branch.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-4 py-4 px-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="edit-name">Full Name <span className="text-red-500">*</span></Label>

@@ -100,7 +100,7 @@ export default function InventoryPage() {
                   Manually increase or decrease stock (e.g. for Wastage or manual GRN).
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-4 py-4 px-6">
                 <div className="grid gap-2">
                   <Label>Select Product</Label>
                   <Select onValueChange={(v: any) => setSelectedSku(v || "")} required>

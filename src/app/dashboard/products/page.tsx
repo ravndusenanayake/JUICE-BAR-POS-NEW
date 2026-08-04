@@ -343,7 +343,7 @@ export default function ProductsPage() {
               <DialogDescription>Products are master data and shared across all branches.</DialogDescription>
             </DialogHeader>
               
-              <div className="py-4 px-2 max-h-[75vh] overflow-y-auto overflow-x-hidden custom-scrollbar">
+              <div className="py-4 px-6 max-h-[75vh] overflow-y-auto overflow-x-hidden custom-scrollbar">
                 
                 <Tabs value={type} onValueChange={setType} className="w-full mb-6">
                   <TabsList className="grid w-full grid-cols-2">
