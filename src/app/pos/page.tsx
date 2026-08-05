@@ -48,7 +48,7 @@ interface HeldBill {
 }
 
 export default function POSPage() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   
   // -- UI States --
   const [activeCategory, setActiveCategory] = useState("⭐ Quick Picks")
@@ -188,8 +188,19 @@ export default function POSPage() {
       fetch('/api/branches')
         .then(res => res.json())
         .then(data => {
-          setAvailableBranches(data.filter((b: any) => b.status === "Active"))
-          setIsBranchesLoading(false);
+          const activeBranches = data.filter((b: any) => b.status === "Active");
+          if (activeBranches.length === 0) {
+            // Auto seed the database and refetch branches if no branches exist
+            fetch('/api/seed').then(() => {
+              fetch('/api/branches').then(r => r.json()).then(d => {
+                setAvailableBranches(d.filter((b: any) => b.status === "Active"));
+                setIsBranchesLoading(false);
+              });
+            });
+          } else {
+            setAvailableBranches(activeBranches);
+            setIsBranchesLoading(false);
+          }
         })
         .catch(err => {
           console.error(err);
@@ -857,7 +868,12 @@ export default function POSPage() {
       setShiftActive(false)
       setCurrentShiftId(null)
       setIsCloseShiftOpen(false)
-      setIsShiftOpen(true) // Force them to open a new one
+      
+      if (user?.role === 'Cashier') {
+        logout(); // Automatically log out Cashiers when shift closes
+      } else {
+        setIsShiftOpen(true) // Force them to open a new one
+      }
     } catch (e) {
       console.error(e);
       toast.error("Failed to close shift.");

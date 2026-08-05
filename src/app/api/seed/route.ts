@@ -15,9 +15,17 @@ import User from '@/database/models/User';
 import Role from '@/database/models/Role';
 import { roleService } from '@/services/role.service';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await connectToDatabase();
+
+    const url = new URL(request.url);
+    const force = url.searchParams.get('force') === 'true';
+    const existingBranches = await Branch.countDocuments();
+    
+    if (existingBranches > 0 && !force) {
+      return NextResponse.json({ message: 'Database already seeded. Skipping...' }, { status: 200 });
+    }
 
     // 1. Drop existing core mock collections to clear old indexes
     const dropIfExists = async (model: any) => {

@@ -48,6 +48,11 @@ export default auth((req) => {
       return NextResponse.next()
     }
 
+    // Redirect Cashiers directly to POS if they land on the dashboard
+    if (pathname === '/dashboard' && role === 'Cashier') {
+      return NextResponse.redirect(new URL('/pos', req.url))
+    }
+
     // 2. Perform RBAC checks based on permissions
     for (const rule of RBAC_MATRIX) {
       if (rule.pathPattern.test(pathname)) {

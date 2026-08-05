@@ -47,6 +47,21 @@ export default function BranchesPage() {
   const [phone, setPhone] = useState("")
   const [status, setStatus] = useState("Active")
 
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newName = e.target.value;
+    setName(newName);
+    if (!editingId) {
+      const prefix = newName.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase();
+      const suffix = newName.replace(/[^0-9]/g, '').substring(0, 4);
+      
+      if (prefix) {
+        setCode(`${prefix}${suffix ? '-' + suffix : '-001'}`);
+      } else {
+        setCode('');
+      }
+    }
+  };
+
   const filteredBranches = branches.filter(branch => 
     branch.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     branch.code.toLowerCase().includes(searchQuery.toLowerCase())
@@ -186,7 +201,7 @@ export default function BranchesPage() {
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="name">Branch Name <span className="text-red-500">*</span></Label>
-                    <Input id="name" placeholder="e.g. Colombo 07" value={name} onChange={(e) => setName(e.target.value)} required />
+                    <Input id="name" placeholder="e.g. Colombo 07" value={name} onChange={handleNameChange} required />
                   </div>
                 </div>
 
@@ -201,16 +216,16 @@ export default function BranchesPage() {
                     <Input id="phone" placeholder="e.g. 011-2345678" value={phone} onChange={(e) => setPhone(e.target.value)} />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="status">Status <span className="text-red-500">*</span></Label>
-                    <Select value={status} onValueChange={(val) => setStatus(val || "")} required>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Active">Active</SelectItem>
-                        <SelectItem value="Inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="status">Status</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Switch 
+                        id="status"
+                        checked={status === 'Active'} 
+                        onCheckedChange={(checked) => setStatus(checked ? 'Active' : 'Inactive')} 
+                        className="data-[state=checked]:bg-green-500"
+                      />
+                      <span className="text-sm font-medium">{status}</span>
+                    </div>
                   </div>
                 </div>
               </div>
