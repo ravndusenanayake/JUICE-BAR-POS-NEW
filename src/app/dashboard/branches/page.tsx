@@ -194,28 +194,28 @@ export default function BranchesPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4 px-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     <Label htmlFor="code">Branch Code <span className="text-red-500">*</span></Label>
                     <Input id="code" placeholder="e.g. COL-07" value={code} onChange={(e) => setCode(e.target.value)} required disabled={!!editingId} />
                   </div>
-                  <div className="flex flex-col gap-2">
+                  <div className="space-y-2">
                     <Label htmlFor="name">Branch Name <span className="text-red-500">*</span></Label>
                     <Input id="name" placeholder="e.g. Colombo 07" value={name} onChange={handleNameChange} required />
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2">
+                <div className="space-y-2">
                   <Label htmlFor="address">Address</Label>
                   <Input id="address" placeholder="e.g. 123 Ward Place" value={address} onChange={(e) => setAddress(e.target.value)} />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
                     <Input id="phone" placeholder="e.g. 011-2345678" value={phone} onChange={(e) => setPhone(e.target.value)} />
                   </div>
-                  <div className="flex flex-col gap-2">
+                  <div className="space-y-2">
                     <Label htmlFor="status">Status</Label>
                     <div className="flex items-center gap-2 mt-1">
                       <Switch 
@@ -239,7 +239,7 @@ export default function BranchesPage() {
 
       <div className="flex items-center gap-2 max-w-sm">
         <div className="relative w-full">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
           <Input 
             type="search" 
             placeholder="Search branches..." 

@@ -210,17 +210,17 @@ export default function UnitsPage() {
               </DialogHeader>
               
               <div className="grid gap-6 py-4 max-h-[60vh] overflow-y-auto px-6">
-                <div className="flex flex-col gap-2">
+                <div className="space-y-2">
                   <Label htmlFor="name" className="text-sm font-medium text-gray-700">Unit Name *</Label>
                   <Input id="name" placeholder="e.g. Kilogram" value={name} onChange={(e) => setName(e.target.value)} required  />
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     <Label htmlFor="code" className="text-sm font-medium text-gray-700">Short Code *</Label>
                     <Input id="code" placeholder="e.g. kg" value={code} onChange={(e) => setCode(e.target.value)} required  />
                   </div>
-                  <div className="flex flex-col gap-2">
+                  <div className="space-y-2">
                     <Label className="text-sm font-medium text-gray-700">Unit Type *</Label>
                     <Select value={type} onValueChange={(val) => val && setType(val)}>
                       <SelectTrigger >
@@ -251,8 +251,8 @@ export default function UnitsPage() {
                   </div>
 
                   {!isBaseUnit && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t">
-                      <div className="flex flex-col gap-2">
+                    <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+                      <div className="space-y-2">
                         <Label className="text-xs font-medium text-gray-700">Base Unit</Label>
                         <Select value={baseUnitCode} onValueChange={(val) => val && setBaseUnitCode(val)}>
                           <SelectTrigger >
@@ -268,7 +268,7 @@ export default function UnitsPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="flex flex-col gap-2">
+                      <div className="space-y-2">
                         <Label className="text-xs font-medium text-gray-700">1 {code || '[New]'} equals</Label>
                         <div className="flex items-center gap-2">
                           <Input type="number" min="0.0001" step="any" value={conversionFactor} onChange={(e) => setConversionFactor(e.target.value)} required className="border-gray-300 flex-1" />
@@ -307,7 +307,7 @@ export default function UnitsPage() {
       <div className="bg-white rounded-lg shadow-sm border p-4">
         <div className="flex items-center gap-4 mb-6 pb-4 border-b">
           <div className="relative w-full max-w-md">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
             <Input 
               type="search" 
               placeholder="Search units..." 

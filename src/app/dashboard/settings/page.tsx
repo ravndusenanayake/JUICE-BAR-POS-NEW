@@ -124,21 +124,21 @@ export default function SettingsPage() {
               <CardDescription>Update your juice bar's basic details and branding.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex flex-col gap-2">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
                   <Label htmlFor="storeName">Store Name</Label>
                   <Input id="storeName" value={storeName} onChange={e => setStoreName(e.target.value)} />
                 </div>
-                <div className="flex flex-col gap-2">
+                <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
                   <Input id="phone" value={phone} onChange={e => setPhone(e.target.value)} />
                 </div>
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="space-y-2">
                 <Label htmlFor="address">Address</Label>
                 <Input id="address" value={address} onChange={e => setAddress(e.target.value)} />
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="space-y-2">
                 <Label htmlFor="logoUrl">Logo Image URL</Label>
                 <Input id="logoUrl" value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="https://example.com/logo.png" />
                 <p className="text-xs text-gray-500">Provide a direct URL to your business logo image.</p>
@@ -160,16 +160,16 @@ export default function SettingsPage() {
               <CardDescription>Configure global tax rates and packaging charges applied to sales.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex flex-col gap-2">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
                   <Label htmlFor="taxRate">Default Tax Rate (%)</Label>
                   <Input id="taxRate" type="number" value={taxRate} onChange={e => setTaxRate(e.target.value)} step="0.01" min="0" />
                 </div>
-                <div className="flex flex-col gap-2">
+                <div className="space-y-2">
                   <Label htmlFor="taxName">Tax Name (Shown on receipt)</Label>
                   <Input id="taxName" value={taxName} onChange={e => setTaxName(e.target.value)} placeholder="e.g. VAT, Sales Tax" />
                 </div>
-                <div className="flex flex-col gap-2">
+                <div className="space-y-2">
                   <Label htmlFor="packagingCharge">Default Packaging Charge (Rs.)</Label>
                   <Input id="packagingCharge" type="number" value={packagingCharge} onChange={e => setPackagingCharge(e.target.value)} step="0.01" min="0" />
                   <p className="text-xs text-gray-500">Amount automatically added to takeaways/deliveries if applicable.</p>
@@ -186,7 +186,7 @@ export default function SettingsPage() {
               <CardDescription>Customize messages printed on customer receipts.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 pt-6">
-              <div className="flex flex-col gap-2">
+              <div className="space-y-2">
                 <Label htmlFor="footerText">Footer Message</Label>
                 <textarea 
                   id="footerText" 

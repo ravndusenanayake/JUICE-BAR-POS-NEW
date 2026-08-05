@@ -367,10 +367,10 @@ export default function PurchaseOrdersPage() {
             <DialogTitle>Create Purchase Order</DialogTitle>
             <DialogDescription>Generate a new PO to order stock from suppliers.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmitPO} className="space-y-6 pt-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
-                <Label>Supplier</Label>
+          <form onSubmit={handleSubmitPO} className="space-y-6 px-6 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="mb-2 block">Supplier</Label>
                 <Select value={supplierId} onValueChange={(v) => setSupplierId(v || "")} required>
                   <SelectTrigger><SelectValue placeholder="Select supplier" /></SelectTrigger>
                   <SelectContent>
@@ -378,12 +378,12 @@ export default function PurchaseOrdersPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex flex-col gap-2">
-                <Label>Expected Delivery Date</Label>
+              <div>
+                <Label className="mb-2 block">Expected Delivery Date</Label>
                 <Input type="date" value={expectedDate} onChange={e => setExpectedDate(e.target.value)} required />
               </div>
-              <div className="flex flex-col gap-2">
-                <Label>Destination Branch</Label>
+              <div>
+                <Label className="mb-2 block">Destination Branch</Label>
                 <Select value={branch} onValueChange={(v) => setBranch(v || "")} disabled={!canApprove}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -393,11 +393,11 @@ export default function PurchaseOrdersPage() {
               </div>
             </div>
 
-            <div className="border rounded-lg p-4 bg-gray-50/50 space-y-4">
+            <div className="border rounded-lg p-4 bg-gray-50/50 space-y-4 overflow-hidden">
               <h4 className="font-bold text-gray-700 text-sm">Add Items to Order</h4>
-              <div className="grid grid-cols-12 gap-2 items-end">
-                <div className="col-span-2 flex flex-col gap-1.5">
-                  <Label className="text-xs">Type</Label>
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="w-full sm:w-[140px]">
+                  <Label className="text-xs mb-1.5 block">Type</Label>
                   <Select value={itemType} onValueChange={(v) => { if(v) { setItemType(v as "Raw Material" | "Product"); setSelectedItemSku(""); } }}>
                     <SelectTrigger className="px-2 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -406,8 +406,8 @@ export default function PurchaseOrdersPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="col-span-4 flex flex-col gap-1.5">
-                  <Label className="text-xs">Select Item</Label>
+                <div className="flex-1 min-w-[180px]">
+                  <Label className="text-xs mb-1.5 block">Select Item</Label>
                   <Select value={selectedItemSku} onValueChange={(val) => setSelectedItemSku(val || "")}>
                     <SelectTrigger className="text-xs truncate"><SelectValue placeholder="Choose..." /></SelectTrigger>
                     <SelectContent>
@@ -423,15 +423,15 @@ export default function PurchaseOrdersPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="col-span-2 flex flex-col gap-1.5">
-                  <Label className="text-xs">Qty</Label>
+                <div className="w-[80px]">
+                  <Label className="text-xs mb-1.5 block">Qty</Label>
                   <Input type="number" min="0.1" step="0.1" value={itemQty} onChange={e => setItemQty(e.target.value)} placeholder="0" />
                 </div>
-                <div className="col-span-3 flex flex-col gap-1.5">
-                  <Label className="text-xs">Unit Cost (Rs)</Label>
+                <div className="w-[110px]">
+                  <Label className="text-xs mb-1.5 block">Unit Cost (Rs)</Label>
                   <Input type="number" min="0" step="0.01" value={itemCost} onChange={e => setItemCost(e.target.value)} placeholder="0.00" />
                 </div>
-                <div className="col-span-1">
+                <div className="w-[44px]">
                   <Button type="button" size="icon" onClick={handleAddItem} className="bg-gray-900 hover:bg-gray-800 w-full h-11" disabled={!selectedItemSku}>
                     <Plus className="w-4 h-4" />
                   </Button>

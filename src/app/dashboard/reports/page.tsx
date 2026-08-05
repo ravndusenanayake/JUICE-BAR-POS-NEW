@@ -233,7 +233,7 @@ export default function ReportsPage() {
 
         {/* --- PROFITABILITY TAB --- */}
         <TabsContent value="profit" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-3 gap-6">
             <Card className="bg-gradient-to-br from-gray-900 to-black text-white border-0 shadow-xl rounded-2xl overflow-hidden relative">
               <div className="absolute -right-10 -top-10 bg-white/10 w-40 h-40 rounded-full blur-2xl" />
               <CardHeader className="pb-2">
@@ -311,7 +311,7 @@ export default function ReportsPage() {
 
         {/* --- SALES TAB --- */}
         <TabsContent value="sales" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-6">
             <Card className="rounded-2xl border-0 shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><ShoppingBag className="w-5 h-5 text-orange-500"/> Top Selling Products</CardTitle>
@@ -362,7 +362,7 @@ export default function ReportsPage() {
 
         {/* --- INVENTORY TAB --- */}
         <TabsContent value="inventory" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-6">
             <Card className="rounded-2xl border-0 shadow-sm">
               <CardHeader className="pb-2">
                 <CardDescription className="font-bold text-gray-500 uppercase tracking-wider">Total Stock Valuation</CardDescription>
@@ -396,7 +396,7 @@ export default function ReportsPage() {
 
         {/* --- PURCHASES TAB --- */}
         <TabsContent value="purchases" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-6">
             <Card className="rounded-2xl border-0 shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Truck className="w-5 h-5 text-orange-500"/> Purchase Orders (PO Summary)</CardTitle>
@@ -447,7 +447,7 @@ export default function ReportsPage() {
 
         {/* --- EXPENSES TAB --- */}
         <TabsContent value="expenses" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-6">
             <Card className="rounded-2xl border-0 shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Wallet className="w-5 h-5 text-orange-500"/> Operational Expenses</CardTitle>

@@ -169,7 +169,7 @@ export default function KitchenDisplay() {
             <p className="text-sm mt-2">Kitchen is clear!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start">
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start">
             {orders.map((order) => (
               <Card key={order._id} className={`border-2 shadow-lg overflow-hidden flex flex-col transition-all ${order.kitchenStatus === 'Preparing' ? 'border-orange-500 bg-gray-800' : 'border-gray-700 bg-gray-800'}`}>
                 

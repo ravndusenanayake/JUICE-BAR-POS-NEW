@@ -109,8 +109,8 @@ export default function SystemSettingsPage() {
           <div className="space-y-4">
             <h3 className="font-semibold text-lg text-gray-800 border-b pb-2">Tenant Licensing Limits</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-              <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-6 pt-2">
+              <div className="space-y-2">
                 <Label htmlFor="maxBranches" className="text-sm font-medium text-gray-700">Maximum Branches Allowed</Label>
                 <div className="relative flex items-center">
                   <Input 
@@ -127,7 +127,7 @@ export default function SystemSettingsPage() {
                 <p className="text-xs text-gray-500">The total number of branches the Admin can create.</p>
               </div>
 
-              <div className="flex flex-col gap-2">
+              <div className="space-y-2">
                 <Label htmlFor="maxUsers" className="text-sm font-medium text-gray-700">Maximum Users Allowed</Label>
                 <div className="relative flex items-center">
                   <Input 

@@ -58,11 +58,11 @@ export default function DashboardLayout({
             <span className="text-lg">Juice Bar POS</span>
           </Link>
         </div>
-        <nav className="flex-1 space-y-1 p-4 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 space-y-0.5 p-4 overflow-y-auto custom-scrollbar">
           {/* Quick Access - POS */}
           {/* Quick Access - POS */}
           {hasPermission(PERMISSIONS.ACCESS_POS) && (
-            <div className="pb-2 flex flex-col gap-2">
+            <div className="pb-2 grid gap-2">
               <Link href="/pos" className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-all ${isActive('/pos') ? 'bg-orange-500 text-white font-bold shadow-md' : 'bg-orange-100 text-orange-800 hover:bg-orange-200 font-bold'}`}>
                 <Store className="h-5 w-5" /> POS System
               </Link>
@@ -271,7 +271,7 @@ export default function DashboardLayout({
           )}
 
         </nav>
-        <div className="mt-auto border-t p-4 flex flex-col gap-2">
+        <div className="mt-auto border-t p-4 space-y-2">
           {hasPermission(PERMISSIONS.MANAGE_SYSTEM_SETTINGS) && (
             <Link href="/dashboard/system-settings" className="flex items-center gap-3 rounded-lg px-3 py-2 text-amber-600 font-semibold hover:bg-amber-50 transition-all border-t pt-4">
               <Settings className="h-5 w-5" />

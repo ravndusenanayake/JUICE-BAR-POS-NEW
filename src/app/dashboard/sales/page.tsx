@@ -198,7 +198,7 @@ export default function SalesHistoryPage() {
 
       <div className="flex flex-col sm:flex-row items-center gap-4">
         <div className="relative w-full sm:max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
           <Input 
             type="search" 
             placeholder="Search invoice or customer..." 
@@ -381,7 +381,7 @@ export default function SalesHistoryPage() {
           
           {viewSale && (
             <div className="space-y-6 mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
                 <div><span className="text-gray-500 block text-xs">Customer</span><span className="font-semibold">{viewSale.customer}</span></div>
                 <div><span className="text-gray-500 block text-xs">Order Type</span><span className="font-semibold">{viewSale.orderType || 'Takeaway'}</span></div>
                 <div><span className="text-gray-500 block text-xs">Payment Method</span><span className="font-semibold">{viewSale.paymentMethod}</span></div>

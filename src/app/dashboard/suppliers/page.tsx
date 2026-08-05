@@ -233,26 +233,26 @@ export default function SuppliersPage() {
               {editingId ? "Update supplier details." : "Enter details for the new supplier."}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSave} className="space-y-4 pt-4">
-            <div className="flex flex-col gap-2">
+          <form onSubmit={handleSave} className="space-y-4 px-6 py-4">
+            <div className="space-y-2">
               <Label>Supplier Name *</Label>
               <Input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Fresh Farms Ltd" />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label>Contact Person</Label>
                 <Input value={contactPerson} onChange={e => setContactPerson(e.target.value)} placeholder="e.g. Kamal" />
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="space-y-2">
                 <Label>Mobile Number</Label>
                 <Input value={mobile} onChange={e => setMobile(e.target.value)} placeholder="e.g. 0771234567" />
               </div>
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="space-y-2">
               <Label>Email Address</Label>
               <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="e.g. supplier@domain.com" />
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="space-y-2">
               <Label>Physical Address</Label>
               <Input value={address} onChange={e => setAddress(e.target.value)} placeholder="e.g. 123, Kandy Road" />
             </div>

@@ -188,12 +188,12 @@ export default function AddOnsPage() {
               </DialogHeader>
               
               <div className="grid gap-6 py-4">
-                <div className="flex flex-col gap-2">
+                <div className="space-y-2">
                   <Label htmlFor="name" className="text-sm font-semibold text-gray-700">Add-On Name <span className="text-red-500">*</span></Label>
                   <Input id="name" placeholder="e.g. Ice Cream Scoop" value={name} onChange={(e) => setName(e.target.value)} required className="border-gray-200 shadow-sm h-11 focus-visible:ring-orange-500" />
                 </div>
                 
-                <div className="flex flex-col gap-2">
+                <div className="space-y-2">
                   <Label htmlFor="price" className="text-sm font-semibold text-gray-700">Price (Rs.) <span className="text-red-500">*</span></Label>
                   <Input id="price" type="number" step="0.01" min="0" placeholder="e.g. 150.00" value={price} onChange={(e) => setPrice(e.target.value)} required className="border-gray-200 shadow-sm h-11 focus-visible:ring-orange-500" />
                 </div>
@@ -228,7 +228,7 @@ export default function AddOnsPage() {
       <div className="bg-white rounded-lg shadow-sm border p-4">
         <div className="flex items-center gap-4 mb-6 pb-4 border-b">
           <div className="relative w-full max-w-md">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
             <Input 
               type="search" 
               placeholder="Search add-ons..." 

@@ -243,9 +243,9 @@ export default function BranchInventoryPage() {
             </DialogDescription>
           </DialogHeader>
           
-          <form onSubmit={handleSaveAdjustment} className="space-y-4 pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
+          <form onSubmit={handleSaveAdjustment} className="space-y-4 px-6 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label>Type</Label>
                 <Select value={adjustmentType} onValueChange={(v) => setAdjustmentType(v || "")}>
                   <SelectTrigger className={adjustmentType === "IN" ? "text-green-600 font-bold border-green-200 bg-green-50" : "text-red-600 font-bold border-red-200 bg-red-50"}>
@@ -261,7 +261,7 @@ export default function BranchInventoryPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="space-y-2">
                 <Label>Quantity ({adjustmentItem?.unit})</Label>
                 <Input 
                   type="number" step="0.01" min="0.01" required 
@@ -271,7 +271,7 @@ export default function BranchInventoryPage() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="space-y-2">
               <Label>Reason</Label>
               <Select value={adjustmentReason} onValueChange={(v) => setAdjustmentReason(v || "")} required>
                 <SelectTrigger>
@@ -300,7 +300,7 @@ export default function BranchInventoryPage() {
             </div>
 
             {adjustmentType === "OUT" && ["Rotten / Expired", "Damaged / Broken", "Spillage"].includes(adjustmentReason) && (
-              <div className="flex flex-col gap-2 bg-red-50/50 p-3 rounded-lg border border-red-100">
+              <div className="grid gap-2 bg-red-50/50 p-3 rounded-lg border border-red-100">
                 <Label className="text-red-700">Financial Loss Amount (Rs.)</Label>
                 <Input 
                   type="number" min="0" required
@@ -311,7 +311,7 @@ export default function BranchInventoryPage() {
               </div>
             )}
 
-            <div className="flex flex-col gap-2">
+            <div className="space-y-2">
               <Label>Reference Note / Bill No (Optional)</Label>
               <Input 
                 value={adjustmentRef} onChange={e => setAdjustmentRef(e.target.value)}

@@ -343,15 +343,15 @@ export default function StockTransfersPage() {
             
             <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
               {/* Header Details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white">
-                <div className="flex flex-col gap-2">
+              <div className="grid grid-cols-2 gap-4 bg-white">
+                <div className="space-y-2">
                   <Label className="font-bold text-gray-700">Source Branch (From) *</Label>
                   <Select value={sourceBranch} onValueChange={(v) => setSourceBranch(v || "")} disabled={user?.branch !== "All Branches"}>
                     <SelectTrigger className="border-red-200 bg-red-50 h-10"><SelectValue /></SelectTrigger>
                     <SelectContent>{BRANCHES.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div className="flex flex-col gap-2">
+                <div className="space-y-2">
                   <Label className="font-bold text-gray-700">Destination Branch (To) *</Label>
                   <Select value={destBranch} onValueChange={(v) => setDestBranch(v || "")} required>
                     <SelectTrigger className="border-green-200 bg-green-50 h-10"><SelectValue placeholder="Select Destination" /></SelectTrigger>

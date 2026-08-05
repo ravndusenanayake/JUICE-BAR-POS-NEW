@@ -177,7 +177,7 @@ export default function CategoriesPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4 px-6">
-                <div className="flex flex-col gap-2">
+                <div className="space-y-2">
                   <Label htmlFor="name">Category Name <span className="text-red-500">*</span></Label>
                   <Input 
                     id="name" 
@@ -187,7 +187,7 @@ export default function CategoriesPage() {
                     required
                   />
                 </div>
-                <div className="flex flex-col gap-2">
+                <div className="space-y-2">
                   <Label htmlFor="desc">Description</Label>
                   <Input 
                     id="desc" 
@@ -196,7 +196,7 @@ export default function CategoriesPage() {
                     onChange={(e) => setNewDesc(e.target.value)}
                   />
                 </div>
-                <div className="flex flex-col gap-2">
+                <div className="space-y-2">
                   <Label htmlFor="status">Status <span className="text-red-500">*</span></Label>
                   <Select value={newStatus} onValueChange={(val) => setNewStatus(val || "")} required>
                     <SelectTrigger>
@@ -220,7 +220,7 @@ export default function CategoriesPage() {
 
       <div className="flex items-center gap-2 max-w-sm">
         <div className="relative w-full">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
           <Input 
             type="search" 
             placeholder="Search categories..." 

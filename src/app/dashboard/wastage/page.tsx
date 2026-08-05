@@ -203,8 +203,8 @@ export default function WastagePage() {
               Deduct spoiled or damaged stock from {selectedBranch}.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSave} className="space-y-4 pt-4">
-            <div className="flex flex-col gap-2">
+          <form onSubmit={handleSave} className="space-y-4 px-6 py-4">
+            <div className="space-y-2">
               <Label>Select Item *</Label>
               <Select value={selectedItemName} onValueChange={(v) => setSelectedItemName(v || "")} required>
                 <SelectTrigger><SelectValue placeholder="Choose inventory item..." /></SelectTrigger>
@@ -218,12 +218,12 @@ export default function WastagePage() {
               </Select>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label>Quantity *</Label>
                 <Input type="number" step="0.01" min="0.01" value={quantity} onChange={e => setQuantity(e.target.value)} required />
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="space-y-2">
                 <Label>Reason *</Label>
                 <Select value={reason} onValueChange={(v) => setReason(v || "")} required>
                   <SelectTrigger><SelectValue /></SelectTrigger>

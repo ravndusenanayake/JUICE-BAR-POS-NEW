@@ -114,7 +114,7 @@ export default function AllGRNPage() {
         <p className="text-gray-500 mt-1">Manage and track all Goods Receipt Notes and Payments.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         <div className="bg-white border rounded-xl p-4 shadow-sm flex flex-col justify-center">
           <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Total GRNs</div>
           <div className="text-2xl font-black text-gray-900">{grns.length}</div>
@@ -238,18 +238,18 @@ export default function AllGRNPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSavePayment} className="space-y-4 pt-2">
-            <div className="flex flex-col gap-2">
+          <form onSubmit={handleSavePayment} className="space-y-4 px-6 py-4">
+            <div className="space-y-2">
               <Label className="text-xs font-semibold">GRN Number *</Label>
               <Input value={selectedGRN?.grnNumber} readOnly className="bg-gray-50" />
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label className="text-xs font-semibold">Payment Date *</Label>
                 <Input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} required />
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="space-y-2">
                 <Label className="text-xs font-semibold">Payment Method *</Label>
                 <Select value={paymentMethod} onValueChange={(val) => setPaymentMethod(val || 'Cash')}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -263,7 +263,7 @@ export default function AllGRNPage() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="space-y-2">
               <Label className="text-xs font-semibold">Amount Paid (Rs.) *</Label>
               <Input 
                 type="number" min="0.01" step="0.01" max={selectedGRN ? selectedGRN.totalAmount - (selectedGRN.paidAmount || 0) : undefined}
@@ -275,7 +275,7 @@ export default function AllGRNPage() {
               </p>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="space-y-2">
               <Label className="text-xs font-semibold">Notes</Label>
               <textarea 
                 value={paymentNotes} onChange={e => setPaymentNotes(e.target.value)}
@@ -284,7 +284,7 @@ export default function AllGRNPage() {
               />
             </div>
 
-            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 flex flex-col gap-2 mt-4">
+            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 grid gap-2 mt-4">
               <div className="text-sm font-bold text-blue-900 mb-2 border-b border-blue-200 pb-2">Payment Summary</div>
               <div className="flex justify-between text-xs text-blue-800">
                 <span>Amount Paying:</span>

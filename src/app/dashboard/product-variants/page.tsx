@@ -187,7 +187,7 @@ export default function ProductVariantsPage() {
               
               <div className="grid gap-6 py-4 px-6">
                 
-                <div className="flex flex-col gap-2">
+                <div className="space-y-2">
                   <Label className="text-sm font-medium text-gray-700">Product <span className="text-red-500">*</span></Label>
                   <Select value={productId} onValueChange={(val) => setProductId(val || "")}>
                     <SelectTrigger>
@@ -207,8 +207,8 @@ export default function ProductVariantsPage() {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     <Label className="text-sm font-medium text-gray-700">Variant Name <span className="text-red-500">*</span></Label>
                     <Select value={name} onValueChange={(val) => setName(val || "")}>
                       <SelectTrigger>
@@ -223,7 +223,7 @@ export default function ProductVariantsPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex flex-col gap-2">
+                  <div className="space-y-2">
                     <Label className="text-sm font-medium text-gray-700">Price (Rs.) <span className="text-red-500">*</span></Label>
                     <Input type="number" placeholder="e.g. 250" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} required min="0" step="0.01" />
                   </div>
@@ -251,7 +251,7 @@ export default function ProductVariantsPage() {
       <div className="bg-white rounded-lg shadow-sm border p-4">
         <div className="flex items-center gap-4 mb-6 pb-4 border-b">
           <div className="relative w-full max-w-md">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
             <Input 
               type="search" 
               placeholder="Search variants..." 
