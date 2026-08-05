@@ -213,23 +213,23 @@ export default function UsersPage() {
               </DialogHeader>
               <div className="grid gap-4 py-4 px-6">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
+                  <div className="flex flex-col gap-2">
                     <Label htmlFor="name">Full Name <span className="text-red-500">*</span></Label>
                     <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
                   </div>
-                  <div className="grid gap-2">
+                  <div className="flex flex-col gap-2">
                     <Label htmlFor="email">Email Address <span className="text-red-500">*</span></Label>
                     <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                   </div>
                 </div>
 
-                <div className="grid gap-2">
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="password">Temporary Password <span className="text-red-500">*</span></Label>
                   <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
+                  <div className="flex flex-col gap-2">
                     <Label htmlFor="role">Role <span className="text-red-500">*</span></Label>
                     <Select value={role} onValueChange={(val) => setRole(val || "")} required>
                       <SelectTrigger>
@@ -244,7 +244,7 @@ export default function UsersPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid gap-2">
+                  <div className="flex flex-col gap-2">
                     <Label htmlFor="branch">Branch</Label>
                     <Select value={branch} onValueChange={(val) => setBranch(val || "")} disabled={role === 'Super Admin' || role === 'Admin'} required={role !== 'Super Admin' && role !== 'Admin'}>
                       <SelectTrigger>
@@ -277,23 +277,23 @@ export default function UsersPage() {
               </DialogHeader>
               <div className="grid gap-4 py-4 px-6">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
+                  <div className="flex flex-col gap-2">
                     <Label htmlFor="edit-name">Full Name <span className="text-red-500">*</span></Label>
                     <Input id="edit-name" value={name} onChange={(e) => setName(e.target.value)} required />
                   </div>
-                  <div className="grid gap-2">
+                  <div className="flex flex-col gap-2">
                     <Label htmlFor="edit-email">Email Address <span className="text-red-500">*</span></Label>
                     <Input id="edit-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                   </div>
                 </div>
 
-                <div className="grid gap-2">
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="edit-password">New Password (Optional)</Label>
                   <Input id="edit-password" type="password" placeholder="Leave blank to keep current" value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
+                  <div className="flex flex-col gap-2">
                     <Label htmlFor="edit-role">Role <span className="text-red-500">*</span></Label>
                     <Select value={role} onValueChange={(val) => setRole(val || "")} required>
                       <SelectTrigger>
@@ -308,7 +308,7 @@ export default function UsersPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid gap-2">
+                  <div className="flex flex-col gap-2">
                     <Label htmlFor="edit-branch">Branch</Label>
                     <Select value={branch} onValueChange={(val) => setBranch(val || "")} disabled={role === 'Super Admin' || role === 'Admin'} required={role !== 'Super Admin' && role !== 'Admin'}>
                       <SelectTrigger>

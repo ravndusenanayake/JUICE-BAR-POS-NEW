@@ -210,17 +210,17 @@ export default function UnitsPage() {
               </DialogHeader>
               
               <div className="grid gap-6 py-4 max-h-[60vh] overflow-y-auto px-6">
-                <div className="grid gap-2">
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="name" className="text-sm font-medium text-gray-700">Unit Name *</Label>
                   <Input id="name" placeholder="e.g. Kilogram" value={name} onChange={(e) => setName(e.target.value)} required  />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
+                  <div className="flex flex-col gap-2">
                     <Label htmlFor="code" className="text-sm font-medium text-gray-700">Short Code *</Label>
                     <Input id="code" placeholder="e.g. kg" value={code} onChange={(e) => setCode(e.target.value)} required  />
                   </div>
-                  <div className="grid gap-2">
+                  <div className="flex flex-col gap-2">
                     <Label className="text-sm font-medium text-gray-700">Unit Type *</Label>
                     <Select value={type} onValueChange={(val) => val && setType(val)}>
                       <SelectTrigger >
@@ -252,7 +252,7 @@ export default function UnitsPage() {
 
                   {!isBaseUnit && (
                     <div className="grid grid-cols-2 gap-4 pt-2 border-t">
-                      <div className="grid gap-2">
+                      <div className="flex flex-col gap-2">
                         <Label className="text-xs font-medium text-gray-700">Base Unit</Label>
                         <Select value={baseUnitCode} onValueChange={(val) => val && setBaseUnitCode(val)}>
                           <SelectTrigger >
@@ -268,7 +268,7 @@ export default function UnitsPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="grid gap-2">
+                      <div className="flex flex-col gap-2">
                         <Label className="text-xs font-medium text-gray-700">1 {code || '[New]'} equals</Label>
                         <div className="flex items-center gap-2">
                           <Input type="number" min="0.0001" step="any" value={conversionFactor} onChange={(e) => setConversionFactor(e.target.value)} required className="border-gray-300 flex-1" />

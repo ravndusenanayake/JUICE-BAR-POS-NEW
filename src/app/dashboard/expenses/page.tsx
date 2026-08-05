@@ -274,11 +274,11 @@ export default function ExpensesPage() {
             
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
+                <div className="flex flex-col gap-2">
                   <Label className="font-bold text-gray-700">Date *</Label>
                   <Input type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} required className="h-11" />
                 </div>
-                <div className="grid gap-2">
+                <div className="flex flex-col gap-2">
                   <Label className="font-bold text-gray-700">Branch *</Label>
                   <Select value={branch} onValueChange={(v) => setBranch(v || "")} disabled={!canSeeAllBranches}>
                     <SelectTrigger className="h-11 bg-gray-50"><SelectValue /></SelectTrigger>
@@ -288,25 +288,25 @@ export default function ExpensesPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
+                <div className="flex flex-col gap-2">
                   <Label className="font-bold text-gray-700">Category *</Label>
                   <Select value={category} onValueChange={(v) => setCategory(v || "")} required>
                     <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
                     <SelectContent>{CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div className="grid gap-2">
+                <div className="flex flex-col gap-2">
                   <Label className="font-bold text-red-700">Amount (Rs.) *</Label>
                   <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" required className="h-11 border-red-200 font-bold text-red-600 focus-visible:ring-red-500" />
                 </div>
               </div>
 
-              <div className="grid gap-2">
+              <div className="flex flex-col gap-2">
                 <Label className="font-bold text-gray-700">Note / Description</Label>
                 <Input value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. Electricity bill for June" className="h-11" />
               </div>
 
-              <div className="grid gap-2">
+              <div className="flex flex-col gap-2">
                 <Label className="font-bold text-gray-700">Attachment (Bill / Receipt)</Label>
                 <div 
                   className="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 transition-colors"

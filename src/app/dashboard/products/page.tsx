@@ -355,18 +355,18 @@ export default function ProductsPage() {
                   <div className="mt-6 mb-4"></div>
 
                   <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="grid gap-2">
+                    <div className="flex flex-col gap-2">
                       <Label className="text-sm font-medium text-gray-700">Product Name <span className="text-red-500">*</span></Label>
                       <Input placeholder="e.g. Classic Mojito" value={name} onChange={(e) => setName(e.target.value)} required />
                     </div>
-                    <div className="grid gap-2">
+                    <div className="flex flex-col gap-2">
                       <Label className="text-sm font-medium text-gray-700">SKU (Auto-Generated)</Label>
                       <Input value={sku} readOnly placeholder="Will be auto-generated" className="bg-gray-100 text-gray-500 cursor-not-allowed" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="grid gap-2">
+                    <div className="flex flex-col gap-2">
                       <Label className="text-sm font-medium text-gray-700">Category (Optional)</Label>
                       <Select value={category} onValueChange={(val) => setCategory(val || "")}>
                         <SelectTrigger>
@@ -383,7 +383,7 @@ export default function ProductsPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="grid gap-2">
+                    <div className="flex flex-col gap-2">
                       <Label className="text-sm font-medium text-gray-700">Base Price (Rs.)</Label>
                       <Input 
                         type="number" step="0.01" min="0" placeholder="e.g. 500" 
@@ -483,7 +483,7 @@ export default function ProductsPage() {
                       <h3 className="font-semibold text-gray-800">Finished Good Details</h3>
                       <p className="text-xs text-muted-foreground mb-2">Configure pricing and inventory tracking for ready-to-sell items.</p>
                       
-                      <div className="grid gap-2">
+                      <div className="flex flex-col gap-2">
                         <Label className="text-sm font-medium text-gray-700">Measurement Unit</Label>
                         <Select value={unit} onValueChange={(val) => setUnit(val || "Nos")}>
                           <SelectTrigger>

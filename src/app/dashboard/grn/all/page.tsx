@@ -239,17 +239,17 @@ export default function AllGRNPage() {
           </DialogHeader>
 
           <form onSubmit={handleSavePayment} className="space-y-4 pt-2">
-            <div className="grid gap-2">
+            <div className="flex flex-col gap-2">
               <Label className="text-xs font-semibold">GRN Number *</Label>
               <Input value={selectedGRN?.grnNumber} readOnly className="bg-gray-50" />
             </div>
             
             <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
+              <div className="flex flex-col gap-2">
                 <Label className="text-xs font-semibold">Payment Date *</Label>
                 <Input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} required />
               </div>
-              <div className="grid gap-2">
+              <div className="flex flex-col gap-2">
                 <Label className="text-xs font-semibold">Payment Method *</Label>
                 <Select value={paymentMethod} onValueChange={(val) => setPaymentMethod(val || 'Cash')}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -263,7 +263,7 @@ export default function AllGRNPage() {
               </div>
             </div>
 
-            <div className="grid gap-2">
+            <div className="flex flex-col gap-2">
               <Label className="text-xs font-semibold">Amount Paid (Rs.) *</Label>
               <Input 
                 type="number" min="0.01" step="0.01" max={selectedGRN ? selectedGRN.totalAmount - (selectedGRN.paidAmount || 0) : undefined}
@@ -275,7 +275,7 @@ export default function AllGRNPage() {
               </p>
             </div>
 
-            <div className="grid gap-2">
+            <div className="flex flex-col gap-2">
               <Label className="text-xs font-semibold">Notes</Label>
               <textarea 
                 value={paymentNotes} onChange={e => setPaymentNotes(e.target.value)}

@@ -241,13 +241,13 @@ export default function RawMaterialsPage() {
               </DialogHeader>
               
               <div className="grid gap-6 py-4 px-6">
-                <div className="grid gap-2">
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="name" className="text-sm font-medium text-gray-700">Name *</Label>
                   <Input id="name" placeholder="e.g. Sugar" value={name} onChange={(e) => setName(e.target.value)} required  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
+                  <div className="flex flex-col gap-2">
                     <Label htmlFor="unit" className="text-sm font-medium text-gray-700">Measurement Unit *</Label>
                     <Select value={unit} onValueChange={(val) => setUnit(val || "")} required>
                       <SelectTrigger >
@@ -261,7 +261,7 @@ export default function RawMaterialsPage() {
                     </Select>
                   </div>
                   
-                  <div className="grid gap-2">
+                  <div className="flex flex-col gap-2">
                     <Label htmlFor="threshold" className="text-sm font-medium text-gray-700">Reorder Threshold *</Label>
                     <Input id="threshold" type="number" placeholder="e.g. 1000" value={threshold} onChange={(e) => setThreshold(e.target.value)} required  />
                   </div>

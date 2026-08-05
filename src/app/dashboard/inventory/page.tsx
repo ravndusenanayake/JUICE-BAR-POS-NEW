@@ -101,7 +101,7 @@ export default function InventoryPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4 px-6">
-                <div className="grid gap-2">
+                <div className="flex flex-col gap-2">
                   <Label>Select Product</Label>
                   <Select onValueChange={(v: any) => setSelectedSku(v || "")} required>
                     <SelectTrigger>
@@ -116,7 +116,7 @@ export default function InventoryPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid gap-2">
+                <div className="flex flex-col gap-2">
                   <Label>Adjustment Type</Label>
                   <Select value={adjustType} onValueChange={(v) => setAdjustType(v || "")}>
                     <SelectTrigger>
@@ -129,11 +129,11 @@ export default function InventoryPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid gap-2">
+                <div className="flex flex-col gap-2">
                   <Label>Quantity</Label>
                   <Input type="number" value={quantity} onChange={e => setQuantity(e.target.value)} required />
                 </div>
-                <div className="grid gap-2">
+                <div className="flex flex-col gap-2">
                   <Label>Remarks</Label>
                   <Input placeholder="e.g. Spilled milk" value={remarks} onChange={e => setRemarks(e.target.value)} />
                 </div>

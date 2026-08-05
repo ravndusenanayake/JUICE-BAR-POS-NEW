@@ -187,7 +187,7 @@ export default function ProductVariantsPage() {
               
               <div className="grid gap-6 py-4 px-6">
                 
-                <div className="grid gap-2">
+                <div className="flex flex-col gap-2">
                   <Label className="text-sm font-medium text-gray-700">Product <span className="text-red-500">*</span></Label>
                   <Select value={productId} onValueChange={(val) => setProductId(val || "")}>
                     <SelectTrigger>
@@ -208,7 +208,7 @@ export default function ProductVariantsPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
+                  <div className="flex flex-col gap-2">
                     <Label className="text-sm font-medium text-gray-700">Variant Name <span className="text-red-500">*</span></Label>
                     <Select value={name} onValueChange={(val) => setName(val || "")}>
                       <SelectTrigger>
@@ -223,7 +223,7 @@ export default function ProductVariantsPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid gap-2">
+                  <div className="flex flex-col gap-2">
                     <Label className="text-sm font-medium text-gray-700">Price (Rs.) <span className="text-red-500">*</span></Label>
                     <Input type="number" placeholder="e.g. 250" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} required min="0" step="0.01" />
                   </div>

@@ -187,19 +187,19 @@ export default function CustomersPage() {
             </div>
             
             <div className="p-6 space-y-4 bg-white">
-              <div className="grid gap-2">
+              <div className="flex flex-col gap-2">
                 <Label className="font-bold text-gray-700">Full Name *</Label>
                 <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Nimal Perera" required className="h-11 border-gray-300" />
               </div>
-              <div className="grid gap-2">
+              <div className="flex flex-col gap-2">
                 <Label className="font-bold text-gray-700">Mobile Number *</Label>
                 <Input type="tel" value={mobile} onChange={e => setMobile(e.target.value)} placeholder="e.g. 0771234567" required className="h-11 border-gray-300" />
               </div>
-              <div className="grid gap-2">
+              <div className="flex flex-col gap-2">
                 <Label className="font-bold text-gray-700">Email Address</Label>
                 <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="e.g. nimal@example.com" className="h-11 border-gray-300" />
               </div>
-              <div className="grid gap-2">
+              <div className="flex flex-col gap-2">
                 <Label className="font-bold text-gray-700">Birthday (For promotions)</Label>
                 <Input type="date" value={birthday} onChange={e => setBirthday(e.target.value)} className="h-11 border-gray-300" />
               </div>
