@@ -267,7 +267,7 @@ export default function RolesPage() {
               </div>
 
               <div className="bg-white px-6 py-4 border-t shrink-0 flex justify-end gap-3 rounded-b-2xl">
-                <Button type="button" variant="outline" className="border-gray-300" onClick={() => setIsDialogOpen(false)}>
+                <Button type="button" variant="outline"  onClick={() => setIsDialogOpen(false)}>
                   Cancel
                 </Button>
                 <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white shadow-lg px-8">

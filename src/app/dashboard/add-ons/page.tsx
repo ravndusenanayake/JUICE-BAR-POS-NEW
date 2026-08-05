@@ -189,17 +189,20 @@ export default function AddOnsPage() {
               
               <div className="grid gap-6 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="name" className="text-sm font-medium text-gray-700">Add-On Name <span className="text-red-500">*</span></Label>
-                  <Input id="name" placeholder="e.g. Ice Cream Scoop" value={name} onChange={(e) => setName(e.target.value)} required className="border-gray-300" />
+                  <Label htmlFor="name" className="text-sm font-semibold text-gray-700">Add-On Name <span className="text-red-500">*</span></Label>
+                  <Input id="name" placeholder="e.g. Ice Cream Scoop" value={name} onChange={(e) => setName(e.target.value)} required className="border-gray-200 shadow-sm h-11 focus-visible:ring-orange-500" />
                 </div>
                 
                 <div className="grid gap-2">
-                  <Label htmlFor="price" className="text-sm font-medium text-gray-700">Price (Rs.) <span className="text-red-500">*</span></Label>
-                  <Input id="price" type="number" step="0.01" min="0" placeholder="e.g. 150.00" value={price} onChange={(e) => setPrice(e.target.value)} required className="border-gray-300" />
+                  <Label htmlFor="price" className="text-sm font-semibold text-gray-700">Price (Rs.) <span className="text-red-500">*</span></Label>
+                  <Input id="price" type="number" step="0.01" min="0" placeholder="e.g. 150.00" value={price} onChange={(e) => setPrice(e.target.value)} required className="border-gray-200 shadow-sm h-11 focus-visible:ring-orange-500" />
                 </div>
                 
-                <div className="flex items-center justify-between mt-2">
-                  <Label htmlFor="status-toggle" className="text-sm font-medium text-gray-700">Status</Label>
+                <div className="flex items-center justify-between p-4 border border-gray-100 rounded-xl bg-gray-50/50 mt-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="status-toggle" className="text-sm font-semibold text-gray-700">Status</Label>
+                    <p className="text-xs text-muted-foreground">Active add-ons will appear in the POS</p>
+                  </div>
                   <Switch 
                     id="status-toggle" 
                     checked={isActive} 
@@ -209,11 +212,11 @@ export default function AddOnsPage() {
                 </div>
               </div>
               
-              <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>
+              <DialogFooter className="mt-2 flex gap-3 sm:justify-end">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving} className="border-gray-200 h-10">
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSaving} className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white">
+                <Button type="submit" disabled={isSaving} className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white h-10 shadow-sm shadow-orange-500/20">
                   {isSaving ? "Saving..." : (editingAddon ? "Save Changes" : "Create Add-On")}
                 </Button>
               </DialogFooter>

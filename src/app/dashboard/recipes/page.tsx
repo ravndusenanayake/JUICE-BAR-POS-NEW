@@ -187,7 +187,7 @@ export default function RecipesPage() {
           <div className="bg-white p-6 rounded-xl shadow-sm border">
             <h3 className="font-bold text-lg mb-4 text-gray-800 border-b pb-2">1. Select Product Variant</h3>
             <div className="space-y-4">
-              <div className="space-y-2">
+              <div className="grid gap-2">
                 <Label>Product Variant</Label>
                 <Select value={selectedVariantId} onValueChange={handleVariantChange}>
                   <SelectTrigger className="w-full">
@@ -219,7 +219,7 @@ export default function RecipesPage() {
           <div className="bg-white p-6 rounded-xl shadow-sm border opacity-100 transition-opacity" style={{ opacity: selectedVariantId ? 1 : 0.5, pointerEvents: selectedVariantId ? 'auto' : 'none' }}>
             <h3 className="font-bold text-lg mb-4 text-gray-800 border-b pb-2">2. Add Ingredients</h3>
             <div className="space-y-4">
-              <div className="space-y-2">
+              <div className="grid gap-2">
                 <Label>Raw Material</Label>
                 <Select value={selectedRawMaterialId} onValueChange={(val: any) => setSelectedRawMaterialId(val || "")}>
                   <SelectTrigger className="w-full">

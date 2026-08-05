@@ -974,9 +974,9 @@ export default function POSPage() {
       {/* LEFT: Sleek Navigation Sidebar */}
       <aside className="w-[100px] sm:w-[120px] flex flex-col items-center bg-gray-900 shadow-2xl py-6 z-30 shrink-0">
         <div className="mb-8">
-          <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30">
+          <Link href="/kitchen" className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 hover:scale-105 transition-transform cursor-pointer" title="Open Kitchen Display">
             <Store className="text-white w-6 h-6" />
-          </div>
+          </Link>
         </div>
         
         <div className="flex flex-col gap-6 flex-1 w-full px-2">
@@ -1019,6 +1019,10 @@ export default function POSPage() {
              <div className="p-4 rounded-xl bg-gray-800 group-hover:bg-red-500/20"><Power className="w-6 h-6" /></div>
              <span className="text-xs font-medium text-center leading-tight">Close<br/>Shift</span>
           </button>
+          <Link href="/kitchen" className="flex flex-col items-center gap-2 text-gray-400 hover:text-blue-500 transition-colors group">
+             <div className="p-4 rounded-xl bg-gray-800 group-hover:bg-blue-500/20"><Coffee className="w-6 h-6" /></div>
+             <span className="text-xs font-medium text-center leading-tight">Kitchen<br/>Display</span>
+          </Link>
           <Link href="/dashboard" className="p-4 rounded-xl bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
             <ArrowLeft className="w-6 h-6" />
           </Link>

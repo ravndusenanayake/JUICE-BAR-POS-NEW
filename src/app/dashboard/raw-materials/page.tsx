@@ -243,14 +243,14 @@ export default function RawMaterialsPage() {
               <div className="grid gap-6 py-4 px-6">
                 <div className="grid gap-2">
                   <Label htmlFor="name" className="text-sm font-medium text-gray-700">Name *</Label>
-                  <Input id="name" placeholder="e.g. Sugar" value={name} onChange={(e) => setName(e.target.value)} required className="border-gray-300" />
+                  <Input id="name" placeholder="e.g. Sugar" value={name} onChange={(e) => setName(e.target.value)} required  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="unit" className="text-sm font-medium text-gray-700">Measurement Unit *</Label>
                     <Select value={unit} onValueChange={(val) => setUnit(val || "")} required>
-                      <SelectTrigger className="border-gray-300">
+                      <SelectTrigger >
                         <SelectValue placeholder="Select Unit" />
                       </SelectTrigger>
                       <SelectContent>
@@ -263,7 +263,7 @@ export default function RawMaterialsPage() {
                   
                   <div className="grid gap-2">
                     <Label htmlFor="threshold" className="text-sm font-medium text-gray-700">Reorder Threshold *</Label>
-                    <Input id="threshold" type="number" placeholder="e.g. 1000" value={threshold} onChange={(e) => setThreshold(e.target.value)} required className="border-gray-300" />
+                    <Input id="threshold" type="number" placeholder="e.g. 1000" value={threshold} onChange={(e) => setThreshold(e.target.value)} required  />
                   </div>
                 </div>
                 
@@ -278,7 +278,7 @@ export default function RawMaterialsPage() {
                 </div>
               </div>
               
-              <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
+              <DialogFooter className="mt-2 flex gap-3 sm:justify-end">
                 <DialogClose render={<Button type="button" variant="outline" className="w-full sm:w-auto" />}>
                   Cancel
                 </DialogClose>

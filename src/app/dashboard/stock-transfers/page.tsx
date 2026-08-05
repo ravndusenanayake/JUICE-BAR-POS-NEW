@@ -435,7 +435,7 @@ export default function StockTransfersPage() {
               This will update the inventory stock levels.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
+          <DialogFooter className="mt-2 flex gap-3 sm:justify-end">
             <Button type="button" variant="outline" onClick={() => setIsConfirmOpen(false)}>
               Cancel
             </Button>

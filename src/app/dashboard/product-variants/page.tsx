@@ -328,7 +328,7 @@ export default function ProductVariantsPage() {
               Are you sure you want to archive this variant? It will be marked as Inactive and hidden from the POS.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
+          <DialogFooter className="mt-2 flex gap-3 sm:justify-end">
             <Button type="button" variant="outline" onClick={() => setIsArchiveDialogOpen(false)}>
               Cancel
             </Button>

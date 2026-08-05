@@ -369,7 +369,7 @@ export default function PurchaseOrdersPage() {
           </DialogHeader>
           <form onSubmit={handleSubmitPO} className="space-y-6 pt-2">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <div className="grid gap-2">
                 <Label>Supplier</Label>
                 <Select value={supplierId} onValueChange={(v) => setSupplierId(v || "")} required>
                   <SelectTrigger><SelectValue placeholder="Select supplier" /></SelectTrigger>
@@ -378,11 +378,11 @@ export default function PurchaseOrdersPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
+              <div className="grid gap-2">
                 <Label>Expected Delivery Date</Label>
                 <Input type="date" value={expectedDate} onChange={e => setExpectedDate(e.target.value)} required />
               </div>
-              <div className="space-y-2">
+              <div className="grid gap-2">
                 <Label>Destination Branch</Label>
                 <Select value={branch} onValueChange={(v) => setBranch(v || "")} disabled={!canApprove}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -396,7 +396,7 @@ export default function PurchaseOrdersPage() {
             <div className="border rounded-lg p-4 bg-gray-50/50 space-y-4">
               <h4 className="font-bold text-gray-700 text-sm">Add Items to Order</h4>
               <div className="grid grid-cols-12 gap-2 items-end">
-                <div className="col-span-2 space-y-1">
+                <div className="col-span-2 grid gap-1.5">
                   <Label className="text-xs">Type</Label>
                   <Select value={itemType} onValueChange={(v) => { if(v) { setItemType(v as "Raw Material" | "Product"); setSelectedItemSku(""); } }}>
                     <SelectTrigger className="px-2 text-xs"><SelectValue /></SelectTrigger>
@@ -406,7 +406,7 @@ export default function PurchaseOrdersPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="col-span-4 space-y-1">
+                <div className="col-span-4 grid gap-1.5">
                   <Label className="text-xs">Select Item</Label>
                   <Select value={selectedItemSku} onValueChange={(val) => setSelectedItemSku(val || "")}>
                     <SelectTrigger className="text-xs truncate"><SelectValue placeholder="Choose..." /></SelectTrigger>
@@ -423,11 +423,11 @@ export default function PurchaseOrdersPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="col-span-2 space-y-1">
+                <div className="col-span-2 grid gap-1.5">
                   <Label className="text-xs">Qty</Label>
                   <Input type="number" min="0.1" step="0.1" value={itemQty} onChange={e => setItemQty(e.target.value)} placeholder="0" />
                 </div>
-                <div className="col-span-3 space-y-1">
+                <div className="col-span-3 grid gap-1.5">
                   <Label className="text-xs">Unit Cost (Rs)</Label>
                   <Input type="number" min="0" step="0.01" value={itemCost} onChange={e => setItemCost(e.target.value)} placeholder="0.00" />
                 </div>
@@ -546,7 +546,7 @@ export default function PurchaseOrdersPage() {
               Are you sure you want to approve this Purchase Order? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
+          <DialogFooter className="mt-2 flex gap-3 sm:justify-end">
             <Button type="button" variant="outline" onClick={() => setIsApproveOpen(false)}>
               Cancel
             </Button>

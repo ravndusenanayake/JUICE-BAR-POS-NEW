@@ -212,18 +212,18 @@ export default function UnitsPage() {
               <div className="grid gap-6 py-4 max-h-[60vh] overflow-y-auto px-6">
                 <div className="grid gap-2">
                   <Label htmlFor="name" className="text-sm font-medium text-gray-700">Unit Name *</Label>
-                  <Input id="name" placeholder="e.g. Kilogram" value={name} onChange={(e) => setName(e.target.value)} required className="border-gray-300" />
+                  <Input id="name" placeholder="e.g. Kilogram" value={name} onChange={(e) => setName(e.target.value)} required  />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="code" className="text-sm font-medium text-gray-700">Short Code *</Label>
-                    <Input id="code" placeholder="e.g. kg" value={code} onChange={(e) => setCode(e.target.value)} required className="border-gray-300" />
+                    <Input id="code" placeholder="e.g. kg" value={code} onChange={(e) => setCode(e.target.value)} required  />
                   </div>
                   <div className="grid gap-2">
                     <Label className="text-sm font-medium text-gray-700">Unit Type *</Label>
                     <Select value={type} onValueChange={(val) => val && setType(val)}>
-                      <SelectTrigger className="border-gray-300">
+                      <SelectTrigger >
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -255,7 +255,7 @@ export default function UnitsPage() {
                       <div className="grid gap-2">
                         <Label className="text-xs font-medium text-gray-700">Base Unit</Label>
                         <Select value={baseUnitCode} onValueChange={(val) => val && setBaseUnitCode(val)}>
-                          <SelectTrigger className="border-gray-300">
+                          <SelectTrigger >
                             <SelectValue placeholder="Select..." />
                           </SelectTrigger>
                           <SelectContent>
@@ -290,7 +290,7 @@ export default function UnitsPage() {
                 </div>
               </div>
               
-              <DialogFooter className="mt-4 flex gap-3 sm:justify-end">
+              <DialogFooter className="mt-2 flex gap-3 sm:justify-end">
                 <DialogClose render={<Button type="button" variant="outline" className="w-full sm:w-auto" />}>
                   Cancel
                 </DialogClose>
