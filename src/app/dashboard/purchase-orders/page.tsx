@@ -55,7 +55,7 @@ export default function PurchaseOrdersPage() {
 
   // Create PO Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [supplierId, setSupplierId] = useState("")
+  const [supplierName, setSupplierName] = useState("")
   const [branch, setBranch] = useState(defaultBranch)
   const [expectedDate, setExpectedDate] = useState("")
   const [items, setItems] = useState<POItem[]>([])
@@ -183,12 +183,11 @@ export default function PurchaseOrdersPage() {
 
   const handleSubmitPO = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!supplierId || items.length === 0 || !expectedDate) {
+    if (!supplierName || items.length === 0 || !expectedDate) {
       toast.error("Please fill all required fields and add at least one item.")
       return
     }
 
-    const supplierName = suppliers.find(s => s.id === supplierId)?.name || "Unknown Supplier"
     const poNumber = `PO-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`
     const totalAmount = items.reduce((acc, item) => acc + item.totalPrice, 0)
     
@@ -208,7 +207,7 @@ export default function PurchaseOrdersPage() {
       if (res.ok) {
         fetchPOs()
         setIsCreateOpen(false)
-        setSupplierId(""); setBranch(defaultBranch); setExpectedDate(""); setItems([])
+        setSupplierName(""); setBranch(defaultBranch); setExpectedDate(""); setItems([])
       } else {
         throw new Error('Failed to create PO')
       }
@@ -371,10 +370,10 @@ export default function PurchaseOrdersPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="mb-2 block">Supplier</Label>
-                <Select value={supplierId} onValueChange={(v) => setSupplierId(v || "")} required>
+                <Select value={supplierName} onValueChange={(v) => setSupplierName(v || "")} required>
                   <SelectTrigger><SelectValue placeholder="Select supplier" /></SelectTrigger>
                   <SelectContent>
-                    {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    {suppliers.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
