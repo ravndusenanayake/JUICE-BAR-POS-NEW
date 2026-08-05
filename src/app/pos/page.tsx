@@ -1082,7 +1082,7 @@ export default function POSPage() {
 
         {/* Product Grid */}
         <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 pb-20">
+          <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 pb-20">
             {filteredProducts.map(product => {
               // Better background colors for premium look
               const premiumColorMap: Record<string, string> = {
@@ -1364,7 +1364,7 @@ export default function POSPage() {
                       <span className="bg-orange-100 text-orange-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
                       Select Size <span className="text-red-500">*</span>
                     </Label>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {selectedProduct.variants.map((v: any) => (
                         <button key={v.name} type="button" onClick={() => !v.isOutOfStock && setSelectedVariant(v)} disabled={v.isOutOfStock}
                           className={`p-4 rounded-xl border-2 text-left transition-all ${v.isOutOfStock ? 'opacity-50 cursor-not-allowed bg-gray-50 border-gray-200' : selectedVariant?.name === v.name ? 'border-orange-500 bg-orange-50 shadow-md ring-1 ring-orange-500' : 'border-gray-200 bg-white hover:border-orange-200'}`}
@@ -1387,7 +1387,7 @@ export default function POSPage() {
                       <span className="bg-orange-100 text-orange-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">{selectedProduct.hasVariants ? '2' : '1'}</span>
                       Add-ons (Optional)
                     </Label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {selectedProduct.addons.map((addon: any) => {
                         const isSelected = selectedAddons.some(a => a.name === addon.name)
                         return (
@@ -1420,7 +1420,7 @@ export default function POSPage() {
             <DialogDescription>Enter a reference name to park this sale.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 px-6 py-4">
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Label>Customer Name / Table / Reference</Label>
               <Input placeholder="e.g. Table 4 or John" value={holdCustomerName} onChange={e => setHoldCustomerName(e.target.value)} autoFocus />
             </div>
@@ -1467,7 +1467,7 @@ export default function POSPage() {
               <Button variant={discountType === "FIXED" ? "default" : "outline"} className={discountType === "FIXED" ? "bg-orange-500" : ""} onClick={() => {setDiscountType("FIXED"); setDiscountValue(0)}}>Fixed Amount (Rs)</Button>
             </div>
             {discountType !== "NONE" && (
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <Label>Discount Value {discountType === "PERCENT" ? "(%)" : "(Rs)"}</Label>
                 <Input type="number" value={discountValue || ""} onChange={e => setDiscountValue(Number(e.target.value))} />
               </div>
@@ -1488,7 +1488,7 @@ export default function POSPage() {
             <DialogDescription>Enter the opening cash balance in the drawer to start your shift.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 px-6 py-4">
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Label className="font-bold text-gray-700">Opening Balance (Rs.)</Label>
               <Input type="number" placeholder="5000" value={openingBalance} onChange={e => setOpeningBalance(e.target.value)} autoFocus className="h-12 text-lg font-bold rounded-xl border-2 border-gray-200 focus:border-orange-500" />
             </div>
@@ -1508,7 +1508,7 @@ export default function POSPage() {
               <div className="text-3xl font-black text-orange-600 mt-2">Rs. {grandTotal.toFixed(2)}</div>
             </div>
             <div className="p-6 space-y-6 bg-gray-50">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {["Cash", "Card", "Bank Transfer", "Split"].map((method) => (
                   <button
                     key={method} type="button"
@@ -1584,7 +1584,7 @@ export default function POSPage() {
                 value={customerSearch} onChange={e => setCustomerSearch(e.target.value)}
               />
             </div>
-            <div className="max-h-[50vh] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+            <div className="max-h-[50vh] overflow-y-auto flex flex-col gap-2 pr-2 custom-scrollbar">
               {customers
                 .filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || (c.mobile && c.mobile.includes(customerSearch)))
                 .map(c => (
@@ -1869,7 +1869,7 @@ export default function POSPage() {
               <span className="w-1/3 text-right">Amount</span>
             </div>
             
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               {saleDetails?.items?.map((item: any, i: number) => (
                 <div key={i} className="text-xs">
                   <div className="flex justify-between items-start">
@@ -2049,7 +2049,7 @@ export default function POSPage() {
 
           {viewSaleDetail && (
             <div className="space-y-6 mt-4">
-              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl text-sm">
                 <div>
                   <span className="text-gray-400 block text-xs font-medium">Customer</span>
                   <span className="font-bold text-gray-900">{viewSaleDetail.customer || 'Walk-In Customer'}</span>
@@ -2161,7 +2161,7 @@ export default function POSPage() {
                 }}
               />
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(n => (
                 <button
                   key={n}

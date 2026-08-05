@@ -194,7 +194,7 @@ export default function BranchesPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4 px-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="code">Branch Code <span className="text-red-500">*</span></Label>
                     <Input id="code" placeholder="e.g. COL-07" value={code} onChange={(e) => setCode(e.target.value)} required disabled={!!editingId} />
@@ -210,7 +210,7 @@ export default function BranchesPage() {
                   <Input id="address" placeholder="e.g. 123 Ward Place" value={address} onChange={(e) => setAddress(e.target.value)} />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="phone">Phone Number</Label>
                     <Input id="phone" placeholder="e.g. 011-2345678" value={phone} onChange={(e) => setPhone(e.target.value)} />

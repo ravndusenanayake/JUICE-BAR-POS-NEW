@@ -343,7 +343,7 @@ export default function StockTransfersPage() {
             
             <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
               {/* Header Details */}
-              <div className="grid grid-cols-2 gap-4 bg-white">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white">
                 <div className="flex flex-col gap-2">
                   <Label className="font-bold text-gray-700">Source Branch (From) *</Label>
                   <Select value={sourceBranch} onValueChange={(v) => setSourceBranch(v || "")} disabled={user?.branch !== "All Branches"}>

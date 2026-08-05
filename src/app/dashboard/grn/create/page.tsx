@@ -246,12 +246,12 @@ function CreateGRNContent() {
             </h3>
             
             <div className="space-y-4">
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <Label className="text-xs font-semibold text-gray-600">GRN Number *</Label>
                 <Input value={grnNumber} readOnly className="bg-gray-50 text-gray-600" />
               </div>
               
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <Label className="text-xs font-semibold text-gray-600">Purchase Orders *</Label>
                 <p className="text-[10px] text-gray-500 leading-tight mb-1">(Pending and Approved POs available for GRN creation)</p>
                 <Select value={selectedPOId} onValueChange={(val) => setSelectedPOId(val || "")}>
@@ -268,17 +268,17 @@ function CreateGRNContent() {
                 </Select>
               </div>
               
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <Label className="text-xs font-semibold text-gray-600">Received By *</Label>
                 <Input value={receivedBy} onChange={e => setReceivedBy(e.target.value)} placeholder="Enter receiver name" className="shadow-sm" />
               </div>
               
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <Label className="text-xs font-semibold text-gray-600">Received Date *</Label>
                 <Input type="date" value={receivedDate} onChange={e => setReceivedDate(e.target.value)} className="shadow-sm" />
               </div>
               
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <Label className="text-xs font-semibold text-gray-600">Notes</Label>
                 <textarea 
                   value={notes} onChange={e => setNotes(e.target.value)}
@@ -343,20 +343,20 @@ function CreateGRNContent() {
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div className="space-y-1.5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="flex flex-col gap-1.5">
                           <Label className="text-xs text-gray-600">Received Quantity</Label>
                           <Input type="number" min="0" step="0.01" value={item.receivedGoodQty} onChange={e => updateItem(item.id, 'receivedGoodQty', e.target.value)} className="bg-white" />
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="flex flex-col gap-1.5">
                           <Label className="text-xs text-gray-600">Unit Price</Label>
                           <Input type="number" min="0" step="0.01" value={item.unitPrice} onChange={e => updateItem(item.id, 'unitPrice', e.target.value)} className="bg-white" />
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="flex flex-col gap-1.5">
                           <Label className="text-xs text-gray-600">Expiry Date</Label>
                           <Input type="date" value={item.expiryDate} onChange={e => updateItem(item.id, 'expiryDate', e.target.value)} className="bg-white" />
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="flex flex-col gap-1.5">
                           <Label className="text-xs text-gray-600">Damaged Quantity</Label>
                           <Input type="number" min="0" step="0.01" value={item.damagedQty} onChange={e => updateItem(item.id, 'damagedQty', e.target.value)} className="bg-white border-red-200 focus-visible:ring-red-500" />
                         </div>

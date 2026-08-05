@@ -246,7 +246,7 @@ export default function RawMaterialsPage() {
                   <Input id="name" placeholder="e.g. Sugar" value={name} onChange={(e) => setName(e.target.value)} required  />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="unit" className="text-sm font-medium text-gray-700">Measurement Unit *</Label>
                     <Select value={unit} onValueChange={(val) => setUnit(val || "")} required>

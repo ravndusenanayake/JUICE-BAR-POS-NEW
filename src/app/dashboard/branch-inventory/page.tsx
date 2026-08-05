@@ -244,7 +244,7 @@ export default function BranchInventoryPage() {
           </DialogHeader>
           
           <form onSubmit={handleSaveAdjustment} className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
                 <Label>Type</Label>
                 <Select value={adjustmentType} onValueChange={(v) => setAdjustmentType(v || "")}>
@@ -300,7 +300,7 @@ export default function BranchInventoryPage() {
             </div>
 
             {adjustmentType === "OUT" && ["Rotten / Expired", "Damaged / Broken", "Spillage"].includes(adjustmentReason) && (
-              <div className="space-y-2 bg-red-50/50 p-3 rounded-lg border border-red-100">
+              <div className="flex flex-col gap-2 bg-red-50/50 p-3 rounded-lg border border-red-100">
                 <Label className="text-red-700">Financial Loss Amount (Rs.)</Label>
                 <Input 
                   type="number" min="0" required

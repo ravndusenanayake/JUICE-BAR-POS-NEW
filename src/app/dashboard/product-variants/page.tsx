@@ -207,7 +207,7 @@ export default function ProductVariantsPage() {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2">
                     <Label className="text-sm font-medium text-gray-700">Variant Name <span className="text-red-500">*</span></Label>
                     <Select value={name} onValueChange={(val) => setName(val || "")}>

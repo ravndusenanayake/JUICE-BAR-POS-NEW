@@ -368,7 +368,7 @@ export default function PurchaseOrdersPage() {
             <DialogDescription>Generate a new PO to order stock from suppliers.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmitPO} className="space-y-6 pt-2">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
                 <Label>Supplier</Label>
                 <Select value={supplierId} onValueChange={(v) => setSupplierId(v || "")} required>

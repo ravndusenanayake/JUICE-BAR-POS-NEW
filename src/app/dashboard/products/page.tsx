@@ -354,7 +354,7 @@ export default function ProductsPage() {
                   {/* Common Product Fields */}
                   <div className="mt-6 mb-4"></div>
 
-                  <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div className="flex flex-col gap-2">
                       <Label className="text-sm font-medium text-gray-700">Product Name <span className="text-red-500">*</span></Label>
                       <Input placeholder="e.g. Classic Mojito" value={name} onChange={(e) => setName(e.target.value)} required />
@@ -365,7 +365,7 @@ export default function ProductsPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div className="flex flex-col gap-2">
                       <Label className="text-sm font-medium text-gray-700">Category (Optional)</Label>
                       <Select value={category} onValueChange={(val) => setCategory(val || "")}>
@@ -407,7 +407,7 @@ export default function ProductsPage() {
                       </div>
 
                       {formVariants.length > 0 ? (
-                        <div className="space-y-2 mt-2">
+                        <div className="flex flex-col gap-2 mt-2">
                           {formVariants.map((variant, idx) => (
                             <div key={idx} className="flex items-center gap-2 bg-gray-50 p-2 rounded-md border">
                               <div className="flex-1">
@@ -453,7 +453,7 @@ export default function ProductsPage() {
                       </div>
                       
                       {globalAddons.length > 0 ? (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
                           {globalAddons.map(addon => {
                             const isSelected = formAddons.some(a => a.name === addon.name)
                             return (

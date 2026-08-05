@@ -215,7 +215,7 @@ export default function UnitsPage() {
                   <Input id="name" placeholder="e.g. Kilogram" value={name} onChange={(e) => setName(e.target.value)} required  />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="code" className="text-sm font-medium text-gray-700">Short Code *</Label>
                     <Input id="code" placeholder="e.g. kg" value={code} onChange={(e) => setCode(e.target.value)} required  />
@@ -251,7 +251,7 @@ export default function UnitsPage() {
                   </div>
 
                   {!isBaseUnit && (
-                    <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t">
                       <div className="flex flex-col gap-2">
                         <Label className="text-xs font-medium text-gray-700">Base Unit</Label>
                         <Select value={baseUnitCode} onValueChange={(val) => val && setBaseUnitCode(val)}>

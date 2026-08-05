@@ -273,7 +273,7 @@ export default function ExpensesPage() {
             </div>
             
             <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2">
                   <Label className="font-bold text-gray-700">Date *</Label>
                   <Input type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} required className="h-11" />
@@ -287,7 +287,7 @@ export default function ExpensesPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2">
                   <Label className="font-bold text-gray-700">Category *</Label>
                   <Select value={category} onValueChange={(v) => setCategory(v || "")} required>

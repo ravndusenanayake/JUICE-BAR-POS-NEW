@@ -212,7 +212,7 @@ export default function UsersPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4 px-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="name">Full Name <span className="text-red-500">*</span></Label>
                     <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
@@ -228,7 +228,7 @@ export default function UsersPage() {
                   <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="role">Role <span className="text-red-500">*</span></Label>
                     <Select value={role} onValueChange={(val) => setRole(val || "")} required>
@@ -276,7 +276,7 @@ export default function UsersPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4 px-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="edit-name">Full Name <span className="text-red-500">*</span></Label>
                     <Input id="edit-name" value={name} onChange={(e) => setName(e.target.value)} required />
@@ -292,7 +292,7 @@ export default function UsersPage() {
                   <Input id="edit-password" type="password" placeholder="Leave blank to keep current" value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="edit-role">Role <span className="text-red-500">*</span></Label>
                     <Select value={role} onValueChange={(val) => setRole(val || "")} required>

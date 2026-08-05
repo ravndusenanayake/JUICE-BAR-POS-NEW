@@ -238,7 +238,7 @@ export default function SuppliersPage() {
               <Label>Supplier Name *</Label>
               <Input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Fresh Farms Ltd" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
                 <Label>Contact Person</Label>
                 <Input value={contactPerson} onChange={e => setContactPerson(e.target.value)} placeholder="e.g. Kamal" />
