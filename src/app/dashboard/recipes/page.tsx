@@ -39,8 +39,9 @@ export default function RecipesPage() {
     })
 
     // 2. Add Made-to-Order products that have NO active variants
+    // Skip Non-Inventory products (they don't need recipes)
     products.forEach(p => {
-      if (p.type === "Made to Order") {
+      if (p.type === "Made to Order" && p.stockType !== 'Non-Inventory') {
         const hasVariants = variants.some(v => {
           const vProdId = typeof v.productId === 'object' && v.productId !== null ? v.productId._id : v.productId;
           return vProdId === p._id && v.status === "Active"

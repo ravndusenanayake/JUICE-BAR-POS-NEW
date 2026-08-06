@@ -39,6 +39,7 @@ export default function ProductsPage() {
   const [unit, setUnit] = useState("Nos")
   const [threshold, setThreshold] = useState("0")
   const [isActive, setIsActive] = useState(true)
+  const [requiresRecipe, setRequiresRecipe] = useState(true)
 
   // Variant & Add-on State
   const [formVariants, setFormVariants] = useState<{id?: string, name: string, sellingPrice: string}[]>([])
@@ -169,7 +170,8 @@ export default function ProductsPage() {
           id: editingProduct.id, name, category: category || "General", type, description, image,
           status: isActive, sku, outletPrice: Number(outletPrice) || 0,
           unit, threshold: Number(threshold) || 0,
-          addons: type === "Made to Order" ? formAddons : []
+          addons: type === "Made to Order" ? formAddons : [],
+          stockType: type === "Made to Order" ? (requiresRecipe ? 'Recipe' : 'Non-Inventory') : 'Inventory'
         }
         
         const res = await fetch('/api/products', {
@@ -184,7 +186,8 @@ export default function ProductsPage() {
         const payload = {
           name, category: category || "General", type, description, image, status: isActive, outletPrice: Number(outletPrice) || 0,
           unit, threshold: Number(threshold) || 0,
-          addons: type === "Made to Order" ? formAddons : []
+          addons: type === "Made to Order" ? formAddons : [],
+          stockType: type === "Made to Order" ? (requiresRecipe ? 'Recipe' : 'Non-Inventory') : 'Inventory'
         }
         
         const res = await fetch('/api/products', {
@@ -247,6 +250,7 @@ export default function ProductsPage() {
     setEditingProduct(null)
     setFormVariants([])
     setFormAddons([])
+    setRequiresRecipe(true)
   }
 
   const handleEdit = (p: any) => {
@@ -262,6 +266,7 @@ export default function ProductsPage() {
     setThreshold(p.threshold?.toString() || "0")
     setIsActive(p.status === 'Active')
     setFormAddons(p.addons || [])
+    setRequiresRecipe(p.stockType !== 'Non-Inventory')
     
     // Load variants
     const productVars = allVariants.filter(v => v.productId && (v.productId._id === p.id || v.productId === p.id))
@@ -336,7 +341,7 @@ export default function ProductsPage() {
           <Plus className="mr-2 h-4 w-4" /> Create Product
         </Button>
         
-        <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }}>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }} disablePointerDismissal>
           <DialogContent className="sm:max-w-[750px]">
             <DialogHeader>
               <DialogTitle className="text-xl">{editingProduct ? "Edit Product" : "Create New Product"}</DialogTitle>
@@ -394,6 +399,19 @@ export default function ProductsPage() {
 
                   {/* MADE TO ORDER SPECIFIC FIELDS */}
                   <TabsContent value="Made to Order" className="space-y-6">
+                    {/* Recipe Toggle */}
+                    <div className="flex items-center justify-between border rounded-lg p-4 bg-amber-50/50">
+                      <div>
+                        <h3 className="font-semibold text-gray-800 text-sm">Requires Recipe?</h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {requiresRecipe 
+                            ? "This product uses raw materials via a recipe. Stock is deducted when sold." 
+                            : "No recipe needed. Unlimited stock — sold without inventory tracking (e.g. extra toppings, special combos)."}
+                        </p>
+                      </div>
+                      <Switch checked={requiresRecipe} onCheckedChange={setRequiresRecipe} className="data-[state=checked]:bg-orange-500" />
+                    </div>
+
                     {/* Variants Section */}
                     <div className="grid gap-3 border-t pt-4">
                       <div className="flex justify-between items-center">
@@ -584,6 +602,9 @@ export default function ProductsPage() {
                     {p.name}
                     {p.type === 'Finished Good' && (
                       <span className="ml-2 bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">Finished Good</span>
+                    )}
+                    {p.stockType === 'Non-Inventory' && (
+                      <span className="ml-2 bg-purple-100 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-full">∞ No Recipe</span>
                     )}
                   </div>
                   <div className="text-xs text-gray-400 mt-0.5">{p.sku}</div>

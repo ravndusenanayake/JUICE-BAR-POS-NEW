@@ -35,6 +35,7 @@ export async function POST(req: Request) {
       pickmePrice: body.pickmePrice || body.outletPrice || 0,
       uberPrice: body.uberPrice || body.outletPrice || 0,
       status: (body.status === true || body.status === 'Active') ? 'Active' : 'Inactive',
+      stockType: body.stockType || 'Recipe',
       image: body.image,
       description: body.description,
       threshold: body.threshold || 0,

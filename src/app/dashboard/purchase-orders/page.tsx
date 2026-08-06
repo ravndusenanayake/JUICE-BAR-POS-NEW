@@ -194,7 +194,9 @@ export default function PurchaseOrdersPage() {
     const newPO = {
       poNumber, supplierName, branch,
       orderDate: new Date().toISOString(), expectedDate: new Date(expectedDate).toISOString(),
-      items, totalAmount, status: "Awaiting Approval"
+      items, totalAmount, 
+      status: canApprove ? "Approved" : "Awaiting Approval",
+      ...(canApprove ? { approvedBy: user?.name || role } : {})
     }
 
     try {
@@ -360,7 +362,7 @@ export default function PurchaseOrdersPage() {
       </div>
 
       {/* --- CREATE PO MODAL --- */}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen} disablePointerDismissal>
         <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create Purchase Order</DialogTitle>
@@ -408,7 +410,19 @@ export default function PurchaseOrdersPage() {
                 <div className="flex-1 min-w-[180px]">
                   <Label className="text-xs mb-1.5 block">Select Item</Label>
                   <Select value={selectedItemSku} onValueChange={(val) => setSelectedItemSku(val || "")}>
-                    <SelectTrigger className="text-xs truncate"><SelectValue placeholder="Choose..." /></SelectTrigger>
+                    <SelectTrigger className="text-xs truncate">
+                      <SelectValue placeholder="Choose...">
+                        {(val) => {
+                          if (!val) return "Choose...";
+                          if (itemType === "Raw Material") {
+                            const rm = rawMaterials.find(r => r.sku === val);
+                            return rm ? `${rm.name} (${rm.unit === 'g' ? 'Kg' : rm.unit === 'ml' ? 'L' : rm.unit})` : val;
+                          }
+                          const p = products.find(prod => prod.sku === val);
+                          return p ? p.name : val;
+                        }}
+                      </SelectValue>
+                    </SelectTrigger>
                     <SelectContent>
                       {itemType === "Raw Material" 
                         ? rawMaterials.map(rm => {

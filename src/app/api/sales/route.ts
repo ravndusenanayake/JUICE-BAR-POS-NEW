@@ -86,8 +86,22 @@ export async function POST(req: Request) {
       const Recipe = (await import('@/database/models/Recipe')).default;
       const BranchInventory = (await import('@/database/models/BranchInventory')).default;
       const StockLedger = (await import('@/database/models/StockLedger')).default;
+      const Product = (await import('@/database/models/Product')).default;
 
       for (const item of body.items) {
+        // Check if product is Non-Inventory (unlimited stock, no recipe)
+        const product = await Product.findOne({
+          $or: [
+            { sku: item.productId },
+            { _id: item.productId?.match(/^[0-9a-fA-F]{24}$/) ? item.productId : undefined }
+          ].filter(Boolean)
+        });
+
+        if (product?.stockType === 'Non-Inventory') {
+          // Skip all inventory deduction for unlimited/non-inventory items
+          continue;
+        }
+
         // Find Recipe for this product and variant
         // item.productId usually stores SKU or ID, item.variant stores variant name
         let recipe = await Recipe.findOne({
@@ -249,8 +263,18 @@ export async function PUT(req: Request) {
       const Recipe = (await import('@/database/models/Recipe')).default;
       const BranchInventory = (await import('@/database/models/BranchInventory')).default;
       const StockLedger = (await import('@/database/models/StockLedger')).default;
+      const Product = (await import('@/database/models/Product')).default;
 
       for (const ri of normalizedReturns) {
+        // Skip Non-Inventory items (no stock to restock/waste)
+        const product = await Product.findOne({
+          $or: [
+            { sku: ri.productId },
+            { _id: ri.productId?.match(/^[0-9a-fA-F]{24}$/) ? ri.productId : undefined }
+          ].filter(Boolean)
+        });
+        if (product?.stockType === 'Non-Inventory') continue;
+
         if (ri.action === 'Restock') {
           // Check recipe for this returned item
           let recipe = await Recipe.findOne({
