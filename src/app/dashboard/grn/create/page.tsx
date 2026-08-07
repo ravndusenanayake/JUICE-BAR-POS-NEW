@@ -123,6 +123,8 @@ function CreateGRNContent() {
     setIsSubmitting(true)
     let atLeastOne = false
     let isCompletelyReceived = true
+    let hasOverQuantity = false
+    let overQuantityItemName = ""
     
     const finalItems = grnItems.map(item => {
       const goodQty = parseFloat(item.receivedGoodQty) || 0
@@ -130,6 +132,11 @@ function CreateGRNContent() {
       const totalProcessed = goodQty + damagedQty
       
       if (totalProcessed > 0) atLeastOne = true
+      
+      if (item.prevReceived + totalProcessed > item.orderedQty) {
+        hasOverQuantity = true
+        overQuantityItemName = item.name
+      }
       
       if (item.prevReceived + totalProcessed < item.orderedQty) {
         isCompletelyReceived = false
@@ -159,8 +166,15 @@ function CreateGRNContent() {
       }
     }).filter(i => (i.receivedGoodQty + i.damagedQty) > 0)
 
+    if (hasOverQuantity) {
+      toast.error(`Quantity exceeds order for ${overQuantityItemName}`)
+      setIsSubmitting(false)
+      return
+    }
+
     if (!atLeastOne) {
       toast.info("Please receive at least one item.")
+      setIsSubmitting(false)
       return
     }
 
