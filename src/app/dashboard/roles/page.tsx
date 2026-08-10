@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -76,9 +76,24 @@ const INITIAL_ROLES = [
 ]
 
 export default function RolesPage() {
-  const [roles, setRoles] = useState(INITIAL_ROLES)
+  const [roles, setRoles] = useState<any[]>([])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingRole, setEditingRole] = useState<any>(null)
+  
+  useEffect(() => {
+    fetchRoles()
+  }, [])
+
+  const fetchRoles = async () => {
+    try {
+      const res = await fetch('/api/roles')
+      if (res.ok) {
+        setRoles(await res.json())
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
   
   // Form State
   const [roleName, setRoleName] = useState("")
@@ -121,22 +136,45 @@ export default function RolesPage() {
     }
   }
 
-  const handleSaveRole = (e: React.FormEvent) => {
+  const handleSaveRole = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!roleName) return
 
-    if (editingRole) {
-      setRoles(roles.map(r => r.id === editingRole.id ? { ...r, name: roleName, permissions: selectedPerms as any } : r))
-    } else {
-      const newRole = {
-        id: `ROLE-00${roles.length + 1}`,
-        name: roleName,
-        permissions: selectedPerms as any
+    try {
+      if (editingRole) {
+        const id = editingRole._id || editingRole.id;
+        const res = await fetch(`/api/roles/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: roleName, permissions: selectedPerms })
+        })
+        if (res.ok) {
+          toast.success("Role updated successfully")
+          fetchRoles()
+          setIsDialogOpen(false)
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          toast.error(errData.error || "Failed to update role")
+        }
+      } else {
+        const res = await fetch('/api/roles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: roleName, permissions: selectedPerms })
+        })
+        if (res.ok) {
+          toast.success("Role created successfully")
+          fetchRoles()
+          setIsDialogOpen(false)
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          toast.error(errData.error || "Failed to create role")
+        }
       }
-      setRoles([...roles, newRole])
+    } catch (err) {
+      console.error(err)
+      toast.error("An error occurred")
     }
-    
-    setIsDialogOpen(false)
   }
 
   const confirmDelete = async (id: string) => {
@@ -154,10 +192,12 @@ export default function RolesPage() {
       try {
         const res = await fetch(`/api/roles/${id}`, { method: 'DELETE' });
         if (res.ok) {
-          setRoles(roles.filter(r => r.id !== id));
+          setRoles(roles.filter(r => (r._id || r.id) !== id));
+          fetchRoles();
           Swal.fire('Deleted!', 'Role has been deleted.', 'success')
         } else {
-          toast.error("Failed to delete role.");
+          const errData = await res.json().catch(() => ({}));
+          toast.error(errData.error || "Failed to delete role.");
         }
       } catch (err) {
         console.error(err);
@@ -292,8 +332,9 @@ export default function RolesPage() {
           <TableBody>
             {roles.map((role) => {
               const isSuperAdmin = role.name === "Super Admin";
+              const roleId = role._id || role.id;
               return (
-                <TableRow key={role.id} className="hover:bg-gray-50/50 transition-colors">
+                <TableRow key={roleId} className="hover:bg-gray-50/50 transition-colors">
                   <TableCell className="font-bold text-gray-900 flex items-center gap-2 py-4">
                     {isSuperAdmin && <ShieldAlert className="h-4 w-4 text-orange-500" />}
                     {role.name}
@@ -315,7 +356,7 @@ export default function RolesPage() {
                         <Edit className="h-4 w-4" />
                       </Button>
                       {!isSuperAdmin && (
-                        <Button variant="ghost" size="icon" title="Delete" onClick={() => confirmDelete(role.id)}>
+                        <Button variant="ghost" size="icon" title="Delete" onClick={() => confirmDelete(roleId)}>
                           <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
                         </Button>
                       )}
