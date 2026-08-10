@@ -386,7 +386,7 @@ export default function PurchaseOrdersPage() {
               </div>
               <div>
                 <Label className="mb-2 block">Destination Branch</Label>
-                <Select value={branch} onValueChange={setBranch} disabled={user?.branch !== "All Branches"}>
+                <Select value={branch} onValueChange={(v) => setBranch(v || "")} disabled={user?.branch !== "All Branches"}>
                     <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {branches.map(b => <SelectItem key={b._id || b.code} value={b.name}>{b.name}</SelectItem>)}

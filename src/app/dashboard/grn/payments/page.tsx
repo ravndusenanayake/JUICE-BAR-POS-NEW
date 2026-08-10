@@ -236,7 +236,7 @@ export default function GRNPaymentsPage() {
               </div>
               <div className="space-y-2">
                 <Label>Payment Method</Label>
-                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v || "")}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Cash">Cash</SelectItem>

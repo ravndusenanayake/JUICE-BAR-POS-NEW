@@ -404,7 +404,7 @@ export default function StockTransfersPage() {
                   <div className="flex gap-2 items-end">
                     <div className="grid gap-1.5 flex-1">
                       <Label className="text-xs font-bold text-gray-700">Select Item</Label>
-                      <Select value={selectedItemName} onValueChange={handleItemSelect}>
+                      <Select value={selectedItemName} onValueChange={(val) => handleItemSelect(val || "")}>
                         <SelectTrigger className="h-9 bg-white"><SelectValue placeholder="Choose product..." /></SelectTrigger>
                         <SelectContent>
                           {getSourceInventory().map((i: any) => (
@@ -419,7 +419,7 @@ export default function StockTransfersPage() {
                       <Label className="text-xs font-bold text-gray-700">Qty</Label>
                       <div className="flex items-center">
                         <Input type="number" step="0.01" value={transferQty} onChange={e => setTransferQty(e.target.value)} placeholder="0" className="h-9 bg-white rounded-r-none border-r-0 focus-visible:ring-0" />
-                        <Select value={transferInputUnit} onValueChange={setTransferInputUnit}>
+                        <Select value={transferInputUnit} onValueChange={(v) => setTransferInputUnit(v || "")}>
                           <SelectTrigger className="w-16 h-9 rounded-l-none bg-gray-50 px-2 font-bold text-xs"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {selectedItemName && UNIT_CONFIGS[inventory.find(i => i.name === selectedItemName)?.unit as BaseUnit] ? (

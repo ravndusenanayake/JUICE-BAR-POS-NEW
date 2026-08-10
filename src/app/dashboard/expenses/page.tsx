@@ -196,7 +196,7 @@ export default function ExpensesPage() {
               />
             </div>
             {canSeeAllBranches && (
-              <Select value={filterBranch} onValueChange={setFilterBranch}>
+              <Select value={filterBranch} onValueChange={(v) => setFilterBranch(v || "")}>
                 <SelectTrigger className="w-[180px] bg-white"><SelectValue placeholder="Branch" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="All">All Branches</SelectItem>
@@ -291,7 +291,7 @@ export default function ExpensesPage() {
                 </div>
                 <div className="space-y-2">
                   <Label className="font-bold text-gray-700">Branch *</Label>
-                  <Select value={branch} onValueChange={setBranch} disabled={!canSeeAllBranches}>
+                  <Select value={branch} onValueChange={(v) => setBranch(v || "")} disabled={!canSeeAllBranches}>
                     <SelectTrigger className="bg-gray-50"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {branches.map(b => <SelectItem key={b._id || b.code} value={b.name}>{b.name}</SelectItem>)}

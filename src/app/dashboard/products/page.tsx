@@ -350,7 +350,7 @@ export default function ProductsPage() {
               
               <div className="py-4 px-6 max-h-[75vh] overflow-y-auto overflow-x-hidden custom-scrollbar">
                 
-                <Tabs value={type} onValueChange={setType} className="w-full mb-6">
+                <Tabs value={type} onValueChange={(v) => setType(v as "Finished Good" | "Ingredient" | "Add-on")} className="w-full mb-6">
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="Made to Order" className="text-sm font-semibold">Made to Order (Recipes)</TabsTrigger>
                     <TabsTrigger value="Finished Good" className="text-sm font-semibold">Finished Goods (e.g. Cakes)</TabsTrigger>
