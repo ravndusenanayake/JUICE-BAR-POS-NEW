@@ -1254,6 +1254,7 @@ export default function POSPage() {
           {cart.length > 0 && grandTotal > 0 && (
              <div className="flex gap-2 mb-3">
                 <button onClick={() => { setPaymentMethod("Cash"); setTenderedCash(grandTotal.toFixed(2)); setTimeout(initiatePayment, 100); }} className="flex-1 py-3 rounded-lg bg-green-50 border border-green-200 text-green-700 font-bold text-sm hover:bg-green-100 uppercase">Exact</button>
+                <button onClick={() => { setPaymentMethod("Cash"); setTenderedCash("500"); setTimeout(initiatePayment, 100); }} className="flex-1 py-3 rounded-lg bg-gray-50 border border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-100">Rs. 500</button>
                 <button onClick={() => { setPaymentMethod("Cash"); setTenderedCash("2000"); setTimeout(initiatePayment, 100); }} className="flex-1 py-3 rounded-lg bg-gray-50 border border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-100">Rs. 2000</button>
                 <button onClick={() => { setPaymentMethod("Cash"); setTenderedCash("5000"); setTimeout(initiatePayment, 100); }} className="flex-1 py-3 rounded-lg bg-gray-50 border border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-100">Rs. 5000</button>
              </div>
@@ -1524,6 +1525,7 @@ export default function POSPage() {
                 <div className="bg-white p-4 rounded-xl border space-y-4">
                   <div className="flex flex-wrap gap-2">
                     <Button type="button" variant="outline" className="flex-1 h-14 text-base font-bold bg-green-50 text-green-700 hover:bg-green-100 border-green-200" onClick={() => setTenderedCash(grandTotal.toFixed(2))}>Exact</Button>
+                    <Button type="button" variant="outline" className="flex-1 h-14 text-base font-bold" onClick={() => setTenderedCash("500")}>Rs. 500</Button>
                     <Button type="button" variant="outline" className="flex-1 h-14 text-base font-bold" onClick={() => setTenderedCash("1000")}>Rs. 1000</Button>
                     <Button type="button" variant="outline" className="flex-1 h-14 text-base font-bold" onClick={() => setTenderedCash("2000")}>Rs. 2000</Button>
                     <Button type="button" variant="outline" className="flex-1 h-14 text-base font-bold" onClick={() => setTenderedCash("5000")}>Rs. 5000</Button>
