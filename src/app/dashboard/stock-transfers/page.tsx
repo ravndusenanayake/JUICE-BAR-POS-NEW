@@ -31,7 +31,7 @@ export interface StockTransfer {
   createdBy: string
 }
 
-const BRANCHES = ["Colombo 07", "Kandy Branch", "Galle Branch"]
+// BRANCHES will be fetched dynamically from API
 
 export default function StockTransfersPage() {
   const { user, role } = useAuth()
@@ -41,6 +41,7 @@ export default function StockTransfersPage() {
 
   const [transfers, setTransfers] = useState<StockTransfer[]>([])
   const [inventory, setInventory] = useState<any[]>([])
+  const [branches, setBranches] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
 
   // Confirm Modal State
@@ -59,8 +60,27 @@ export default function StockTransfersPage() {
 
   useEffect(() => {
     fetchTransfers()
-    fetchInventory()
+    fetchBranches()
   }, [])
+
+  const fetchBranches = async () => {
+    try {
+      const res = await fetch('/api/branches')
+      if (res.ok) {
+        const data = await res.json()
+        setBranches(data)
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  // Fetch inventory whenever source branch changes (or on mount if sourceBranch is set)
+  useEffect(() => {
+    if (sourceBranch) {
+      fetchInventory()
+    }
+  }, [sourceBranch])
 
   const fetchTransfers = async () => {
     try {
@@ -75,10 +95,9 @@ export default function StockTransfersPage() {
   }
 
   const fetchInventory = async () => {
+    if (!sourceBranch) return;
     try {
-      // Fetch for all branches or selected branch. For transfer, we need to know source branch inventory.
-      // We will fetch based on sourceBranch
-      const res = await fetch(`/api/branch-inventory?branch=${sourceBranch}`)
+      const res = await fetch(`/api/branch-inventory?branch=${encodeURIComponent(sourceBranch)}`)
       if (res.ok) {
         const data = await res.json()
         setInventory(data)
@@ -87,10 +106,6 @@ export default function StockTransfersPage() {
       console.error(e)
     }
   }
-
-  useEffect(() => {
-    fetchInventory()
-  }, [sourceBranch])
 
   const filteredTransfers = transfers.filter(t => 
     t.transferNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -347,15 +362,15 @@ export default function StockTransfersPage() {
                 <div className="space-y-2">
                   <Label className="font-bold text-gray-700">Source Branch (From) *</Label>
                   <Select value={sourceBranch} onValueChange={(v) => setSourceBranch(v || "")} disabled={user?.branch !== "All Branches"}>
-                    <SelectTrigger className="border-red-200 bg-red-50 h-10"><SelectValue /></SelectTrigger>
-                    <SelectContent>{BRANCHES.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
+                    <SelectTrigger className="border-red-200 bg-red-50 h-10"><SelectValue placeholder="Select Source" /></SelectTrigger>
+                    <SelectContent>{branches.map(b => <SelectItem key={b._id || b.code} value={b.name}>{b.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label className="font-bold text-gray-700">Destination Branch (To) *</Label>
                   <Select value={destBranch} onValueChange={(v) => setDestBranch(v || "")} required>
                     <SelectTrigger className="border-green-200 bg-green-50 h-10"><SelectValue placeholder="Select Destination" /></SelectTrigger>
-                    <SelectContent>{BRANCHES.filter(b => b !== sourceBranch).map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
+                    <SelectContent>{branches.filter(b => b.name !== sourceBranch).map(b => <SelectItem key={b._id || b.code} value={b.name}>{b.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               </div>
@@ -375,7 +390,7 @@ export default function StockTransfersPage() {
                         <SelectContent>
                           {getSourceInventory().map((i: any) => (
                             <SelectItem key={i._id || i.sku} value={i.name}>
-                              {i.name} <span className="text-gray-400 text-xs ml-2">(Max: {i.quantity} {i.unit})</span>
+                              {`${i.name} (Max: ${i.quantity} ${i.unit})`}
                             </SelectItem>
                           ))}
                         </SelectContent>

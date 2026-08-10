@@ -34,7 +34,7 @@ const CATEGORIES = [
   "Other"
 ]
 
-const BRANCHES = ["Colombo 07", "Kandy Branch", "Galle Branch"]
+// BRANCHES will be fetched dynamically from API
 
 export default function ExpensesPage() {
   const { user, role } = useAuth()
@@ -43,6 +43,7 @@ export default function ExpensesPage() {
   const canSeeAllBranches = role === "Super Admin" || role === "Admin"
 
   const [expenses, setExpenses] = useState<Expense[]>([])
+  const [branches, setBranches] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [filterBranch, setFilterBranch] = useState(canSeeAllBranches ? "All" : defaultBranch)
 
@@ -60,7 +61,19 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     fetchExpenses()
+    fetchBranches()
   }, [])
+
+  const fetchBranches = async () => {
+    try {
+      const res = await fetch('/api/branches')
+      if (res.ok) {
+        setBranches(await res.json())
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   const fetchExpenses = async () => {
     try {
@@ -183,13 +196,11 @@ export default function ExpensesPage() {
               />
             </div>
             {canSeeAllBranches && (
-              <Select value={filterBranch} onValueChange={(v) => setFilterBranch(v || "")}>
-                <SelectTrigger className="w-48 h-10 bg-white">
-                  <SelectValue placeholder="All Branches" />
-                </SelectTrigger>
+              <Select value={filterBranch} onValueChange={setFilterBranch}>
+                <SelectTrigger className="w-[180px] bg-white"><SelectValue placeholder="Branch" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="All">All Branches</SelectItem>
-                  {BRANCHES.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                  {branches.map(b => <SelectItem key={b._id || b.code} value={b.name}>{b.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             )}
@@ -280,9 +291,11 @@ export default function ExpensesPage() {
                 </div>
                 <div className="space-y-2">
                   <Label className="font-bold text-gray-700">Branch *</Label>
-                  <Select value={branch} onValueChange={(v) => setBranch(v || "")} disabled={!canSeeAllBranches}>
-                    <SelectTrigger className="h-11 bg-gray-50"><SelectValue /></SelectTrigger>
-                    <SelectContent>{BRANCHES.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
+                  <Select value={branch} onValueChange={setBranch} disabled={!canSeeAllBranches}>
+                    <SelectTrigger className="bg-gray-50"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {branches.map(b => <SelectItem key={b._id || b.code} value={b.name}>{b.name}</SelectItem>)}
+                    </SelectContent>
                   </Select>
                 </div>
               </div>

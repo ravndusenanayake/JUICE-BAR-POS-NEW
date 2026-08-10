@@ -37,7 +37,7 @@ export interface PurchaseOrder {
   createdAt: string
 }
 
-const BRANCHES = ["Colombo 07", "Kandy Branch", "Galle Branch"]
+// BRANCHES will be fetched dynamically from API
 const UNITS = ["Kg", "g", "L", "ml", "Bottles", "Packets", "Boxes"]
 
 export default function PurchaseOrdersPage() {
@@ -48,6 +48,7 @@ export default function PurchaseOrdersPage() {
 
   const [pos, setPos] = useState<PurchaseOrder[]>([])
   const [suppliers, setSuppliers] = useState<any[]>([])
+  const [branches, setBranches] = useState<any[]>([])
   
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState<"ALL" | "AWAITING_APPROVAL" | "PENDING">("ALL")
@@ -77,23 +78,22 @@ export default function PurchaseOrdersPage() {
   // GRN flow is now handled in /dashboard/grn/create
 
   useEffect(() => {
-    fetchPOs()
+    fetchData()
   }, [])
 
-  const fetchPOs = async () => {
-    setIsLoading(true)
+  const fetchData = async () => {
     try {
-      const [poRes, supRes, rmRes, prodRes] = await Promise.all([
+      setIsLoading(true)
+      const [poRes, supRes, branchRes, rmRes, prodRes] = await Promise.all([
         fetch('/api/purchase-orders'),
         fetch('/api/suppliers'),
+        fetch('/api/branches'),
         fetch('/api/raw-materials'),
         fetch('/api/products')
       ])
       
-      if (poRes.ok) {
-        const data = await poRes.json()
-        setPos(data)
-      }
+      if (poRes.ok) setPos(await poRes.json())
+      if (branchRes.ok) setBranches(await branchRes.json())
       
       if (supRes.ok) {
         const data = await supRes.json()
@@ -105,6 +105,7 @@ export default function PurchaseOrdersPage() {
       if (prodRes.ok) setProducts(await prodRes.json())
     } catch (e) {
       console.error(e)
+      toast.error("Failed to load data")
     } finally {
       setIsLoading(false)
     }
@@ -132,7 +133,7 @@ export default function PurchaseOrdersPage() {
       });
       if (res.ok) {
         toast.success("Purchase Order Approved")
-        fetchPOs();
+        fetchData();
       } else {
         toast.error("Failed to approve PO")
       }
@@ -207,7 +208,7 @@ export default function PurchaseOrdersPage() {
       })
 
       if (res.ok) {
-        fetchPOs()
+        fetchData()
         setIsCreateOpen(false)
         setSupplierName(""); setBranch(defaultBranch); setExpectedDate(""); setItems([])
       } else {
@@ -362,7 +363,7 @@ export default function PurchaseOrdersPage() {
       </div>
 
       {/* --- CREATE PO MODAL --- */}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen} disablePointerDismissal>
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create Purchase Order</DialogTitle>
@@ -385,11 +386,11 @@ export default function PurchaseOrdersPage() {
               </div>
               <div>
                 <Label className="mb-2 block">Destination Branch</Label>
-                <Select value={branch} onValueChange={(v) => setBranch(v || "")} disabled={!canApprove}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {BRANCHES.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-                  </SelectContent>
+                <Select value={branch} onValueChange={setBranch} disabled={user?.branch !== "All Branches"}>
+                    <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {branches.map(b => <SelectItem key={b._id || b.code} value={b.name}>{b.name}</SelectItem>)}
+                    </SelectContent>
                 </Select>
               </div>
             </div>

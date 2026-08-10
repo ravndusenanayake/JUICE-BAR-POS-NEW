@@ -13,17 +13,14 @@ import { Search, History, ArrowDownUp, AlertCircle, CheckCircle2, TrendingUp, Tr
 import { formatStockDisplay, BaseUnit } from "@/lib/units"
 import Link from "next/link"
 
-const BRANCHES = [
-  { id: "Colombo 07", name: "Colombo 07" },
-  { id: "Kandy Branch", name: "Kandy Branch" },
-  { id: "Galle Branch", name: "Galle Branch" }
-]
+// BRANCHES will be fetched dynamically from API
 
 export default function BranchInventoryPage() {
   const { user, role } = useAuth()
   
   const [selectedBranch, setSelectedBranch] = useState(user?.branch === "All Branches" ? "Colombo 07" : (user?.branch || "Colombo 07"))
   const [inventory, setInventory] = useState<any[]>([])
+  const [branches, setBranches] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   
   // Adjustment Modal State
@@ -39,8 +36,23 @@ export default function BranchInventoryPage() {
   const canSelectBranch = role === "Super Admin" || role === "Admin"
 
   useEffect(() => {
-    fetchInventory()
+    fetchBranches()
+  }, [])
+
+  useEffect(() => {
+    if (selectedBranch) fetchInventory()
   }, [selectedBranch])
+
+  const fetchBranches = async () => {
+    try {
+      const res = await fetch('/api/branches')
+      if (res.ok) {
+        setBranches(await res.json())
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   const fetchInventory = async () => {
     setIsLoading(true)
@@ -127,8 +139,8 @@ export default function BranchInventoryPage() {
               <SelectValue placeholder="Select Branch" />
             </SelectTrigger>
             <SelectContent>
-              {BRANCHES.map(b => (
-                <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+              {branches.map(b => (
+                <SelectItem key={b._id || b.code} value={b.name}>{b.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>

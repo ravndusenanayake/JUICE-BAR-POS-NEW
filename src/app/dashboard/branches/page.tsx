@@ -34,9 +34,19 @@ export default function BranchesPage() {
   }
 
   useEffect(() => {
-    const limit = localStorage.getItem("maxBranches")
-    if (limit) setMaxBranchesLimit(parseInt(limit))
-    fetchBranches()
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.maxBranches) setMaxBranchesLimit(data.maxBranches);
+        }
+      } catch (err) {
+        console.error("Failed to fetch settings", err);
+      }
+    };
+    fetchSettings();
+    fetchBranches();
   }, [])
   
   // Form State
