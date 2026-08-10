@@ -411,17 +411,7 @@ export default function PurchaseOrdersPage() {
                   <Label className="text-xs mb-1.5 block">Select Item</Label>
                   <Select value={selectedItemSku} onValueChange={(val) => setSelectedItemSku(val || "")}>
                     <SelectTrigger className="text-xs truncate">
-                      <SelectValue placeholder="Choose...">
-                        {(val) => {
-                          if (!val) return "Choose...";
-                          if (itemType === "Raw Material") {
-                            const rm = rawMaterials.find(r => r.sku === val);
-                            return rm ? `${rm.name} (${rm.unit === 'g' ? 'Kg' : rm.unit === 'ml' ? 'L' : rm.unit})` : val;
-                          }
-                          const p = products.find(prod => prod.sku === val);
-                          return p ? p.name : val;
-                        }}
-                      </SelectValue>
+                      <SelectValue placeholder="Choose..." />
                     </SelectTrigger>
                     <SelectContent>
                       {itemType === "Raw Material" 
