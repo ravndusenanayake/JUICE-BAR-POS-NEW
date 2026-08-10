@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, ArrowRightLeft, Plus, CheckCircle, PackageOpen, Download, AlertTriangle } from "lucide-react"
+import { formatStockDisplay, toBaseUnit, BaseUnit, UNIT_CONFIGS } from "@/lib/units"
 
 export interface TransferItem {
   id: string
@@ -56,6 +57,7 @@ export default function StockTransfersPage() {
   // Item Selection State for Transfer
   const [selectedItemName, setSelectedItemName] = useState("")
   const [transferQty, setTransferQty] = useState("")
+  const [transferInputUnit, setTransferInputUnit] = useState("g")
   const [transferItems, setTransferItems] = useState<TransferItem[]>([])
 
   useEffect(() => {
@@ -117,10 +119,23 @@ export default function StockTransfersPage() {
     return inventory // already filtered by sourceBranch in fetch
   }
 
+  const handleItemSelect = (val: string) => {
+    setSelectedItemName(val)
+    const invItem = inventory.find(i => i.name === val)
+    if (invItem) {
+      const config = UNIT_CONFIGS[invItem.unit as BaseUnit]
+      if (config) {
+        setTransferInputUnit(config.displayUnit)
+      } else {
+        setTransferInputUnit(invItem.unit)
+      }
+    }
+  }
+
   const handleAddItem = () => {
     if (!selectedItemName || !transferQty) return
-    const qty = parseFloat(transferQty)
-    if (qty <= 0) return
+    const inputQty = parseFloat(transferQty)
+    if (inputQty <= 0) return
 
     const invItem = inventory.find(i => i.name === selectedItemName)
     if (!invItem) {
@@ -128,9 +143,13 @@ export default function StockTransfersPage() {
       return
     }
 
-    // Check if source has enough stock (assuming qty entered is in baseUnit)
-    if (invItem.quantity < qty) {
-      toast.error(`Not enough stock! Available: ${invItem.quantity} ${invItem.unit}`)
+    const config = UNIT_CONFIGS[invItem.unit as BaseUnit]
+    const isDisplay = config && config.displayUnit === transferInputUnit
+    const baseQty = toBaseUnit(inputQty, !!isDisplay, invItem.unit as BaseUnit)
+
+    // Check if source has enough stock
+    if (invItem.quantity < baseQty) {
+      toast.error(`Not enough stock! Available: ${formatStockDisplay(invItem.quantity, invItem.unit as BaseUnit)}`)
       return
     }
 
@@ -138,7 +157,7 @@ export default function StockTransfersPage() {
       id: `TRF-ITEM-${Date.now()}`,
       rawMaterialName: invItem.name,
       sku: invItem.sku,
-      quantity: qty,
+      quantity: baseQty,
       unit: invItem.unit
     }
     
@@ -385,20 +404,39 @@ export default function StockTransfersPage() {
                   <div className="flex gap-2 items-end">
                     <div className="grid gap-1.5 flex-1">
                       <Label className="text-xs font-bold text-gray-700">Select Item</Label>
-                      <Select value={selectedItemName} onValueChange={(v) => setSelectedItemName(v || "")}>
+                      <Select value={selectedItemName} onValueChange={handleItemSelect}>
                         <SelectTrigger className="h-9 bg-white"><SelectValue placeholder="Choose product..." /></SelectTrigger>
                         <SelectContent>
                           {getSourceInventory().map((i: any) => (
                             <SelectItem key={i._id || i.sku} value={i.name}>
-                              {`${i.name} (Max: ${i.quantity} ${i.unit})`}
+                              {`${i.name} (Max: ${formatStockDisplay(i.quantity, i.unit as BaseUnit)})`}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="grid gap-1.5 w-32">
+                    <div className="grid gap-1.5 w-40">
                       <Label className="text-xs font-bold text-gray-700">Qty</Label>
-                      <Input type="number" step="0.01" value={transferQty} onChange={e => setTransferQty(e.target.value)} placeholder="0" className="h-9 bg-white" />
+                      <div className="flex items-center">
+                        <Input type="number" step="0.01" value={transferQty} onChange={e => setTransferQty(e.target.value)} placeholder="0" className="h-9 bg-white rounded-r-none border-r-0 focus-visible:ring-0" />
+                        <Select value={transferInputUnit} onValueChange={setTransferInputUnit}>
+                          <SelectTrigger className="w-16 h-9 rounded-l-none bg-gray-50 px-2 font-bold text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {selectedItemName && UNIT_CONFIGS[inventory.find(i => i.name === selectedItemName)?.unit as BaseUnit] ? (
+                              <>
+                                <SelectItem value={UNIT_CONFIGS[inventory.find(i => i.name === selectedItemName)?.unit as BaseUnit].displayUnit}>
+                                  {UNIT_CONFIGS[inventory.find(i => i.name === selectedItemName)?.unit as BaseUnit].displayUnit}
+                                </SelectItem>
+                                <SelectItem value={inventory.find(i => i.name === selectedItemName)?.unit}>
+                                  {inventory.find(i => i.name === selectedItemName)?.unit}
+                                </SelectItem>
+                              </>
+                            ) : (
+                              <SelectItem value={transferInputUnit || "g"}>{transferInputUnit || "g"}</SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     <Button type="button" onClick={handleAddItem} className="h-9 bg-gray-900 text-white font-bold">Add Item</Button>
                   </div>
@@ -419,7 +457,9 @@ export default function StockTransfersPage() {
                             <TableRow key={idx} className="text-sm border-b last:border-0">
                               <TableCell className="font-bold py-2 text-gray-900">{item.rawMaterialName}</TableCell>
                               <TableCell className="text-gray-500 font-mono text-xs">{item.sku}</TableCell>
-                              <TableCell className="text-right font-black text-orange-600">{item.quantity} {item.unit}</TableCell>
+                              <TableCell className="text-right font-black text-orange-600">
+                                {formatStockDisplay(item.quantity, item.unit as BaseUnit)}
+                              </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
