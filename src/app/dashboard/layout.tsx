@@ -196,6 +196,9 @@ export default function DashboardLayout({
                       <Link href="/dashboard/grn/all" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all text-sm pl-9 ${isActive('/dashboard/grn/all') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
                         All GRN
                       </Link>
+                      <Link href="/dashboard/grn/payments" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all text-sm pl-9 ${isActive('/dashboard/grn/payments') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                        GRN Payments
+                      </Link>
                     </div>
                   )}
                 </div>
