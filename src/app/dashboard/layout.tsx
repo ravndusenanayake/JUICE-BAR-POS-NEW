@@ -274,20 +274,19 @@ export default function DashboardLayout({
           )}
 
         </nav>
-        <div className="mt-auto border-t p-4 space-y-2">
+        <div className="mt-auto border-t p-3 space-y-1">
           {hasPermission(PERMISSIONS.MANAGE_SYSTEM_SETTINGS) && (
-            <Link href="/dashboard/system-settings" className="flex items-center gap-3 rounded-lg px-3 py-2 text-amber-600 font-semibold hover:bg-amber-50 transition-all border-t pt-4">
-              <Settings className="h-5 w-5" />
-              System Settings (Limits)
+            <Link href="/dashboard/system-settings" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-amber-600 font-semibold hover:bg-amber-50 transition-all">
+              <Settings className="h-4 w-4" />
+              System Settings
             </Link>
           )}
-          <div className="pt-2">
-            <p className="text-xs px-3 text-muted-foreground">Logged in as:</p>
-            <p className="text-sm px-3 font-semibold truncate text-gray-900">{user?.name}</p>
-            <p className="text-xs px-3 text-primary font-medium">{role} • {role === 'Super Admin' ? (user?.branch || 'All Branches') : user?.branch}</p>
+          <div className="px-3 pt-1 pb-2">
+            <p className="text-sm font-semibold truncate text-gray-900">{user?.name}</p>
+            <p className="text-xs text-muted-foreground font-medium">{role}</p>
           </div>
-          <button onClick={logout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-destructive hover:bg-destructive/10 transition-all mt-2 font-medium">
-            <LogOut className="h-5 w-5" />
+          <button onClick={logout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-all font-medium">
+            <LogOut className="h-4 w-4" />
             Log out
           </button>
         </div>
