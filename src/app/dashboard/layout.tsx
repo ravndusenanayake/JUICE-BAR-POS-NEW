@@ -275,7 +275,7 @@ export default function DashboardLayout({
 
         </nav>
         <div className="mt-auto border-t p-3 space-y-1">
-          {hasPermission(PERMISSIONS.MANAGE_SYSTEM_SETTINGS) && (
+          {role === "Super Admin" && (
             <Link href="/dashboard/system-settings" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-amber-600 font-semibold hover:bg-amber-50 transition-all">
               <Settings className="h-4 w-4" />
               System Settings
