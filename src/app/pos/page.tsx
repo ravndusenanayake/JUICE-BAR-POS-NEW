@@ -1318,10 +1318,13 @@ export default function POSPage() {
           </DialogHeader>
           <div className="space-y-3 px-6 py-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
             {isBranchesLoading ? (
-               <p className="text-sm text-gray-500">Loading branches...</p>
+               <div className="flex flex-col items-center justify-center py-4">
+                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mb-2"></div>
+                 <p className="text-sm text-gray-500">Auto-seeding database... Please wait.</p>
+               </div>
             ) : availableBranches.length === 0 ? (
-               <div className="text-sm text-red-500 font-medium">
-                 No branches available. Please run the <a href="/api/seed" target="_blank" className="underline font-bold text-orange-600">Seed Database</a> API to create branches.
+               <div className="text-sm text-red-500 font-medium text-center py-4">
+                 Database is empty. Attempting to auto-seed... Please refresh the page in a few moments.
                </div>
             ) : (
               availableBranches.map(b => (

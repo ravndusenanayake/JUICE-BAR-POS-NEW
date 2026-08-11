@@ -30,7 +30,18 @@ export default function KitchenDisplay() {
       setIsBranchSelectOpen(true);
       fetch('/api/branches')
         .then(res => res.json())
-        .then(data => setAvailableBranches(data.filter((b: any) => b.status === "Active")))
+        .then(data => {
+          const active = data.filter((b: any) => b.status === "Active");
+          if (active.length === 0) {
+            fetch('/api/seed').then(() => {
+              fetch('/api/branches').then(r => r.json()).then(d => {
+                setAvailableBranches(d.filter((b: any) => b.status === "Active"));
+              });
+            });
+          } else {
+            setAvailableBranches(active);
+          }
+        })
         .catch(console.error);
     } else {
       setKitchenBranch(user.branch);
@@ -274,7 +285,10 @@ export default function KitchenDisplay() {
           </DialogHeader>
           <div className="space-y-3 py-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
             {availableBranches.length === 0 ? (
-               <p className="text-sm text-gray-500">Loading branches...</p>
+               <div className="flex flex-col items-center justify-center py-4">
+                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mb-2"></div>
+                 <p className="text-sm text-gray-500">Auto-seeding database... Please wait.</p>
+               </div>
             ) : (
               availableBranches.map(b => (
                 <button 
