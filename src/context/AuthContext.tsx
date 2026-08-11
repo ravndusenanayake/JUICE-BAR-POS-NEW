@@ -21,6 +21,7 @@ interface AuthContextType {
   login: () => void
   logout: () => void
   isAuthenticated: boolean
+  isLoading: boolean
   hasPermission: (permission: string) => boolean
 }
 
@@ -44,8 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const logout = async () => {
-    await signOut({ redirect: false })
-    router.push("/login")
+    await signOut({ callbackUrl: "/login" })
   }
 
   const hasPermission = (permission: string) => {
@@ -62,6 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       login, 
       logout, 
       isAuthenticated: status === "authenticated",
+      isLoading: status === "loading",
       hasPermission
     }}>
       {children}

@@ -26,7 +26,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { role, user, logout, isAuthenticated, hasPermission } = useAuth()
+  const { role, user, logout, isAuthenticated, isLoading, hasPermission } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const [isMounted, setIsMounted] = useState(false)
@@ -36,14 +36,14 @@ export default function DashboardLayout({
   // Protect Dashboard Routes
   useEffect(() => {
     setIsMounted(true)
-    if (!isAuthenticated && isMounted) {
+    if (!isLoading && !isAuthenticated && isMounted) {
       router.push("/login")
     }
-  }, [isAuthenticated, router, isMounted])
+  }, [isAuthenticated, isLoading, router, isMounted])
 
   // RBAC Access Control per Route is now handled Server-Side by middleware.ts
 
-  if (!isMounted || !isAuthenticated) return <div className="h-screen flex items-center justify-center">Loading...</div>
+  if (!isMounted || isLoading || !isAuthenticated) return <div className="h-screen flex items-center justify-center">Loading...</div>
 
   // Helper to check if link is active
   const isActive = (path: string) => pathname === path
