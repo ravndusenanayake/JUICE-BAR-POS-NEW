@@ -296,7 +296,7 @@ export default function POSPage() {
                    const vRecipe = recipesData.find((r: any) => r.productId === p._id && r.variant === v.name);
                    if (vRecipe && vRecipe.ingredients && vRecipe.ingredients.length > 0) {
                      for (const ing of vRecipe.ingredients) {
-                        const availableQty = invMapById.get(ing.rawMaterialId?.toString()) || 0;
+                        const availableQty = invMapBySku.get(ing.rawMaterialId) || 0;
                         if (availableQty < ing.quantity) {
                            vOutOfStock = true;
                            break;
@@ -323,7 +323,7 @@ export default function POSPage() {
                        let canMakeThis = true;
                        if (recipe.ingredients && recipe.ingredients.length > 0) {
                           for (const ing of recipe.ingredients) {
-                             const qty = invMapById.get(ing.rawMaterialId?.toString()) || 0;
+                             const qty = invMapBySku.get(ing.rawMaterialId) || 0;
                              if (qty < ing.quantity) {
                                 canMakeThis = false;
                                 break;
