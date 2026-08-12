@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
 import * as XLSX from "xlsx"
+import { Loader2, Clock, CreditCard, Coins, Percent, ClipboardList, CheckCircle2 } from "lucide-react"
 
 export default function ReportsPage() {
   const { user, role } = useAuth()
@@ -27,17 +28,20 @@ export default function ReportsPage() {
   const [ledger, setLedger] = useState<any[]>([])
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([])
   const [grns, setGrns] = useState<any[]>([])
+  const [shifts, setShifts] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [salesRes, invRes, expRes, ledRes, poRes, grnRes] = await Promise.all([
+        const [salesRes, invRes, expRes, ledRes, poRes, grnRes, shiftRes] = await Promise.all([
           fetch('/api/sales'),
           fetch('/api/branch-inventory'),
           fetch('/api/expenses'),
           fetch('/api/stock-ledger'),
           fetch('/api/purchase-orders'),
-          fetch('/api/grn')
+          fetch('/api/grn'),
+          fetch('/api/shifts')
         ]);
         
         if (salesRes.ok) setSales(await salesRes.json());
@@ -46,8 +50,11 @@ export default function ReportsPage() {
         if (ledRes.ok) setLedger(await ledRes.json());
         if (poRes.ok) setPurchaseOrders(await poRes.json());
         if (grnRes.ok) setGrns(await grnRes.json());
+        if (shiftRes.ok) setShifts(await shiftRes.json());
       } catch (err) {
         console.error("Error fetching report data:", err);
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchData();
@@ -83,10 +90,22 @@ export default function ReportsPage() {
   const filteredLedger = ledger.filter(l => isBranchMatch(l.branch) && isDateMatch(l.createdAt || l.timestamp))
   const filteredPO = purchaseOrders.filter(po => isDateMatch(po.createdAt))
   const filteredGRN = grns.filter(g => isDateMatch(g.createdAt))
+  const filteredShifts = shifts.filter(s => isBranchMatch(s.branch) && isDateMatch(s.createdAt || s.openedAt))
   
   // --- Sales Metrics ---
-  const totalSalesRevenue = filteredSales.reduce((acc, s) => acc + (s.grandTotal || 0), 0)
+  const totalSalesRevenue = filteredSales.reduce((acc, s) => acc + (s.total || s.grandTotal || 0), 0)
+  const totalSubtotal = filteredSales.reduce((acc, s) => acc + (s.subTotal || s.total || s.grandTotal || 0), 0)
+  const totalDiscounts = filteredSales.reduce((acc, s) => acc + (s.discount || 0), 0)
   const totalInvoices = filteredSales.length
+  const averageOrderValue = totalInvoices > 0 ? totalSalesRevenue / totalInvoices : 0
+  
+  // Payment Breakdown
+  const paymentBreakdown = { Cash: 0, Card: 0, Split: 0 }
+  filteredSales.forEach(s => {
+    if (s.paymentMethod?.toLowerCase().includes('cash')) paymentBreakdown.Cash += s.total || s.grandTotal || 0
+    else if (s.paymentMethod?.toLowerCase().includes('card')) paymentBreakdown.Card += s.total || s.grandTotal || 0
+    else paymentBreakdown.Split += s.total || s.grandTotal || 0
+  })
   
   // Best selling products
   const productSales: Record<string, {name: string, qty: number, revenue: number}> = {}
@@ -112,6 +131,7 @@ export default function ReportsPage() {
   // --- Inventory Valuation ---
   // Assuming current stock * mock buying price
   const inventoryValuation = filteredInventory.reduce((acc, i) => acc + (i.quantity * (i.buyingPrice || 100)), 0)
+  const totalStockItems = filteredInventory.reduce((acc, i) => acc + (i.quantity || 0), 0)
 
   // --- Profitability (COGS Mocking) ---
   // In a real app, COGS = Cost of Goods Sold (Sum of recipe ingredient costs for all sold items). 
@@ -167,14 +187,31 @@ export default function ReportsPage() {
     XLSX.utils.book_append_sheet(wb, ws, "Profitability");
 
     const salesData = [
-      ['Invoice ID', 'Date', 'Branch', 'Payment Method', 'Grand Total (Rs.)'],
-      ...filteredSales.map(s => [s.id, new Date(s.timestamp || s.createdAt).toLocaleString(), s.branch, s.paymentMethod, s.grandTotal])
+      ['Invoice ID', 'Date', 'Branch', 'Order Type', 'Payment Method', 'Subtotal', 'Discount', 'Grand Total (Rs.)'],
+      ...filteredSales.map(s => [s.invoiceNo || s.receiptNumber || s.id, new Date(s.timestamp || s.createdAt).toLocaleString(), s.branch, s.orderType || '-', s.paymentMethod, s.subTotal || 0, s.discount || 0, s.total || s.grandTotal])
     ];
     const wsSales = XLSX.utils.aoa_to_sheet(salesData);
     XLSX.utils.book_append_sheet(wb, wsSales, "Sales");
 
+    const shiftData = [
+      ['Cashier', 'Branch', 'Status', 'Opened At', 'Closed At', 'Opening Balance', 'Expected Cash', 'Actual Cash', 'Variance'],
+      ...filteredShifts.map(s => [s.cashierName, s.branch, s.status, new Date(s.openedAt).toLocaleString(), s.closedAt ? new Date(s.closedAt).toLocaleString() : '-', s.openingBalance, s.expectedCash || 0, s.actualCash || 0, s.variance || 0])
+    ];
+    const wsShifts = XLSX.utils.aoa_to_sheet(shiftData);
+    XLSX.utils.book_append_sheet(wb, wsShifts, "Shifts");
+
     XLSX.writeFile(wb, "business-report.xlsx");
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full min-h-[60vh]">
+        <Loader2 className="w-10 h-10 text-orange-500 animate-spin mb-4" />
+        <h2 className="text-xl font-bold text-gray-700">Loading Reports...</h2>
+        <p className="text-sm text-gray-500">Compiling your business analytics</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-12">
@@ -223,9 +260,10 @@ export default function ReportsPage() {
     </div>
 
       <Tabs defaultValue="profit" className="space-y-6">
-        <TabsList className="bg-white border shadow-sm p-1 h-auto rounded-xl flex overflow-x-auto hide-scrollbar">
+        <TabsList className="bg-white border shadow-sm p-1.5 h-auto rounded-xl flex flex-wrap gap-2 overflow-x-auto hide-scrollbar">
           <TabsTrigger value="profit" className="rounded-lg px-6 py-2.5 font-bold data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Profitability (P&L)</TabsTrigger>
           <TabsTrigger value="sales" className="rounded-lg px-6 py-2.5 font-bold data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Sales</TabsTrigger>
+          <TabsTrigger value="shifts" className="rounded-lg px-6 py-2.5 font-bold data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Shifts & Cash</TabsTrigger>
           <TabsTrigger value="inventory" className="rounded-lg px-6 py-2.5 font-bold data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Inventory</TabsTrigger>
           <TabsTrigger value="purchases" className="rounded-lg px-6 py-2.5 font-bold data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Purchases</TabsTrigger>
           <TabsTrigger value="expenses" className="rounded-lg px-6 py-2.5 font-bold data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Expenses & Wastage</TabsTrigger>
@@ -269,39 +307,60 @@ export default function ReportsPage() {
             </Card>
           </div>
 
-          <Card className="rounded-2xl border-0 shadow-sm overflow-hidden">
-            <div className="p-6 border-b bg-gray-50 flex items-center gap-2">
-              <DollarSign className="text-orange-500 w-5 h-5" />
-              <h3 className="text-xl font-black text-gray-900">Profit & Loss Statement (P&L)</h3>
+          <Card className="rounded-2xl border-0 shadow-sm overflow-hidden mt-6">
+            <div className="p-6 border-b bg-gray-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <DollarSign className="text-orange-500 w-6 h-6" />
+                <h3 className="text-xl font-black text-gray-900">Profit & Loss Statement (P&L)</h3>
+              </div>
+              <div className="text-sm font-medium text-gray-500 bg-white px-3 py-1 rounded-full border">
+                Period: {dateFilter}
+              </div>
             </div>
             <div className="p-0">
               <Table>
                 <TableBody>
-                  <TableRow className="hover:bg-transparent">
-                    <TableCell className="py-4 font-bold text-gray-700 text-base">Gross Sales Revenue</TableCell>
-                    <TableCell className="py-4 text-right font-black text-lg text-gray-900">Rs. {totalSalesRevenue.toFixed(2)}</TableCell>
+                  {/* Revenue Section */}
+                  <TableRow className="hover:bg-transparent bg-gray-50/30">
+                    <TableCell colSpan={2} className="py-3 px-6 font-bold text-gray-900 uppercase text-xs tracking-wider border-b border-gray-100">Revenue</TableCell>
                   </TableRow>
-                  <TableRow className="hover:bg-transparent">
-                    <TableCell className="py-4 font-medium text-gray-600 pl-8 text-sm">Less: Cost of Goods Sold (COGS - Est. 40%)</TableCell>
-                    <TableCell className="py-4 text-right font-bold text-red-500">- Rs. {cogs.toFixed(2)}</TableCell>
+                  <TableRow className="hover:bg-transparent border-0">
+                    <TableCell className="py-4 font-medium text-gray-700 text-base px-8">Gross Sales Revenue</TableCell>
+                    <TableCell className="py-4 text-right font-bold text-gray-900 px-8 text-base">Rs. {totalSalesRevenue.toFixed(2)}</TableCell>
                   </TableRow>
-                  <TableRow className="hover:bg-transparent bg-gray-50/50">
-                    <TableCell className="py-4 font-black text-gray-900 text-lg">Gross Profit</TableCell>
-                    <TableCell className="py-4 text-right font-black text-xl text-green-600">Rs. {(totalSalesRevenue - cogs).toFixed(2)}</TableCell>
+
+                  {/* Cost of Sales Section */}
+                  <TableRow className="hover:bg-transparent bg-gray-50/30">
+                    <TableCell colSpan={2} className="py-3 px-6 font-bold text-gray-900 uppercase text-xs tracking-wider border-y border-gray-100 mt-2">Cost of Sales</TableCell>
                   </TableRow>
-                  
-                  <TableRow className="hover:bg-transparent">
-                    <TableCell className="py-4 font-medium text-gray-600 pl-8 text-sm flex items-center gap-2"><Wallet className="w-4 h-4"/> Less: Operational Expenses</TableCell>
-                    <TableCell className="py-4 text-right font-bold text-red-500">- Rs. {totalExpenses.toFixed(2)}</TableCell>
-                  </TableRow>
-                  <TableRow className="hover:bg-transparent">
-                    <TableCell className="py-4 font-medium text-gray-600 pl-8 text-sm flex items-center gap-2"><Package className="w-4 h-4"/> Less: Wastage / Damages</TableCell>
-                    <TableCell className="py-4 text-right font-bold text-red-500">- Rs. {totalWastageCost.toFixed(2)}</TableCell>
+                  <TableRow className="hover:bg-transparent border-0">
+                    <TableCell className="py-4 font-medium text-gray-600 px-8 text-sm">Estimated COGS (40%)</TableCell>
+                    <TableCell className="py-4 text-right font-medium text-red-500 px-8">- Rs. {cogs.toFixed(2)}</TableCell>
                   </TableRow>
                   
-                  <TableRow className="hover:bg-transparent bg-orange-50">
-                    <TableCell className="py-6 font-black text-orange-900 text-xl uppercase tracking-wider">Net Profit Before Tax</TableCell>
-                    <TableCell className="py-6 text-right font-black text-3xl text-orange-600">Rs. {netProfit.toFixed(2)}</TableCell>
+                  {/* Gross Profit */}
+                  <TableRow className="hover:bg-transparent bg-orange-50/30 border-y border-orange-100">
+                    <TableCell className="py-4 font-black text-gray-900 text-lg px-8">Gross Profit</TableCell>
+                    <TableCell className="py-4 text-right font-black text-xl text-green-600 px-8">Rs. {(totalSalesRevenue - cogs).toFixed(2)}</TableCell>
+                  </TableRow>
+                  
+                  {/* Operating Expenses */}
+                  <TableRow className="hover:bg-transparent bg-gray-50/30">
+                    <TableCell colSpan={2} className="py-3 px-6 font-bold text-gray-900 uppercase text-xs tracking-wider border-b border-gray-100">Operating Expenses</TableCell>
+                  </TableRow>
+                  <TableRow className="hover:bg-transparent border-0">
+                    <TableCell className="py-4 font-medium text-gray-600 px-8 text-sm">Operational Expenses</TableCell>
+                    <TableCell className="py-4 text-right font-medium text-red-500 px-8">- Rs. {totalExpenses.toFixed(2)}</TableCell>
+                  </TableRow>
+                  <TableRow className="hover:bg-transparent border-0">
+                    <TableCell className="py-4 font-medium text-gray-600 px-8 text-sm">Wastage / Damages</TableCell>
+                    <TableCell className="py-4 text-right font-medium text-red-500 px-8">- Rs. {totalWastageCost.toFixed(2)}</TableCell>
+                  </TableRow>
+                  
+                  {/* Net Profit */}
+                  <TableRow className="hover:bg-transparent bg-gray-900">
+                    <TableCell className="py-6 font-black text-white text-xl uppercase tracking-wider px-8">Net Profit</TableCell>
+                    <TableCell className="py-6 text-right font-black text-3xl text-green-400 px-8">Rs. {netProfit.toFixed(2)}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
@@ -311,22 +370,77 @@ export default function ReportsPage() {
 
         {/* --- SALES TAB --- */}
         <TabsContent value="sales" className="space-y-6">
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="rounded-2xl border-0 shadow-sm border-l-4 border-l-orange-500">
+              <CardHeader className="pb-2">
+                <CardDescription className="font-bold text-gray-500 uppercase tracking-wider text-xs">Gross Sales</CardDescription>
+                <CardTitle className="text-2xl font-black text-gray-900">Rs. {totalSubtotal.toFixed(2)}</CardTitle>
+              </CardHeader>
+            </Card>
+            <Card className="rounded-2xl border-0 shadow-sm border-l-4 border-l-red-500">
+              <CardHeader className="pb-2">
+                <CardDescription className="font-bold text-gray-500 uppercase tracking-wider text-xs">Total Discounts</CardDescription>
+                <CardTitle className="text-2xl font-black text-red-600">- Rs. {totalDiscounts.toFixed(2)}</CardTitle>
+              </CardHeader>
+            </Card>
+            <Card className="rounded-2xl border-0 shadow-sm border-l-4 border-l-green-500">
+              <CardHeader className="pb-2">
+                <CardDescription className="font-bold text-gray-500 uppercase tracking-wider text-xs">Net Sales</CardDescription>
+                <CardTitle className="text-2xl font-black text-green-600">Rs. {totalSalesRevenue.toFixed(2)}</CardTitle>
+              </CardHeader>
+            </Card>
+            <Card className="rounded-2xl border-0 shadow-sm border-l-4 border-l-blue-500">
+              <CardHeader className="pb-2">
+                <CardDescription className="font-bold text-gray-500 uppercase tracking-wider text-xs">Avg Order Value</CardDescription>
+                <CardTitle className="text-2xl font-black text-blue-600">Rs. {averageOrderValue.toFixed(2)}</CardTitle>
+              </CardHeader>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card className="rounded-2xl border-0 shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg"><CreditCard className="w-5 h-5 text-gray-500"/> Payment Methods</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                    <div className="flex items-center gap-3"><Coins className="w-5 h-5 text-orange-500"/><span className="font-bold text-gray-700">Cash</span></div>
+                    <span className="font-black text-gray-900">Rs. {paymentBreakdown.Cash.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                    <div className="flex items-center gap-3"><CreditCard className="w-5 h-5 text-blue-500"/><span className="font-bold text-gray-700">Card</span></div>
+                    <span className="font-black text-gray-900">Rs. {paymentBreakdown.Card.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                    <div className="flex items-center gap-3"><Percent className="w-5 h-5 text-purple-500"/><span className="font-bold text-gray-700">Split/Other</span></div>
+                    <span className="font-black text-gray-900">Rs. {paymentBreakdown.Split.toFixed(2)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl border-0 shadow-sm col-span-1 lg:col-span-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><ShoppingBag className="w-5 h-5 text-orange-500"/> Top Selling Products</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {topProducts.map((p, i) => (
-                    <div key={i} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-500">{i+1}</div>
-                        <span className="font-bold text-gray-800">{p.name}</span>
+                    <div key={i} className="flex items-center justify-between p-3 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-black">{i+1}</div>
+                        <span className="font-bold text-gray-900">{p.name}</span>
                       </div>
-                      <div className="text-right">
-                        <div className="font-black text-gray-900">{p.qty} Sold</div>
-                        <div className="text-xs font-bold text-orange-600">Rs. {(p.revenue || 0).toFixed(2)}</div>
+                      <div className="text-right flex items-center gap-6">
+                        <div>
+                          <div className="text-xs text-gray-500 font-bold uppercase">Qty Sold</div>
+                          <div className="font-black text-gray-900">{p.qty}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 font-bold uppercase">Revenue</div>
+                          <div className="font-black text-green-600">Rs. {(p.revenue || 0).toFixed(2)}</div>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -334,30 +448,65 @@ export default function ReportsPage() {
                 </div>
               </CardContent>
             </Card>
-
-            <Card className="rounded-2xl border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Calendar className="w-5 h-5 text-orange-500"/> Recent Transactions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                  {filteredSales.slice().reverse().slice(0, 10).map((sale, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-xl border border-gray-100 bg-gray-50/50">
-                      <div>
-                        <div className="font-bold text-gray-900">{sale.id}</div>
-                        <div className="text-xs font-medium text-gray-500">{new Date(sale.timestamp).toLocaleString()}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-black text-green-600">Rs. {(sale.grandTotal || 0).toFixed(2)}</div>
-                        <div className="text-[10px] font-bold text-gray-400 uppercase">{sale.paymentMethod}</div>
-                      </div>
-                    </div>
-                  ))}
-                  {filteredSales.length === 0 && <p className="text-sm text-gray-400 italic">No transactions found.</p>}
-                </div>
-              </CardContent>
-            </Card>
           </div>
+        </TabsContent>
+
+        {/* --- SHIFTS TAB --- */}
+        <TabsContent value="shifts" className="space-y-6">
+          <Card className="rounded-2xl border-0 shadow-sm overflow-hidden">
+            <div className="p-6 border-b bg-gray-50 flex items-center gap-2">
+              <Clock className="text-orange-500 w-5 h-5" />
+              <h3 className="text-xl font-black text-gray-900">End of Day Shift Reports</h3>
+            </div>
+            <div className="p-0">
+              <Table>
+                <TableHeader className="bg-gray-50/50">
+                  <TableRow>
+                    <TableHead className="font-semibold text-gray-600">Shift Time</TableHead>
+                    <TableHead className="font-semibold text-gray-600">Cashier</TableHead>
+                    <TableHead className="font-semibold text-gray-600">Status</TableHead>
+                    <TableHead className="text-right font-semibold text-gray-600">Expected Cash</TableHead>
+                    <TableHead className="text-right font-semibold text-gray-600">Actual Cash</TableHead>
+                    <TableHead className="text-right font-semibold text-gray-600">Variance</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredShifts.slice().reverse().map((shift, i) => (
+                    <TableRow key={i} className="hover:bg-gray-50/40">
+                      <TableCell>
+                        <div className="font-bold text-gray-900">{new Date(shift.openedAt).toLocaleDateString()}</div>
+                        <div className="text-xs text-gray-500">
+                          {new Date(shift.openedAt).toLocaleTimeString()} - {shift.closedAt ? new Date(shift.closedAt).toLocaleTimeString() : 'Active'}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-semibold text-gray-700">{shift.cashierName}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-md text-xs font-bold ${shift.status === 'CLOSED' ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-700'}`}>
+                          {shift.status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right font-medium text-gray-600">Rs. {(shift.expectedCash || 0).toFixed(2)}</TableCell>
+                      <TableCell className="text-right font-black text-gray-900">Rs. {(shift.actualCash || 0).toFixed(2)}</TableCell>
+                      <TableCell className="text-right">
+                        {shift.status === 'CLOSED' ? (
+                          <span className={`font-bold ${shift.variance < 0 ? 'text-red-600' : shift.variance > 0 ? 'text-green-600' : 'text-gray-500'}`}>
+                            {shift.variance > 0 ? '+' : ''}Rs. {(shift.variance || 0).toFixed(2)}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 italic">-</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {filteredShifts.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-gray-500 italic">No shift reports found for the selected period.</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
         </TabsContent>
 
         {/* --- INVENTORY TAB --- */}
