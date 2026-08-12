@@ -39,7 +39,7 @@ export default function ProductsPage() {
   const [unit, setUnit] = useState("Nos")
   const [threshold, setThreshold] = useState("0")
   const [isActive, setIsActive] = useState(true)
-  const [requiresRecipe, setRequiresRecipe] = useState(true)
+  const [requiresRecipe, setRequiresRecipe] = useState(false)
 
   // Variant & Add-on State
   const [formVariants, setFormVariants] = useState<{id?: string, name: string, sellingPrice: string}[]>([])
@@ -249,8 +249,7 @@ export default function ProductsPage() {
     setIsActive(true)
     setEditingProduct(null)
     setFormVariants([])
-    setFormAddons([])
-    setRequiresRecipe(true)
+    setRequiresRecipe(false)
   }
 
   const handleEdit = (p: any) => {
@@ -266,7 +265,7 @@ export default function ProductsPage() {
     setThreshold(p.threshold?.toString() || "0")
     setIsActive(p.status === 'Active')
     setFormAddons(p.addons || [])
-    setRequiresRecipe(p.stockType !== 'Non-Inventory')
+    setRequiresRecipe(p.stockType !== 'Non-Inventory' && p.stockType !== undefined ? true : false)
     
     // Load variants
     const productVars = allVariants.filter(v => v.productId && (v.productId._id === p.id || v.productId === p.id))
@@ -389,7 +388,7 @@ export default function ProductsPage() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">Base Price (Rs.)</Label>
+                      <Label className="text-sm font-medium text-gray-700">Selling Price (Rs.)</Label>
                       <Input 
                         type="number" step="0.01" min="0" placeholder="e.g. 500" 
                         value={outletPrice} onChange={(e) => setOutletPrice(e.target.value)} 
