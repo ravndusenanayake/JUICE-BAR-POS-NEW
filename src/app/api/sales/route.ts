@@ -244,6 +244,22 @@ export async function PUT(req: Request) {
       action: ri.action === 'Waste' ? 'Wastage' : (ri.action || 'Wastage')
     }));
 
+    // Validation: Prevent returning more than what was sold
+    for (const ri of normalizedReturns) {
+      const originalItem = sale.items.find((i: any) => i.productId === ri.productId);
+      if (!originalItem) {
+        return NextResponse.json({ error: `Item ${ri.name} was not part of this sale` }, { status: 400 });
+      }
+      
+      const alreadyReturned = (sale.returnedItems || [])
+        .filter((r: any) => r.productId === ri.productId)
+        .reduce((sum: number, r: any) => sum + r.quantity, 0);
+        
+      if (alreadyReturned + ri.quantity > originalItem.quantity) {
+        return NextResponse.json({ error: `Cannot return ${ri.quantity} of ${ri.name}. Only ${originalItem.quantity - alreadyReturned} available for return.` }, { status: 400 });
+      }
+    }
+
     // Deduct from total, update status, append returnedItems
     let returnTotal = 0;
     normalizedReturns.forEach((ri: any) => returnTotal += ri.refundAmount);

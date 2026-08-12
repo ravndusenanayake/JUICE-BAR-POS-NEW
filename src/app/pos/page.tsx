@@ -920,8 +920,34 @@ export default function POSPage() {
       if (res.ok) {
         const sales = await res.json();
         if (sales.length > 0) {
-          setReturnSaleDetails(sales[0]);
-          setReturnItems(sales[0].items.map((i: any) => ({ ...i, returnQty: 0, reason: "Customer Request", action: "Wastage" })));
+          const sale = sales[0];
+          setReturnSaleDetails(sale);
+          
+          const returnedQtyMap: Record<string, number> = {};
+          if (sale.returnedItems) {
+            sale.returnedItems.forEach((ri: any) => {
+              returnedQtyMap[ri.productId] = (returnedQtyMap[ri.productId] || 0) + ri.quantity;
+            });
+          }
+
+          const availableItems = sale.items.map((i: any) => {
+            const alreadyReturned = returnedQtyMap[i.productId] || 0;
+            const availableQty = i.quantity - alreadyReturned;
+            return {
+              ...i,
+              availableQty,
+              returnQty: 0,
+              reason: "Customer Request",
+              action: "Wastage"
+            };
+          }).filter((i: any) => i.availableQty > 0);
+
+          if (availableItems.length === 0) {
+            toast.error("All items in this invoice have already been returned");
+            setReturnItems([]);
+          } else {
+            setReturnItems(availableItems);
+          }
         } else {
           toast.error("Invoice not found");
         }
@@ -1803,7 +1829,12 @@ export default function POSPage() {
                       {returnItems.map((item, i) => (
                         <tr key={i} className="hover:bg-gray-50">
                           <td className="p-2 font-medium">{item.name}</td>
-                          <td className="p-2">{item.quantity}</td>
+                          <td className="p-2">
+                            {item.quantity} 
+                            {item.availableQty !== undefined && item.availableQty !== item.quantity && (
+                              <span className="text-xs text-orange-500 font-bold block">(Avail: {item.availableQty})</span>
+                            )}
+                          </td>
                           <td className="p-2 flex justify-center items-center gap-2">
                             <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => {
                               const newItems = [...returnItems];
@@ -1813,7 +1844,8 @@ export default function POSPage() {
                             <span className="font-bold w-4 text-center">{item.returnQty}</span>
                             <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => {
                               const newItems = [...returnItems];
-                              if (newItems[i].returnQty < item.quantity) newItems[i].returnQty++;
+                              const maxQty = item.availableQty !== undefined ? item.availableQty : item.quantity;
+                              if (newItems[i].returnQty < maxQty) newItems[i].returnQty++;
                               setReturnItems(newItems);
                             }}><Plus className="w-3 h-3" /></Button>
                           </td>

@@ -197,7 +197,7 @@ export default function DashboardPage() {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
                   <Tooltip 
                     contentStyle={{ borderRadius: '12px', border: '1px solid #f4f4f5', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                    formatter={(value: number) => [`Rs. ${value.toFixed(2)}`, 'Revenue']}
+                    formatter={(value: any) => [`Rs. ${Number(value).toFixed(2)}`, 'Revenue']}
                   />
                   <Area type="monotone" dataKey="total" stroke="#f97316" strokeWidth={4} fillOpacity={1} fill="url(#colorRev)" />
                 </AreaChart>
