@@ -23,3 +23,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
   }
 }
+export async function PUT(req: Request) {
+  try {
+    await connectToDatabase();
+    const body = await req.json();
+    const { id, ...updateData } = body;
+    
+    if (!id) {
+      return NextResponse.json({ error: 'Missing raw material ID' }, { status: 400 });
+    }
+
+    const updatedMaterial = await RawMaterial.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedMaterial) {
+      return NextResponse.json({ error: 'Raw material not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(updatedMaterial, { status: 200 });
+  } catch (error: any) {
+    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+  }
+}
