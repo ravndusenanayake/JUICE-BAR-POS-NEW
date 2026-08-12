@@ -185,27 +185,30 @@ export default function POSPage() {
     if (user.branch === "All Branches") {
       setIsBranchSelectOpen(true);
       setIsBranchesLoading(true);
-      fetch('/api/branches')
-        .then(res => res.json())
-        .then(data => {
-          const activeBranches = data.filter((b: any) => b.status === "Active");
-          if (activeBranches.length === 0) {
-            // Auto seed the database and refetch branches if no branches exist
-            fetch('/api/seed').then(() => {
-              fetch('/api/branches').then(r => r.json()).then(d => {
-                setAvailableBranches(d.filter((b: any) => b.status === "Active"));
-                setIsBranchesLoading(false);
+      const loadBranches = () => {
+        fetch('/api/branches')
+          .then(res => res.ok ? res.json() : [])
+          .then(data => {
+            if (!Array.isArray(data)) throw new Error("Invalid format");
+            const activeBranches = data.filter((b: any) => b.status === "Active");
+            if (activeBranches.length === 0) {
+              // Trigger seed and retry after 3 seconds
+              fetch('/api/seed').finally(() => {
+                setTimeout(loadBranches, 3000);
               });
-            });
-          } else {
-            setAvailableBranches(activeBranches);
-            setIsBranchesLoading(false);
-          }
-        })
-        .catch(err => {
-          console.error(err);
-          setIsBranchesLoading(false);
-        });
+            } else {
+              setAvailableBranches(activeBranches);
+              setIsBranchesLoading(false);
+            }
+          })
+          .catch(err => {
+            console.error(err);
+            // Retry on error (e.g. server booting)
+            setTimeout(loadBranches, 3000);
+          });
+      };
+      
+      loadBranches();
     } else {
       setPosBranch(user.branch);
     }
