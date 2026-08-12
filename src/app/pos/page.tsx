@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useAuth } from "@/context/AuthContext"
 import { Button } from "@/components/ui/button"
@@ -156,6 +156,7 @@ export default function POSPage() {
 
   // -- Branch Selection State --
   const [posBranch, setPosBranch] = useState<string | null>(null)
+  const branchPrompted = useRef(false)
   const [availableBranches, setAvailableBranches] = useState<any[]>([])
   const [isBranchSelectOpen, setIsBranchSelectOpen] = useState(false)
   const [isBranchesLoading, setIsBranchesLoading] = useState(true)
@@ -183,9 +184,11 @@ export default function POSPage() {
     };
     
     if (user.branch === "All Branches") {
-      setIsBranchSelectOpen(true);
-      setIsBranchesLoading(true);
-      const loadBranches = () => {
+      if (!branchPrompted.current) {
+        branchPrompted.current = true;
+        setIsBranchSelectOpen(true);
+        setIsBranchesLoading(true);
+        const loadBranches = () => {
         fetch('/api/branches')
           .then(res => res.ok ? res.json() : [])
           .then(data => {
@@ -209,6 +212,7 @@ export default function POSPage() {
       };
       
       loadBranches();
+      }
     } else {
       setPosBranch(user.branch);
     }
@@ -2040,36 +2044,64 @@ export default function POSPage() {
 
       {/* 11. Recent Sales Modal */}
       <Dialog open={isRecentSalesOpen} onOpenChange={setIsRecentSalesOpen}>
-        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden rounded-2xl border-0 shadow-2xl bg-gray-50">
+        <DialogContent className="sm:max-w-4xl p-0 overflow-hidden rounded-2xl border-0 shadow-2xl bg-gray-50">
           <div className="p-6 bg-white border-b">
             <DialogTitle className="text-xl font-black text-gray-900">Recent Sales</DialogTitle>
-            <DialogDescription>Click on any sale to view full bill details</DialogDescription>
+            <DialogDescription>Click on any sale to view full bill details or print receipt</DialogDescription>
           </div>
-          <div className="p-6 space-y-3 max-h-[60vh] overflow-y-auto">
-            {recentSales.length > 0 ? recentSales.map((sale: any) => (
-              <div 
-                key={sale._id || sale.invoiceNo} 
-                onClick={() => { setViewSaleDetail(sale); setIsViewSaleDetailOpen(true); }}
-                className="bg-white p-4 rounded-xl border border-gray-200 flex items-center justify-between hover:border-orange-400 hover:shadow-md cursor-pointer transition-all group"
-              >
-                <div>
-                  <div className="text-base font-black text-gray-900 group-hover:text-orange-600 transition-colors">
-                    {sale.invoiceNo || sale.receiptNumber}
-                  </div>
-                  <div className="text-xs font-medium text-gray-500 mt-1">
-                    {new Date(sale.createdAt).toLocaleString()} &bull; {sale.paymentMethod} &bull; {sale.customer || "Walk-In Customer"}
-                  </div>
-                  <div className="text-xs text-gray-400 mt-1">{sale.items?.length || 0} items</div>
-                </div>
-                <div className="text-right flex items-center gap-3">
-                  <div>
-                    <div className="text-lg font-black text-green-600">Rs. {sale.total?.toFixed(2)}</div>
-                    <span className="inline-block mt-1 text-xs font-bold text-orange-500 group-hover:underline">View Details &rarr;</span>
-                  </div>
-                </div>
-              </div>
-            )) : (
-              <div className="text-center py-8 text-gray-400 font-medium">No recent sales found.</div>
+          <div className="p-0 max-h-[60vh] overflow-y-auto">
+            {recentSales.length > 0 ? (
+              <table className="w-full text-left text-sm text-gray-600">
+                <thead className="bg-gray-100 text-gray-800 text-xs uppercase font-bold sticky top-0 border-b border-gray-200 shadow-sm z-10">
+                  <tr>
+                    <th className="py-4 px-6">Invoice No</th>
+                    <th className="py-4 px-6">Date / Time</th>
+                    <th className="py-4 px-6">Customer</th>
+                    <th className="py-4 px-6 text-right">Price</th>
+                    <th className="py-4 px-6 text-right">Discount</th>
+                    <th className="py-4 px-6 text-right text-green-700">Total</th>
+                    <th className="py-4 px-6 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {recentSales.map((sale: any) => (
+                    <tr key={sale._id || sale.invoiceNo} className="hover:bg-orange-50/50 transition-colors">
+                      <td className="py-4 px-6 font-black text-gray-900">{sale.invoiceNo || sale.receiptNumber}</td>
+                      <td className="py-4 px-6 font-medium text-gray-500">{new Date(sale.createdAt).toLocaleString()}</td>
+                      <td className="py-4 px-6 font-medium">{sale.customer || "Walk-In Customer"}</td>
+                      <td className="py-4 px-6 text-right font-medium text-gray-500">Rs. {(sale.total + (sale.discount || 0)).toFixed(2)}</td>
+                      <td className="py-4 px-6 text-right font-medium text-red-500">{sale.discount > 0 ? `- Rs. ${sale.discount.toFixed(2)}` : '-'}</td>
+                      <td className="py-4 px-6 text-right font-black text-green-600">Rs. {sale.total?.toFixed(2)}</td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center justify-center gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-8 px-3 font-bold text-blue-600 border-blue-200 hover:bg-blue-50"
+                            onClick={(e) => { e.stopPropagation(); setViewSaleDetail(sale); setIsViewSaleDetailOpen(true); }}
+                          >
+                            View
+                          </Button>
+                          <Button 
+                            variant="default" 
+                            size="sm" 
+                            className="h-8 px-3 font-bold bg-gray-900 text-white hover:bg-gray-800"
+                            onClick={(e) => { 
+                              e.stopPropagation();
+                              setSaleDetails(sale); 
+                              setTimeout(() => window.print(), 200); 
+                            }}
+                          >
+                            <Printer className="w-3.5 h-3.5 mr-1.5" /> Print
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="text-center py-12 text-gray-400 font-medium">No recent sales found.</div>
             )}
           </div>
         </DialogContent>

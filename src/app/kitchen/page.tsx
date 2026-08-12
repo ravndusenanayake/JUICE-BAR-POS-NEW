@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -17,6 +17,7 @@ export default function KitchenDisplay() {
   
   // -- Branch Selection State --
   const [kitchenBranch, setKitchenBranch] = useState<string | null>(null)
+  const branchPrompted = useRef(false)
   const [availableBranches, setAvailableBranches] = useState<any[]>([])
   const [isBranchSelectOpen, setIsBranchSelectOpen] = useState(false)
   
@@ -27,10 +28,12 @@ export default function KitchenDisplay() {
     if (!user) return;
     
     if (user.branch === "All Branches") {
-      setIsBranchSelectOpen(true);
-      fetch('/api/branches')
-        .then(res => res.json())
-        .then(data => {
+      if (!branchPrompted.current) {
+        branchPrompted.current = true;
+        setIsBranchSelectOpen(true);
+        fetch('/api/branches')
+          .then(res => res.json())
+          .then(data => {
           const active = data.filter((b: any) => b.status === "Active");
           if (active.length === 0) {
             fetch('/api/seed').then(() => {
@@ -41,8 +44,9 @@ export default function KitchenDisplay() {
           } else {
             setAvailableBranches(active);
           }
-        })
-        .catch(console.error);
+          })
+          .catch(console.error);
+      }
     } else {
       setKitchenBranch(user.branch);
     }
