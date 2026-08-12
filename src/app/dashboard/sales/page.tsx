@@ -381,74 +381,91 @@ export default function SalesHistoryPage() {
           
           {viewSale && (
             <div className="space-y-6 mt-4">
-              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
-                <div><span className="text-gray-500 block text-xs">Customer</span><span className="font-semibold">{viewSale.customer}</span></div>
-                <div><span className="text-gray-500 block text-xs">Order Type</span><span className="font-semibold">{viewSale.orderType || 'Takeaway'}</span></div>
-                <div><span className="text-gray-500 block text-xs">Payment Method</span><span className="font-semibold">{viewSale.paymentMethod}</span></div>
-                <div><span className="text-gray-500 block text-xs">Status</span><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(viewSale.status)}`}>{viewSale.status}</span></div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-gray-50/50 border border-gray-100 p-5 rounded-xl">
+                <div><span className="text-gray-500 block text-xs font-medium mb-1">Customer</span><span className="font-semibold text-gray-900">{viewSale.customer}</span></div>
+                <div><span className="text-gray-500 block text-xs font-medium mb-1">Order Type</span><span className="font-semibold text-gray-900">{viewSale.orderType || 'Takeaway'}</span></div>
+                <div><span className="text-gray-500 block text-xs font-medium mb-1">Payment Method</span><span className="font-semibold text-gray-900">{viewSale.paymentMethod}</span></div>
+                <div><span className="text-gray-500 block text-xs font-medium mb-1">Status</span><span className={`px-2.5 py-0.5 rounded-md text-xs font-semibold ${getStatusColor(viewSale.status)}`}>{viewSale.status}</span></div>
               </div>
 
               <div>
-                <h3 className="font-bold mb-2">Items Purchased</h3>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Item</TableHead>
-                      <TableHead>Qty</TableHead>
-                      <TableHead className="text-right">Price</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {viewSale.items?.map((item: any, i: number) => (
-                      <TableRow key={i}>
-                        <TableCell>
-                          <div className="font-medium">{item.name}</div>
-                          {(item.variant || item.addons?.length > 0 || item.note) && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              {item.variant && <div>Variant: {item.variant}</div>}
-                              {item.addons?.map((a:any, ai:number) => <div key={ai}>+ {a.name} (Rs.{a.price})</div>)}
-                              {item.note && <div className="italic">Note: {item.note}</div>}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>{item.quantity}</TableCell>
-                        <TableCell className="text-right">Rs. {item.totalPrice?.toFixed(2)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {viewSale.returnedItems?.length > 0 && (
-                <div>
-                  <h3 className="font-bold text-red-600 mb-2">Returned Items</h3>
+                <h3 className="font-bold text-gray-900 mb-3">Items Purchased</h3>
+                <div className="rounded-xl border border-gray-100 overflow-hidden">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="bg-gray-50/50">
                       <TableRow>
-                        <TableHead>Item</TableHead>
-                        <TableHead>Qty</TableHead>
-                        <TableHead>Reason</TableHead>
-                        <TableHead className="text-right">Refund Amount</TableHead>
+                        <TableHead className="font-semibold">Item</TableHead>
+                        <TableHead className="text-center font-semibold">Qty</TableHead>
+                        <TableHead className="text-right font-semibold">Price</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {viewSale.returnedItems.map((item: any, i: number) => (
+                      {viewSale.items?.map((item: any, i: number) => (
                         <TableRow key={i}>
-                          <TableCell className="font-medium text-red-600">{item.name}</TableCell>
-                          <TableCell>{item.quantity}</TableCell>
-                          <TableCell className="text-xs">{item.reason}</TableCell>
-                          <TableCell className="text-right text-red-600 font-bold">-Rs. {item.refundAmount?.toFixed(2)}</TableCell>
+                          <TableCell>
+                            <div className="font-semibold text-gray-900">{item.name}</div>
+                            {(item.variant || item.addons?.length > 0 || item.note) && (
+                              <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+                                {item.variant && <div>Variant: {item.variant}</div>}
+                                {item.addons?.map((a:any, ai:number) => <div key={ai}>+ {a.name} (Rs.{a.price})</div>)}
+                                {item.note && <div className="italic text-orange-600">Note: {item.note}</div>}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center font-medium text-gray-700">{item.quantity}</TableCell>
+                          <TableCell className="text-right font-semibold text-gray-900">Rs. {item.totalPrice?.toFixed(2)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </div>
+              </div>
+
+              {viewSale.returnedItems?.length > 0 && (
+                <div>
+                  <h3 className="font-bold text-red-600 mb-3">Returned Items</h3>
+                  <div className="rounded-xl border border-red-100 overflow-hidden">
+                    <Table>
+                      <TableHeader className="bg-red-50/50">
+                        <TableRow>
+                          <TableHead className="font-semibold text-red-700">Item</TableHead>
+                          <TableHead className="text-center font-semibold text-red-700">Qty</TableHead>
+                          <TableHead className="font-semibold text-red-700">Reason</TableHead>
+                          <TableHead className="text-right font-semibold text-red-700">Refund Amount</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {viewSale.returnedItems.map((item: any, i: number) => (
+                          <TableRow key={i} className="bg-red-50/20">
+                            <TableCell className="font-semibold text-red-600">{item.name}</TableCell>
+                            <TableCell className="text-center font-medium text-red-600">{item.quantity}</TableCell>
+                            <TableCell className="text-xs text-red-600">{item.reason}</TableCell>
+                            <TableCell className="text-right text-red-600 font-bold">-Rs. {item.refundAmount?.toFixed(2)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
               )}
 
-              <div className="space-y-1 text-sm text-right pt-4 border-t">
-                <div>Subtotal: Rs. {viewSale.subtotal?.toFixed(2)}</div>
-                {viewSale.discount > 0 && <div>Discount: -Rs. {viewSale.discount?.toFixed(2)}</div>}
-                <div className="text-lg font-bold">Total: Rs. {viewSale.total?.toFixed(2)}</div>
+              <div className="flex justify-end pt-2">
+                <div className="w-full sm:w-1/2 space-y-2">
+                  <div className="flex justify-between text-sm text-gray-600 px-2">
+                    <span>Subtotal</span>
+                    <span className="font-medium">Rs. {viewSale.subtotal?.toFixed(2)}</span>
+                  </div>
+                  {viewSale.discount > 0 && (
+                    <div className="flex justify-between text-sm text-red-500 px-2">
+                      <span>Discount</span>
+                      <span className="font-medium">-Rs. {viewSale.discount?.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center border-t border-gray-100 pt-3 mt-2 px-2">
+                    <span className="font-bold text-gray-900">Total</span>
+                    <span className="text-xl font-bold text-gray-900">Rs. {viewSale.total?.toFixed(2)}</span>
+                  </div>
+                </div>
               </div>
             </div>
           )}

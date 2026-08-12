@@ -179,8 +179,20 @@ export default function WastagePage() {
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="font-black text-red-600 text-base">{w.quantity}</div>
-                    <div className="text-xs text-gray-400 font-bold uppercase">{w.item?.unit}</div>
+                    {(() => {
+                      let displayQty: number | string = w.quantity;
+                      let displayUnit = w.item?.unit;
+                      if (displayUnit?.toLowerCase() === 'g' && w.quantity >= 1000) {
+                        displayQty = (w.quantity / 1000).toFixed(2).replace(/\.00$/, '');
+                        displayUnit = 'KG';
+                      }
+                      return (
+                        <>
+                          <div className="font-black text-red-600 text-base">{displayQty}</div>
+                          <div className="text-xs text-gray-400 font-bold uppercase">{displayUnit}</div>
+                        </>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="text-sm font-medium text-gray-700">{new Date(w.createdAt).toLocaleDateString()}</div>
