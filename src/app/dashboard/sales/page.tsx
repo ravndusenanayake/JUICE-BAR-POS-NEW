@@ -29,6 +29,8 @@ export default function SalesHistoryPage() {
 
   // Date Filter State
   const [dateFilter, setDateFilter] = useState("")
+  const [statusFilter, setStatusFilter] = useState("All")
+  const [orderTypeFilter, setOrderTypeFilter] = useState("All")
 
   useEffect(() => {
     if (user) {
@@ -54,9 +56,12 @@ export default function SalesHistoryPage() {
 
   const filteredSales = sales.filter(s => {
     const matchesSearch = s.invoiceNo.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          s.customer.toLowerCase().includes(searchQuery.toLowerCase())
+                          s.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (s.cashier || "").toLowerCase().includes(searchQuery.toLowerCase())
     const matchesDate = dateFilter ? new Date(s.createdAt).toISOString().split('T')[0] === dateFilter : true
-    return matchesSearch && matchesDate
+    const matchesStatus = statusFilter === "All" || s.status === statusFilter
+    const matchesOrderType = orderTypeFilter === "All" || (s.orderType || 'Takeaway') === orderTypeFilter
+    return matchesSearch && matchesDate && matchesStatus && matchesOrderType
   })
 
   const handleExportCSV = () => {
@@ -64,18 +69,23 @@ export default function SalesHistoryPage() {
       toast.error("No sales to export");
       return;
     }
-    const headers = ["Invoice", "Date", "Customer", "Order Type", "Items", "Total Amount", "Status"];
+    const headers = ["Invoice", "Date", "Time", "Cashier", "Customer", "Order Type", "Items", "Total Amount", "Status"];
     const csvContent = [
       headers.join(","),
-      ...filteredSales.map(sale => [
-        sale.invoiceNo,
-        new Date(sale.createdAt).toLocaleString().replace(/,/g, ''),
-        sale.customer,
-        sale.orderType || 'Takeaway',
-        sale.items?.length || 0,
-        sale.total?.toFixed(2),
-        sale.status
-      ].join(","))
+      ...filteredSales.map(sale => {
+        const dateObj = new Date(sale.createdAt);
+        return [
+          sale.invoiceNo,
+          dateObj.toLocaleDateString(),
+          dateObj.toLocaleTimeString(),
+          sale.cashier || "System",
+          sale.customer,
+          sale.orderType || 'Takeaway',
+          sale.items?.length || 0,
+          sale.total?.toFixed(2),
+          sale.status
+        ].join(",")
+      })
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -175,10 +185,10 @@ export default function SalesHistoryPage() {
 
   const getStatusColor = (status: string) => {
     switch(status) {
-      case 'Completed': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
-      case 'Refunded': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
-      case 'Partially Refunded': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'Completed': return 'bg-green-100 text-green-700 border-green-200';
+      case 'Refunded': return 'bg-red-100 text-red-700 border-red-200';
+      case 'Partially Refunded': return 'bg-orange-100 text-orange-700 border-orange-200';
+      default: return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   }
 
@@ -196,13 +206,13 @@ export default function SalesHistoryPage() {
         </Button>
       </div>
 
-      <div className="flex flex-col sm:flex-row items-center gap-4">
-        <div className="relative w-full sm:max-w-sm">
-          <Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+      <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm flex flex-wrap gap-4 items-center">
+        <div className="relative w-full sm:max-w-xs flex-grow">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
           <Input 
             type="search" 
-            placeholder="Search invoice or customer..." 
-            className="pl-8" 
+            placeholder="Search invoice, customer, or cashier..." 
+            className="pl-9 bg-white border-gray-200 focus:border-orange-500 h-10 rounded-lg shadow-sm" 
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
@@ -210,71 +220,112 @@ export default function SalesHistoryPage() {
         <div className="relative w-full sm:w-auto">
           <Input 
             type="date" 
-            className="w-full sm:w-[200px]" 
+            className="w-full sm:w-[160px] bg-white border-gray-200 h-10 rounded-lg shadow-sm text-gray-600" 
             value={dateFilter}
             onChange={e => setDateFilter(e.target.value)}
           />
           {dateFilter && (
-            <Button variant="ghost" size="icon" className="absolute right-1 top-1 h-7 w-7 text-gray-500" onClick={() => setDateFilter("")}>
+            <Button variant="ghost" size="icon" className="absolute right-1 top-1.5 h-7 w-7 text-gray-400 hover:text-gray-600 hover:bg-gray-100" onClick={() => setDateFilter("")}>
               <Undo2 className="h-4 w-4" />
             </Button>
           )}
         </div>
+        <div className="w-full sm:w-[160px]">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="bg-white border-gray-200 h-10 rounded-lg shadow-sm">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All Statuses</SelectItem>
+              <SelectItem value="Completed">Completed</SelectItem>
+              <SelectItem value="Refunded">Refunded</SelectItem>
+              <SelectItem value="Partially Refunded">Partially Refunded</SelectItem>
+              <SelectItem value="Voided">Voided</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="w-full sm:w-[160px]">
+          <Select value={orderTypeFilter} onValueChange={setOrderTypeFilter}>
+            <SelectTrigger className="bg-white border-gray-200 h-10 rounded-lg shadow-sm">
+              <SelectValue placeholder="Order Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All Types</SelectItem>
+              <SelectItem value="Takeaway">Takeaway</SelectItem>
+              <SelectItem value="Dine-In">Dine-In</SelectItem>
+              <SelectItem value="Delivery">Delivery</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      <div className="rounded-md border bg-card">
+      <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead className="w-[120px]">Invoice</TableHead>
-              <TableHead>Date & Time</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Order Type</TableHead>
-              <TableHead>Items</TableHead>
-              <TableHead>Total Amount</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+            <TableRow className="bg-gray-50/80 border-b-gray-200">
+              <TableHead className="font-bold text-gray-700 py-4">Invoice</TableHead>
+              <TableHead className="font-bold text-gray-700 py-4">Date</TableHead>
+              <TableHead className="font-bold text-gray-700 py-4">Time</TableHead>
+              <TableHead className="font-bold text-gray-700 py-4">Cashier</TableHead>
+              <TableHead className="font-bold text-gray-700 py-4">Customer</TableHead>
+              <TableHead className="font-bold text-gray-700 py-4">Order Type</TableHead>
+              <TableHead className="font-bold text-gray-700 py-4 text-center">Items</TableHead>
+              <TableHead className="font-bold text-gray-700 py-4 text-right">Total</TableHead>
+              <TableHead className="font-bold text-gray-700 py-4">Status</TableHead>
+              <TableHead className="text-right font-bold text-gray-700 py-4">Actions</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="divide-y divide-gray-100">
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">Loading sales history...</TableCell>
+                <TableCell colSpan={10} className="text-center py-12 text-gray-500 font-medium">Loading sales history...</TableCell>
               </TableRow>
             ) : filteredSales.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">No sales found.</TableCell>
+                <TableCell colSpan={10} className="text-center py-12 text-gray-500 font-medium">No sales found.</TableCell>
               </TableRow>
             ) : (
-              filteredSales.map((sale) => (
-                <TableRow key={sale._id}>
-                  <TableCell className="font-medium text-primary">{sale.invoiceNo}</TableCell>
-                  <TableCell>{new Date(sale.createdAt).toLocaleString()}</TableCell>
-                  <TableCell>{sale.customer}</TableCell>
-                  <TableCell>
-                    <span className="px-2 py-1 bg-gray-100 text-gray-700 font-medium text-xs rounded-md">
+              filteredSales.map((sale) => {
+                const dateObj = new Date(sale.createdAt);
+                return (
+                <TableRow key={sale._id} className="hover:bg-orange-50/30 transition-colors">
+                  <TableCell className="font-black text-gray-900 py-4">{sale.invoiceNo}</TableCell>
+                  <TableCell className="text-gray-600 font-medium py-4">{dateObj.toLocaleDateString()}</TableCell>
+                  <TableCell className="text-gray-500 py-4">{dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</TableCell>
+                  <TableCell className="py-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-black text-[10px]">
+                        {(sale.cashier || 'S')[0].toUpperCase()}
+                      </div>
+                      <span className="font-bold text-gray-800">{sale.cashier || 'System'}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium text-gray-700 py-4">{sale.customer}</TableCell>
+                  <TableCell className="py-4">
+                    <span className="px-2.5 py-1 bg-gray-100 border border-gray-200 text-gray-700 font-semibold text-[11px] rounded-md uppercase tracking-wider">
                       {sale.orderType || 'Takeaway'}
                     </span>
                   </TableCell>
-                  <TableCell>{sale.items?.length || 0}</TableCell>
-                  <TableCell className="font-bold">Rs. {sale.total?.toFixed(2)}</TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(sale.status)}`}>
+                  <TableCell className="font-bold text-gray-600 text-center py-4">{sale.items?.length || 0}</TableCell>
+                  <TableCell className="font-black text-gray-900 text-right py-4">Rs. {sale.total?.toFixed(2)}</TableCell>
+                  <TableCell className="py-4">
+                    <span className={`px-2.5 py-1 rounded-md text-[11px] uppercase tracking-wider font-bold border ${getStatusColor(sale.status)}`}>
                       {sale.status}
                     </span>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right py-4">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="sm" className="text-blue-500 hover:text-blue-700" onClick={() => openViewModal(sale)}>View Details</Button>
+                      <Button variant="ghost" size="sm" className="h-8 px-3 text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-bold" onClick={() => openViewModal(sale)}>View</Button>
                       {sale.status !== 'Refunded' && sale.status !== 'Voided' && (
-                        <Button variant="outline" size="sm" className="text-orange-500 border-orange-200 hover:bg-orange-50" onClick={() => openReturnModal(sale)}>
-                          <Undo2 className="h-4 w-4 mr-1" /> Return
+                        <Button variant="outline" size="sm" className="h-8 px-3 text-orange-600 border-orange-200 hover:bg-orange-50 hover:text-orange-700 font-bold shadow-sm" onClick={() => openReturnModal(sale)}>
+                          <Undo2 className="h-3.5 w-3.5 mr-1.5" /> Return
                         </Button>
                       )}
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
+                )
+              })
             )}
           </TableBody>
         </Table>
