@@ -422,7 +422,9 @@ export default function PurchaseOrdersPage() {
                             if (displayUnit === 'ml') displayUnit = 'L';
                             return <SelectItem key={rm.sku} value={rm.sku}>{rm.name} ({displayUnit})</SelectItem>
                           })
-                        : products.map(p => <SelectItem key={p.sku} value={p.sku}>{p.name}</SelectItem>)
+                        : products
+                            .filter(p => p.stockType !== 'Non-Inventory')
+                            .map(p => <SelectItem key={p.sku} value={p.sku}>{p.name}</SelectItem>)
                       }
                     </SelectContent>
                   </Select>
