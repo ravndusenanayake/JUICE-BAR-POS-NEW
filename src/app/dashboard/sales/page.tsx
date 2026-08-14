@@ -231,7 +231,7 @@ export default function SalesHistoryPage() {
           )}
         </div>
         <div className="w-full sm:w-[160px]">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v || "All")}>
             <SelectTrigger className="bg-white border-gray-200 h-10 rounded-lg shadow-sm">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -245,7 +245,7 @@ export default function SalesHistoryPage() {
           </Select>
         </div>
         <div className="w-full sm:w-[160px]">
-          <Select value={orderTypeFilter} onValueChange={setOrderTypeFilter}>
+          <Select value={orderTypeFilter} onValueChange={(v) => setOrderTypeFilter(v || "All")}>
             <SelectTrigger className="bg-white border-gray-200 h-10 rounded-lg shadow-sm">
               <SelectValue placeholder="Order Type" />
             </SelectTrigger>
