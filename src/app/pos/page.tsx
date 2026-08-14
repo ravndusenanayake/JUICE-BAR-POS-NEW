@@ -195,9 +195,9 @@ export default function POSPage() {
             if (!Array.isArray(data)) throw new Error("Invalid format");
             const activeBranches = data.filter((b: any) => b.status === "Active");
             if (activeBranches.length === 0) {
-              // Trigger seed and retry after 3 seconds
+              // Trigger seed and retry immediately
               fetch('/api/seed').finally(() => {
-                setTimeout(loadBranches, 3000);
+                loadBranches();
               });
             } else {
               setAvailableBranches(activeBranches);
