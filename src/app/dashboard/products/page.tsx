@@ -27,6 +27,9 @@ export default function ProductsPage() {
   
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [filterCategory, setFilterCategory] = useState("All")
+  const [filterType, setFilterType] = useState("All")
+  const [filterStatus, setFilterStatus] = useState("All")
 
   // Form State
   const [name, setName] = useState("")
@@ -36,13 +39,14 @@ export default function ProductsPage() {
   const [description, setDescription] = useState("")
   const [image, setImage] = useState("")
   const [outletPrice, setOutletPrice] = useState("")
+  const [cost, setCost] = useState("")
   const [unit, setUnit] = useState("Nos")
   const [threshold, setThreshold] = useState("0")
   const [isActive, setIsActive] = useState(true)
   const [requiresRecipe, setRequiresRecipe] = useState(false)
 
   // Variant & Add-on State
-  const [formVariants, setFormVariants] = useState<{id?: string, name: string, sellingPrice: string}[]>([])
+  const [formVariants, setFormVariants] = useState<{id?: string, name: string, sellingPrice: string, costPrice: string}[]>([])
   const [formAddons, setFormAddons] = useState<{name: string, price: number}[]>([])
 
   useEffect(() => {
@@ -76,10 +80,20 @@ export default function ProductsPage() {
     }
   }
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    p.sku.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          p.sku.toLowerCase().includes(searchQuery.toLowerCase());
+                          
+    const matchesCategory = filterCategory === "All" || p.category === filterCategory;
+    const matchesStatus = filterStatus === "All" || p.status === filterStatus;
+    
+    let matchesType = true;
+    if (filterType === "Recipe") matchesType = p.type !== 'Finished Good' && p.stockType !== 'Non-Inventory';
+    if (filterType === "No Recipe") matchesType = p.stockType === 'Non-Inventory';
+    if (filterType === "Finished Good") matchesType = p.type === 'Finished Good';
+
+    return matchesSearch && matchesCategory && matchesStatus && matchesType;
+  })
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -94,7 +108,7 @@ export default function ProductsPage() {
 
   // --- Variants Handlers ---
   const addVariantRow = () => {
-    setFormVariants([...formVariants, { name: "", sellingPrice: "" }])
+    setFormVariants([...formVariants, { name: "", sellingPrice: "", costPrice: "" }])
   }
 
   const updateVariantRow = (index: number, field: string, value: string) => {
@@ -168,7 +182,7 @@ export default function ProductsPage() {
       if (editingProduct) {
         const payload = {
           id: editingProduct.id, name, category: category || "General", type, description, image,
-          status: isActive, sku, outletPrice: Number(outletPrice) || 0,
+          status: isActive, sku, outletPrice: Number(outletPrice) || 0, cost: Number(cost) || 0,
           unit, threshold: Number(threshold) || 0,
           addons: type === "Made to Order" ? formAddons : [],
           stockType: type === "Made to Order" ? (requiresRecipe ? 'Recipe' : 'Non-Inventory') : 'Inventory'
@@ -184,7 +198,7 @@ export default function ProductsPage() {
         savedProductId = editingProduct.id
       } else {
         const payload = {
-          name, category: category || "General", type, description, image, status: isActive, outletPrice: Number(outletPrice) || 0,
+          name, category: category || "General", type, description, image, status: isActive, outletPrice: Number(outletPrice) || 0, cost: Number(cost) || 0,
           unit, threshold: Number(threshold) || 0,
           addons: type === "Made to Order" ? formAddons : [],
           stockType: type === "Made to Order" ? (requiresRecipe ? 'Recipe' : 'Non-Inventory') : 'Inventory'
@@ -244,6 +258,7 @@ export default function ProductsPage() {
     setDescription("")
     setImage("")
     setOutletPrice("")
+    setCost("")
     setUnit("Nos")
     setThreshold("0")
     setIsActive(true)
@@ -261,6 +276,7 @@ export default function ProductsPage() {
     setDescription(p.description || "")
     setImage(p.image || "")
     setOutletPrice(p.outletPrice?.toString() || "")
+    setCost(p.cost?.toString() || "")
     setUnit(p.unit || "Nos")
     setThreshold(p.threshold?.toString() || "0")
     setIsActive(p.status === 'Active')
@@ -269,7 +285,7 @@ export default function ProductsPage() {
     
     // Load variants
     const productVars = allVariants.filter(v => v.productId && (v.productId._id === p.id || v.productId === p.id))
-    setFormVariants(productVars.map(v => ({ id: v._id, name: v.name, sellingPrice: v.sellingPrice.toString() })))
+    setFormVariants(productVars.map(v => ({ id: v._id, name: v.name, sellingPrice: v.sellingPrice?.toString() || "", costPrice: v.costPrice?.toString() || "" })))
     
     setIsDialogOpen(true)
   }
@@ -387,13 +403,22 @@ export default function ProductsPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">Selling Price (Rs.)</Label>
-                      <Input 
-                        type="number" step="0.01" min="0" placeholder="e.g. 500" 
-                        value={outletPrice} onChange={(e) => setOutletPrice(e.target.value)} 
-                      />
-                    </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Cost Price (Rs.)</Label>
+                          <Input 
+                            type="number" step="0.01" min="0" placeholder="e.g. 300" 
+                            value={cost} onChange={(e) => setCost(e.target.value)} 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Selling Price (Rs.) <span className="text-red-500">*</span></Label>
+                          <Input 
+                            type="number" step="0.01" min="0" placeholder="e.g. 500" 
+                            value={outletPrice} onChange={(e) => setOutletPrice(e.target.value)} 
+                          />
+                        </div>
+                      </div>
                   </div>
 
                   {/* MADE TO ORDER SPECIFIC FIELDS */}
@@ -415,7 +440,7 @@ export default function ProductsPage() {
                     <div className="grid gap-3 border-t pt-4">
                       <div className="flex justify-between items-center">
                         <div>
-                          <h3 className="font-semibold text-gray-800">Variants (Sizes & Prices)</h3>
+                          <h3 className="font-semibold text-gray-800">Variants (Sizes, Cost & Selling Price)</h3>
                           <p className="text-xs text-muted-foreground">Add specific sizes and their prices (e.g., Small, Large).</p>
                         </div>
                         <Button type="button" size="sm" variant="outline" onClick={addVariantRow} className="h-8">
@@ -443,10 +468,18 @@ export default function ProductsPage() {
                                   <option value="Regular" />
                                 </datalist>
                               </div>
-                              <div className="flex-1">
+                              <div className="flex-[0.7]">
                                 <Input 
-                                  type="number" step="0.01" min="0" placeholder="Price (Rs.)" 
+                                  type="number" step="0.01" min="0" placeholder="Cost (Rs.)" 
                                   className="h-8 text-sm"
+                                  value={variant.costPrice} 
+                                  onChange={e => updateVariantRow(idx, 'costPrice', e.target.value)} 
+                                />
+                              </div>
+                              <div className="flex-[0.7]">
+                                <Input 
+                                  type="number" step="0.01" min="0" placeholder="Selling (Rs.)" 
+                                  className="h-8 text-sm border-orange-200 focus-visible:ring-orange-500"
                                   value={variant.sellingPrice} 
                                   onChange={e => updateVariantRow(idx, 'sellingPrice', e.target.value)} 
                                 />
@@ -551,16 +584,53 @@ export default function ProductsPage() {
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border p-4">
-        <div className="flex items-center gap-4 mb-6 pb-4 border-b">
-          <div className="relative w-full max-w-md">
+        <div className="flex flex-col lg:flex-row items-center gap-4 mb-6 pb-4 border-b">
+          <div className="relative w-full lg:w-96">
             <Search className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
             <Input 
               type="search" 
               placeholder="Search products..." 
-              className="pl-9 bg-gray-50 border-none"
+              className="pl-9 bg-gray-50 border-gray-200"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+          </div>
+          
+          <div className="flex flex-wrap w-full lg:w-auto gap-3">
+            <Select value={filterCategory} onValueChange={(val) => setFilterCategory(val || "All")}>
+              <SelectTrigger className="w-[180px] bg-gray-50 border-gray-200">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Categories</SelectItem>
+                {categoriesList.map((c: any) => (
+                  <SelectItem key={c._id} value={c.name}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterType} onValueChange={(val) => setFilterType(val || "All")}>
+              <SelectTrigger className="w-[200px] bg-gray-50 border-gray-200">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Types</SelectItem>
+                <SelectItem value="Recipe">Made to Order (Recipe)</SelectItem>
+                <SelectItem value="No Recipe">Made to Order (No Recipe)</SelectItem>
+                <SelectItem value="Finished Good">Finished Goods</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={filterStatus} onValueChange={(val) => setFilterStatus(val || "All")}>
+              <SelectTrigger className="w-[140px] bg-gray-50 border-gray-200">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Status</SelectItem>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

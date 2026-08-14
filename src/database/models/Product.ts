@@ -15,6 +15,7 @@ export interface IProduct extends Document {
   image?: string;
   description?: string;
   threshold: number;
+  stockType: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,6 +36,7 @@ const ProductSchema = new Schema<IProduct>(
     image: { type: String },
     description: { type: String },
     threshold: { type: Number, default: 0 },
+    stockType: { type: String, enum: ['Inventory', 'Recipe', 'Non-Inventory'], default: 'Inventory' },
   },
   { timestamps: true }
 );

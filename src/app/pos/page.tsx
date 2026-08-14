@@ -299,7 +299,9 @@ export default function POSPage() {
               })
               .map((v: any) => {
                 let vOutOfStock = false;
-                if (p.type !== 'Finished Good') {
+                if (p.stockType === 'Non-Inventory') {
+                   vOutOfStock = false;
+                } else if (p.type !== 'Finished Good') {
                    const vRecipe = recipesData.find((r: any) => r.productId === p._id && r.variant === v.name);
                    if (vRecipe && vRecipe.ingredients && vRecipe.ingredients.length > 0) {
                      for (const ing of vRecipe.ingredients) {
@@ -316,7 +318,9 @@ export default function POSPage() {
                 return { name: v.name, price: v.sellingPrice, isOutOfStock: vOutOfStock };
               });
               
-            if (p.type === 'Finished Good') {
+            if (p.stockType === 'Non-Inventory') {
+              isOutOfStock = false;
+            } else if (p.type === 'Finished Good') {
               const qty = invMapBySku.get(p.sku) || 0;
               if (qty <= 0) isOutOfStock = true;
             } else {

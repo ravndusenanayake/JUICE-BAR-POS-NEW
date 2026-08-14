@@ -28,6 +28,7 @@ export async function POST(req: Request) {
       productId: body.productId,
       name: body.name,
       sellingPrice: body.sellingPrice,
+      costPrice: body.costPrice || 0,
       status: body.status === false || body.status === 'Inactive' ? 'Inactive' : 'Active',
     });
 
