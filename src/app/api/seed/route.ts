@@ -18,7 +18,13 @@ import AddOn from '@/database/models/AddOn';
 import Unit from '@/database/models/Unit';
 import { roleService } from '@/services/role.service';
 
+let isSeeding = false;
+
 export async function GET(request: Request) {
+  if (isSeeding) {
+    return NextResponse.json({ message: 'Seeding in progress...' }, { status: 202 });
+  }
+  isSeeding = true;
   try {
     await connectToDatabase();
 
@@ -39,31 +45,25 @@ export async function GET(request: Request) {
       }
     };
 
-    await dropIfExists(Product);
-    await dropIfExists(ProductVariant);
-    await dropIfExists(Recipe);
-    await dropIfExists(RawMaterial);
-    await dropIfExists(Customer);
-    await dropIfExists(Category);
-    await dropIfExists(BranchInventory);
-    await dropIfExists(Branch);
-    await dropIfExists(InventoryItem);
-    await dropIfExists(User);
-    await dropIfExists(Role);
-    await dropIfExists(Supplier);
-    await dropIfExists(AddOn);
-    await dropIfExists(Unit);
+    await Promise.all([
+      dropIfExists(Product), dropIfExists(ProductVariant), dropIfExists(Recipe),
+      dropIfExists(RawMaterial), dropIfExists(Customer), dropIfExists(Category),
+      dropIfExists(BranchInventory), dropIfExists(Branch), dropIfExists(InventoryItem),
+      dropIfExists(User), dropIfExists(Role), dropIfExists(Supplier),
+      dropIfExists(AddOn), dropIfExists(Unit)
+    ]);
 
     console.log('✅ Cleared existing collections...');
 
     // ========================================
     // 1. ROLES & USERS
     // ========================================
-    await roleService.seedDefaultRoles();
-
-    const hashedAdmin = await bcrypt.hash('admin123', 10);
-    const hashedManager = await bcrypt.hash('manager123', 10);
-    const hashedCashier = await bcrypt.hash('cashier123', 10);
+    const [_, hashedAdmin, hashedManager, hashedCashier] = await Promise.all([
+      roleService.seedDefaultRoles(),
+      bcrypt.hash('admin123', 10),
+      bcrypt.hash('manager123', 10),
+      bcrypt.hash('cashier123', 10)
+    ]);
 
     await User.insertMany([
       { name: 'Super Admin', email: 'superadmin@juicebar.com', password: hashedAdmin, role: 'Super Admin', branch: 'All Branches', status: 'Active' },
@@ -482,5 +482,7 @@ export async function GET(request: Request) {
   } catch (error: any) {
     console.error('❌ Seeding Error:', error);
     return NextResponse.json({ error: 'Failed to seed database', details: error.message }, { status: 500 });
+  } finally {
+    isSeeding = false;
   }
 }
