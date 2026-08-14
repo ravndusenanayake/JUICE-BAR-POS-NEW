@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, Search, Edit, Archive, Trash2, Image as ImageIcon, X, CheckSquare, Square } from "lucide-react"
+import { Plus, Search, Edit, Archive, Trash2, Image as ImageIcon, X, CheckSquare, Square, Eye } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useAuth } from "@/context/AuthContext"
 import Swal from 'sweetalert2'
@@ -24,6 +24,7 @@ export default function ProductsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [editingProduct, setEditingProduct] = useState<any>(null)
+  const [viewingProduct, setViewingProduct] = useState<any>(null)
   
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
@@ -461,11 +462,8 @@ export default function ProductsPage() {
                                   onChange={e => updateVariantRow(idx, 'name', e.target.value)} 
                                 />
                                 <datalist id="variantNames">
-                                  <option value="Small" />
                                   <option value="Medium" />
                                   <option value="Large" />
-                                  <option value="Standard" />
-                                  <option value="Regular" />
                                 </datalist>
                               </div>
                               <div className="flex-[0.7]">
@@ -637,8 +635,9 @@ export default function ProductsPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-              <TableHead className="w-16">Image</TableHead>
               <TableHead>Product Name</TableHead>
+              <TableHead>Medium (Rs)</TableHead>
+              <TableHead>Large (Rs)</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -647,25 +646,16 @@ export default function ProductsPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading products...</TableCell>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading products...</TableCell>
               </TableRow>
             ) : filteredProducts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   No products found.
                 </TableCell>
               </TableRow>
-            ) : filteredProducts.map((p) => (
+            ) : filteredProducts.map((p: any) => (
               <TableRow key={p.id} className="border-b last:border-0 hover:bg-gray-50/50">
-                <TableCell>
-                  <div className="w-10 h-10 rounded overflow-hidden bg-gray-100 flex items-center justify-center">
-                    {p.image ? (
-                      <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <ImageIcon className="w-5 h-5 text-gray-300" />
-                    )}
-                  </div>
-                </TableCell>
                 <TableCell>
                   <div className="font-semibold text-gray-800 uppercase text-sm">
                     {p.name}
@@ -679,6 +669,20 @@ export default function ProductsPage() {
                   <div className="text-xs text-gray-400 mt-0.5">{p.sku}</div>
                 </TableCell>
                 <TableCell>
+                  <span className="text-sm font-medium text-gray-700">
+                    {p.type !== 'Finished Good' && p.stockType !== 'Non-Inventory' ? (
+                      allVariants.find(v => v.productId && (v.productId._id === p.id || v.productId === p.id) && v.name.toLowerCase() === 'medium')?.sellingPrice || '-'
+                    ) : '-'}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm font-medium text-gray-700">
+                    {p.type !== 'Finished Good' && p.stockType !== 'Non-Inventory' ? (
+                      allVariants.find(v => v.productId && (v.productId._id === p.id || v.productId === p.id) && v.name.toLowerCase() === 'large')?.sellingPrice || '-'
+                    ) : '-'}
+                  </span>
+                </TableCell>
+                <TableCell>
                   <span className="text-sm text-gray-600">{p.category}</span>
                 </TableCell>
                 <TableCell>
@@ -688,6 +692,9 @@ export default function ProductsPage() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
+                    <Button variant="ghost" size="icon" title="View" onClick={() => setViewingProduct(p)}>
+                      <Eye className="h-4 w-4 text-gray-500 hover:text-gray-700" />
+                    </Button>
                     <Button variant="ghost" size="icon" title="Edit" onClick={() => handleEdit(p)}>
                       <Edit className="h-4 w-4 text-blue-500" />
                     </Button>
@@ -705,6 +712,90 @@ export default function ProductsPage() {
         </Table>
       </div>
 
+      {/* View Product Dialog */}
+      <Dialog open={!!viewingProduct} onOpenChange={(open) => !open && setViewingProduct(null)}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Product Details</DialogTitle>
+          </DialogHeader>
+          
+          {viewingProduct && (
+            <div className="space-y-6 mt-4">
+              <div className="border-b pb-5">
+                <h3 className="text-2xl font-extrabold text-gray-900 tracking-tight pr-8">{viewingProduct.name}</h3>
+                <div className="text-sm text-gray-500 mt-1.5 font-medium">SKU: {viewingProduct.sku}</div>
+                <div className="flex flex-wrap gap-2.5 mt-4">
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm border ${viewingProduct.status === 'Active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>
+                    {viewingProduct.status}
+                  </span>
+                  <span className="bg-gray-50 text-gray-700 text-xs font-bold px-3 py-1 rounded-full shadow-sm border border-gray-200">{viewingProduct.category}</span>
+                  <span className="bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1 rounded-full shadow-sm border border-blue-200">{viewingProduct.type}</span>
+                  {viewingProduct.stockType === 'Non-Inventory' && (
+                    <span className="bg-purple-50 text-purple-700 text-xs font-bold px-3 py-1 rounded-full shadow-sm border border-purple-200">∞ No Recipe</span>
+                  )}
+                </div>
+              </div>
+              
+              {viewingProduct.description && (
+                <div className="bg-gray-50 p-3 rounded-md border text-sm text-gray-700">
+                  {viewingProduct.description}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                  <span className="text-gray-500 block text-[10px] uppercase tracking-wider font-semibold mb-1">Base Cost Price</span>
+                  <span className="text-base font-bold text-gray-900">Rs. {viewingProduct.cost || 0}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                  <span className="text-gray-500 block text-[10px] uppercase tracking-wider font-semibold mb-1">Base Selling Price</span>
+                  <span className="text-base font-bold text-green-600">Rs. {viewingProduct.outletPrice || 0}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                  <span className="text-gray-500 block text-[10px] uppercase tracking-wider font-semibold mb-1">Measurement Unit</span>
+                  <span className="text-sm font-semibold text-gray-800">{viewingProduct.unit || 'Nos'}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                  <span className="text-gray-500 block text-[10px] uppercase tracking-wider font-semibold mb-1">Stock Tracking</span>
+                  <span className="text-sm font-semibold text-gray-800">{viewingProduct.stockType || 'Inventory'}</span>
+                </div>
+              </div>
+
+              {viewingProduct.type !== 'Finished Good' && viewingProduct.stockType !== 'Non-Inventory' && (
+                <div className="border-t pt-3">
+                  <h4 className="text-sm font-semibold mb-2">Variants</h4>
+                  <div className="flex flex-col gap-1.5">
+                    {allVariants
+                      .filter(v => v.productId && (v.productId._id === viewingProduct.id || v.productId === viewingProduct.id))
+                      .map(v => (
+                        <div key={v._id} className="flex justify-between items-center bg-gray-50 px-2 py-1.5 rounded border text-sm">
+                          <span className="font-medium">{v.name}</span>
+                          <span className="text-gray-600">Cost: <span className="font-semibold text-gray-800">Rs. {v.costPrice || 0}</span> | Sell: <span className="font-semibold text-gray-800">Rs. {v.sellingPrice}</span></span>
+                        </div>
+                    ))}
+                    {allVariants.filter(v => v.productId && (v.productId._id === viewingProduct.id || v.productId === viewingProduct.id)).length === 0 && (
+                      <span className="text-xs text-gray-500 italic">No variants found.</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {viewingProduct.addons && viewingProduct.addons.length > 0 && (
+                <div className="border-t pt-4 pb-2">
+                  <h4 className="text-sm font-semibold mb-3 text-gray-800">Add-ons</h4>
+                  <div className="flex flex-wrap gap-2.5">
+                    {viewingProduct.addons.map((a: any, i: number) => (
+                      <span key={i} className="text-[11px] bg-orange-50 text-orange-800 border border-orange-200 px-2.5 py-1.5 rounded-md font-medium shadow-sm">
+                        {a.name} (Rs. {a.price})
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
