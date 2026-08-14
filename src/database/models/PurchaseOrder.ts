@@ -22,6 +22,7 @@ export interface IPurchaseOrder extends Document {
   items: IPOItem[];
   notes?: string;
   approvedBy?: string;
+  createdBy?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -51,7 +52,8 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrder>(
     totalAmount: { type: Number, required: true },
     items: [POItemSchema],
     notes: { type: String },
-    approvedBy: { type: String }
+    approvedBy: { type: String },
+    createdBy: { type: String }
   },
   { timestamps: true }
 );

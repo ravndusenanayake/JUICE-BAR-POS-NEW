@@ -34,6 +34,7 @@ export interface PurchaseOrder {
   totalAmount: number
   status: "Awaiting Approval" | "Approved" | "Pending" | "Partially Received" | "Fully Received" | "Cancelled"
   approvedBy?: string
+  createdBy?: string
   createdAt: string
 }
 
@@ -197,7 +198,8 @@ export default function PurchaseOrdersPage() {
       orderDate: new Date().toISOString(), expectedDate: new Date(expectedDate).toISOString(),
       items, totalAmount, 
       status: canApprove ? "Approved" : "Awaiting Approval",
-      ...(canApprove ? { approvedBy: user?.name || role } : {})
+      ...(canApprove ? { approvedBy: user?.name || role } : {}),
+      createdBy: user?.name || role || 'Admin'
     }
 
     try {
@@ -423,7 +425,7 @@ export default function PurchaseOrdersPage() {
                             return <SelectItem key={rm.sku} value={rm.sku}>{rm.name} ({displayUnit})</SelectItem>
                           })
                         : products
-                            .filter(p => p.stockType !== 'Non-Inventory')
+                            .filter(p => p.type === 'Finished Good')
                             .map(p => <SelectItem key={p.sku} value={p.sku}>{p.name}</SelectItem>)
                       }
                     </SelectContent>
@@ -502,7 +504,8 @@ export default function PurchaseOrdersPage() {
               </span>
             </DialogTitle>
             <DialogDescription>
-              Supplier: <strong className="text-gray-900">{viewPO?.supplierName}</strong> | Expected: {viewPO ? new Date(viewPO.expectedDate).toLocaleDateString() : ''}
+              <span className="block mb-1">Supplier: <strong className="text-gray-900">{viewPO?.supplierName}</strong> | Expected: {viewPO ? new Date(viewPO.expectedDate).toLocaleDateString() : ''}</span>
+              <span className="block">Created By: <strong className="text-gray-900">{viewPO?.createdBy || 'Admin'}</strong> | Date: {viewPO ? new Date(viewPO.createdAt || viewPO.orderDate).toLocaleString() : ''}</span>
             </DialogDescription>
           </DialogHeader>
 

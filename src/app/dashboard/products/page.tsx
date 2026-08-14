@@ -219,24 +219,22 @@ export default function ProductsPage() {
         savedProductId = data._id
       }
 
-      // Save Variants ONLY if Made to Order
-      if (type === "Made to Order") {
-        for (let v of formVariants) {
-          if (v.id) {
-            // Update existing
-            await fetch('/api/product-variants', {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id: v.id, productId: savedProductId, name: v.name, sellingPrice: Number(v.sellingPrice), status: isActive })
-            })
-          } else {
-            // Create new
-            await fetch('/api/product-variants', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ productId: savedProductId, name: v.name, sellingPrice: Number(v.sellingPrice), status: true })
-            })
-          }
+      // Save Variants for all product types
+      for (let v of formVariants) {
+        if (v.id) {
+          // Update existing
+          await fetch('/api/product-variants', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: v.id, productId: savedProductId, name: v.name, sellingPrice: Number(v.sellingPrice), costPrice: Number(v.costPrice) || 0, status: isActive })
+          })
+        } else {
+          // Create new
+          await fetch('/api/product-variants', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId: savedProductId, name: v.name, sellingPrice: Number(v.sellingPrice), costPrice: Number(v.costPrice) || 0, status: true })
+          })
         }
       }
 
@@ -454,17 +452,15 @@ export default function ProductsPage() {
                           {formVariants.map((variant, idx) => (
                             <div key={idx} className="flex items-center gap-2 bg-gray-50 p-2 rounded-md border">
                               <div className="flex-1">
-                                <Input 
-                                  list="variantNames"
-                                  placeholder="Name (e.g. Small)" 
-                                  className="h-8 text-sm"
-                                  value={variant.name} 
-                                  onChange={e => updateVariantRow(idx, 'name', e.target.value)} 
-                                />
-                                <datalist id="variantNames">
-                                  <option value="Medium" />
-                                  <option value="Large" />
-                                </datalist>
+                                <Select value={variant.name} onValueChange={v => updateVariantRow(idx, 'name', v || "")}>
+                                  <SelectTrigger className="h-8 text-sm bg-white">
+                                    <SelectValue placeholder="Size" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Medium">Medium</SelectItem>
+                                    <SelectItem value="Large">Large</SelectItem>
+                                  </SelectContent>
+                                </Select>
                               </div>
                               <div className="flex-[0.7]">
                                 <Input 
@@ -527,6 +523,60 @@ export default function ProductsPage() {
 
                   {/* FINISHED GOOD SPECIFIC FIELDS */}
                   <TabsContent value="Finished Good" className="space-y-6">
+                    {/* Variants Section */}
+                    <div className="grid gap-3 border-t pt-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h3 className="font-semibold text-gray-800">Variants (Sizes, Cost & Selling Price)</h3>
+                          <p className="text-xs text-muted-foreground">Add specific sizes and their prices (e.g., Medium, Large).</p>
+                        </div>
+                        <Button type="button" size="sm" variant="outline" onClick={addVariantRow} className="h-8">
+                          <Plus className="w-4 h-4 mr-1" /> Add Variant
+                        </Button>
+                      </div>
+
+                      {formVariants.length > 0 ? (
+                        <div className="grid gap-2 mt-2">
+                          {formVariants.map((variant, idx) => (
+                            <div key={idx} className="flex items-center gap-2 bg-gray-50 p-2 rounded-md border">
+                              <div className="flex-1">
+                                <Select value={variant.name} onValueChange={v => updateVariantRow(idx, 'name', v || "")}>
+                                  <SelectTrigger className="h-8 text-sm bg-white">
+                                    <SelectValue placeholder="Size" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Medium">Medium</SelectItem>
+                                    <SelectItem value="Large">Large</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="flex-[0.7]">
+                                <Input 
+                                  type="number" step="0.01" min="0" placeholder="Cost (Rs.)" 
+                                  className="h-8 text-sm"
+                                  value={variant.costPrice} 
+                                  onChange={e => updateVariantRow(idx, 'costPrice', e.target.value)} 
+                                />
+                              </div>
+                              <div className="flex-[0.7]">
+                                <Input 
+                                  type="number" step="0.01" min="0" placeholder="Selling (Rs.)" 
+                                  className="h-8 text-sm border-orange-200 focus-visible:ring-orange-500"
+                                  value={variant.sellingPrice} 
+                                  onChange={e => updateVariantRow(idx, 'sellingPrice', e.target.value)} 
+                                />
+                              </div>
+                              <Button type="button" size="icon" variant="ghost" onClick={() => confirmRemoveVariant(idx)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50">
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-400 italic py-2">Please add variants to set prices for different sizes.</div>
+                      )}
+                    </div>
+
                     <div className="grid gap-3 border-t pt-4">
                       <h3 className="font-semibold text-gray-800">Finished Good Details</h3>
                       <p className="text-xs text-muted-foreground mb-2">Configure pricing and inventory tracking for ready-to-sell items.</p>
@@ -670,16 +720,12 @@ export default function ProductsPage() {
                 </TableCell>
                 <TableCell>
                   <span className="text-sm font-medium text-gray-700">
-                    {p.type !== 'Finished Good' && p.stockType !== 'Non-Inventory' ? (
-                      allVariants.find(v => v.productId && (v.productId._id === p.id || v.productId === p.id) && v.name.toLowerCase() === 'medium')?.sellingPrice || '-'
-                    ) : '-'}
+                    {allVariants.find(v => v.productId && (v.productId._id === p.id || v.productId === p.id) && v.name.toLowerCase() === 'medium')?.sellingPrice || '-'}
                   </span>
                 </TableCell>
                 <TableCell>
                   <span className="text-sm font-medium text-gray-700">
-                    {p.type !== 'Finished Good' && p.stockType !== 'Non-Inventory' ? (
-                      allVariants.find(v => v.productId && (v.productId._id === p.id || v.productId === p.id) && v.name.toLowerCase() === 'large')?.sellingPrice || '-'
-                    ) : '-'}
+                    {allVariants.find(v => v.productId && (v.productId._id === p.id || v.productId === p.id) && v.name.toLowerCase() === 'large')?.sellingPrice || '-'}
                   </span>
                 </TableCell>
                 <TableCell>
@@ -761,7 +807,7 @@ export default function ProductsPage() {
                 </div>
               </div>
 
-              {viewingProduct.type !== 'Finished Good' && viewingProduct.stockType !== 'Non-Inventory' && (
+              {allVariants.filter(v => v.productId && (v.productId._id === viewingProduct.id || v.productId === viewingProduct.id)).length > 0 && (
                 <div className="border-t pt-3">
                   <h4 className="text-sm font-semibold mb-2">Variants</h4>
                   <div className="flex flex-col gap-1.5">
