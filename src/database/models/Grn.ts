@@ -27,6 +27,7 @@ export interface IGRN extends Document {
   branch: string;
   receivedDate: Date;
   receivedBy: string;
+  createdBy?: string;
   notes?: string;
   items: IGRNItem[];
   totalAmount: number;
@@ -71,6 +72,7 @@ const GRNSchema = new Schema<IGRN>(
     branch: { type: String, required: true },
     receivedDate: { type: Date, required: true },
     receivedBy: { type: String, required: true },
+    createdBy: { type: String },
     notes: { type: String },
     items: [GRNItemSchema],
     totalAmount: { type: Number, required: true, default: 0 },

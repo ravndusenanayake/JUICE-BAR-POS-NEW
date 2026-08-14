@@ -320,7 +320,8 @@ export default function AllGRNPage() {
                   <PackageOpen className="text-orange-500" /> {viewGrn?.grnNumber}
                 </DialogTitle>
                 <DialogDescription className="text-gray-600 mt-2 font-medium">
-                  Received from <strong className="text-gray-900">{viewGrn?.supplierName}</strong> on {viewGrn ? new Date(viewGrn.receivedDate).toLocaleDateString() : ''}.
+                  <span className="block mb-1">Received from <strong className="text-gray-900">{viewGrn?.supplierName}</strong> on {viewGrn ? new Date(viewGrn.receivedDate).toLocaleDateString() : ''}.</span>
+                  <span className="block">Created By: <strong className="text-gray-900">{viewGrn?.createdBy || 'Admin'}</strong> | Date: {viewGrn ? new Date(viewGrn.createdAt || viewGrn.receivedDate).toLocaleString() : ''}</span>
                 </DialogDescription>
               </div>
               <div className="text-right">

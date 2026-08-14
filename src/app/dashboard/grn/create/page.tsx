@@ -191,7 +191,8 @@ function CreateGRNContent() {
       items: finalItems,
       totalAmount,
       paidAmount: 0,
-      paymentStatus: 'Unpaid'
+      paymentStatus: 'Unpaid',
+      createdBy: user?.name || role || 'Admin'
     }
 
     try {
