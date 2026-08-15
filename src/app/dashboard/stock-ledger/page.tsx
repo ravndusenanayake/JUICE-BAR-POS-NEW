@@ -225,7 +225,8 @@ export default function StockLedgerPage() {
                     {entry.reference}
                   </TableCell>
                 </TableRow>
-              ))}
+              ))
+            )}
             </TableBody>
           </Table>
       </div>
