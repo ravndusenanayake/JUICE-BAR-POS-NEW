@@ -267,7 +267,7 @@ export default function PurchaseOrdersPage() {
             />
           </div>
           <div className="flex gap-3 w-full sm:w-auto">
-            <Select value={filterBranch} onValueChange={setFilterBranch}>
+            <Select value={filterBranch} onValueChange={(v) => setFilterBranch(v || 'All')}>
               <SelectTrigger className="w-full sm:w-[180px] h-10 bg-white border-gray-200 font-medium text-gray-700">
                 <SelectValue placeholder="All Branches" />
               </SelectTrigger>
@@ -279,7 +279,7 @@ export default function PurchaseOrdersPage() {
               </SelectContent>
             </Select>
 
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v || 'All')}>
               <SelectTrigger className="w-full sm:w-[180px] h-10 bg-white border-gray-200 font-medium text-gray-700">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
