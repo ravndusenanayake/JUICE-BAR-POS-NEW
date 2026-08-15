@@ -14,8 +14,6 @@ export default function AllGRNPage() {
   const [searchQuery, setSearchQuery] = useState("")
   
   const [filterBranch, setFilterBranch] = useState("All")
-  const [filterMinPrice, setFilterMinPrice] = useState("")
-  const [filterMaxPrice, setFilterMaxPrice] = useState("")
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list")
   const [currentMonth, setCurrentMonth] = useState(new Date())
 
@@ -58,10 +56,8 @@ export default function AllGRNPage() {
                           g.poNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           g.supplierName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesBranch = filterBranch === "All" || g.branch === filterBranch;
-    const matchesMin = filterMinPrice === "" || g.totalAmount >= Number(filterMinPrice);
-    const matchesMax = filterMaxPrice === "" || g.totalAmount <= Number(filterMaxPrice);
     
-    return matchesSearch && matchesBranch && matchesMin && matchesMax;
+    return matchesSearch && matchesBranch;
   })
 
   const openViewModal = (grn: any) => {
@@ -125,16 +121,6 @@ export default function AllGRNPage() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <div className="flex gap-2 w-full md:w-64">
-          <Input 
-            type="number" placeholder="Min Rs." className="bg-gray-50 border-gray-200"
-            value={filterMinPrice} onChange={e => setFilterMinPrice(e.target.value)}
-          />
-          <Input 
-            type="number" placeholder="Max Rs." className="bg-gray-50 border-gray-200"
-            value={filterMaxPrice} onChange={e => setFilterMaxPrice(e.target.value)}
-          />
         </div>
       </div>
 

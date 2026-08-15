@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from "@/components/ui/label"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { 
-  Search, User, ShoppingCart, Power, Minus, Plus, Trash2, Printer, CheckCircle2, ChevronRight, X, Percent, DollarSign, Store, Tag, Coffee, Filter, CalendarClock, Phone, ArrowLeft, Loader2, RotateCcw, Wallet, PauseCircle, PlayCircle, CreditCard, MoreVertical, History, WifiOff, CloudLightning, Edit, Star
+  Search, User, ShoppingCart, Power, Minus, Plus, Trash2, Printer, CheckCircle2, ChevronRight, X, Percent, DollarSign, Store, Tag, Coffee, Filter, CalendarClock, Phone, ArrowLeft, Loader2, RotateCcw, Wallet, PauseCircle, PlayCircle, CreditCard, MoreVertical, History, WifiOff, CloudLightning, Edit, Star, Delete
 } from "lucide-react"
 import { logAudit } from "@/lib/auditLogger"
 import { toast } from "sonner"
@@ -116,10 +116,28 @@ export default function POSPage() {
   
   // -- Payment & KOT --
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
+  const tenderedCashInputRef = useRef<HTMLInputElement>(null)
   const [tenderedCash, setTenderedCash] = useState<string>("")
   const [paymentMethod, setPaymentMethod] = useState<"Cash" | "Card" | "Bank Transfer" | "Split">("Cash")
   const [splitCash, setSplitCash] = useState("")
   const [splitCard, setSplitCard] = useState("")
+  const [activeInput, setActiveInput] = useState<"tenderedCash" | "splitCash" | "splitCard">("tenderedCash")
+
+  const handleNumpadClick = (val: string) => {
+    const updateValue = (prev: string) => {
+      if (val === 'C') return "";
+      if (val === 'X') return prev.slice(0, -1);
+      if (prev === "0" && val !== ".") return val;
+      return prev + val;
+    };
+
+    if (paymentMethod === "Cash") {
+      setTenderedCash(updateValue);
+    } else if (paymentMethod === "Split") {
+      if (activeInput === "splitCash") setSplitCash(updateValue);
+      else if (activeInput === "splitCard") setSplitCard(updateValue);
+    }
+  };
 
   const [paymentSuccess, setPaymentSuccess] = useState(false)
   const [deductedMaterials, setDeductedMaterials] = useState<any[]>([])
@@ -463,6 +481,16 @@ export default function POSPage() {
   };
 
   // --- Filtering ---
+  // Auto-focus Tendered Cash input when Payment Modal opens
+  useEffect(() => {
+    if (isPaymentModalOpen && paymentMethod === "Cash") {
+      const timer = setTimeout(() => {
+        tenderedCashInputRef.current?.focus()
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [isPaymentModalOpen, paymentMethod])
+
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
       let matchCategory = false;
@@ -1542,66 +1570,94 @@ export default function POSPage() {
 
       {/* 6. Payment Methods Modal */}
       <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
-        <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl border-0 shadow-2xl bg-gray-50">
+        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden rounded-2xl border-0 shadow-2xl bg-gray-50">
           <form onSubmit={processPayment}>
-            <div className="p-6 bg-white border-b">
+            <div className="p-4 pr-12 bg-white border-b flex justify-between items-center">
               <DialogTitle className="text-xl font-black text-gray-900">Complete Payment</DialogTitle>
-              <div className="text-3xl font-black text-orange-600 mt-2">Rs. {grandTotal.toFixed(2)}</div>
+              <div className="text-2xl font-black text-orange-600">Rs. {grandTotal.toFixed(2)}</div>
             </div>
-            <div className="p-6 space-y-6 bg-gray-50">
-              <div className="grid grid-cols-2 gap-3">
-                {["Cash", "Card", "Bank Transfer", "Split"].map((method) => (
-                  <button
-                    key={method} type="button"
-                    onClick={() => setPaymentMethod(method as any)}
-                    className={`p-5 rounded-xl border-2 font-bold text-lg transition-all ${paymentMethod === method ? 'border-orange-500 bg-orange-100 text-orange-700 shadow-sm ring-1 ring-orange-500' : 'border-gray-200 bg-white text-gray-600 hover:border-orange-300'}`}
-                  >
-                    {method}
-                  </button>
-                ))}
+            <div className="p-4 bg-gray-50 flex flex-col sm:flex-row gap-4">
+              {/* Left Side: Payment Methods and Inputs */}
+              <div className="flex-1 bg-white p-4 rounded-xl border space-y-4">
+                <div className="grid grid-cols-2 gap-2">
+                  {["Cash", "Card", "Bank Transfer", "Split"].map((method) => (
+                    <button
+                      key={method} type="button"
+                      onClick={() => setPaymentMethod(method as any)}
+                      className={`h-10 rounded-xl border-2 font-bold text-base transition-all ${paymentMethod === method ? 'border-orange-500 bg-orange-100 text-orange-700 shadow-sm ring-1 ring-orange-500' : 'border-gray-200 bg-white text-gray-600 hover:border-orange-300'}`}
+                    >
+                      {method}
+                    </button>
+                  ))}
+                </div>
+
+                {paymentMethod === "Cash" && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button type="button" variant="outline" className="col-span-2 h-10 text-sm font-bold bg-green-50 text-green-700 hover:bg-green-100 border-green-200" onClick={() => setTenderedCash(grandTotal.toFixed(2))}>Exact: Rs. {grandTotal.toFixed(2)}</Button>
+                      <Button type="button" variant="outline" className="h-10 text-sm font-bold" onClick={() => setTenderedCash("500")}>Rs. 500</Button>
+                      <Button type="button" variant="outline" className="h-10 text-sm font-bold" onClick={() => setTenderedCash("1000")}>Rs. 1000</Button>
+                      <Button type="button" variant="outline" className="h-10 text-sm font-bold" onClick={() => setTenderedCash("2000")}>Rs. 2000</Button>
+                      <Button type="button" variant="outline" className="h-10 text-sm font-bold" onClick={() => setTenderedCash("5000")}>Rs. 5000</Button>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="font-bold text-gray-700 text-sm">Tendered Cash (Rs.)</Label>
+                      <Input ref={tenderedCashInputRef} type="number" step="0.01" value={tenderedCash} onChange={e => setTenderedCash(e.target.value)} onFocus={() => setActiveInput("tenderedCash")} placeholder="0.00" className="h-12 font-black text-xl" required />
+                    </div>
+                    {parseFloat(tenderedCash) >= grandTotal && (
+                      <div className="text-sm font-black text-green-600 text-right">
+                        Change: <span className="text-lg">Rs. {(parseFloat(tenderedCash) - grandTotal).toFixed(2)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {paymentMethod === "Split" && (
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <Label className="font-bold text-gray-700 text-sm">Cash Amount (Rs.)</Label>
+                      <Input type="number" step="0.01" value={splitCash} onChange={e => setSplitCash(e.target.value)} onFocus={() => setActiveInput("splitCash")} placeholder="0.00" className="h-12 font-black text-xl" required />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="font-bold text-gray-700 text-sm">Card Amount (Rs.)</Label>
+                      <Input type="number" step="0.01" value={splitCard} onChange={e => setSplitCard(e.target.value)} onFocus={() => setActiveInput("splitCard")} placeholder="0.00" className="h-12 font-black text-xl" required />
+                    </div>
+                    <div className="text-sm font-bold text-gray-500 text-right">
+                      Total: <span className="text-gray-900">Rs. {((parseFloat(splitCash)||0) + (parseFloat(splitCard)||0)).toFixed(2)}</span>
+                    </div>
+                  </div>
+                )}
+
+                {(paymentMethod === "Card" || paymentMethod === "Bank Transfer") && (
+                  <div className="py-6 text-center text-gray-500 text-sm font-medium">
+                    No cash amount entry required for {paymentMethod}.
+                  </div>
+                )}
               </div>
 
-              {paymentMethod === "Cash" && (
-                <div className="bg-white p-4 rounded-xl border space-y-4">
-                  <div className="flex flex-wrap gap-2">
-                    <Button type="button" variant="outline" className="flex-1 h-14 text-base font-bold bg-green-50 text-green-700 hover:bg-green-100 border-green-200" onClick={() => setTenderedCash(grandTotal.toFixed(2))}>Exact</Button>
-                    <Button type="button" variant="outline" className="flex-1 h-14 text-base font-bold" onClick={() => setTenderedCash("500")}>Rs. 500</Button>
-                    <Button type="button" variant="outline" className="flex-1 h-14 text-base font-bold" onClick={() => setTenderedCash("1000")}>Rs. 1000</Button>
-                    <Button type="button" variant="outline" className="flex-1 h-14 text-base font-bold" onClick={() => setTenderedCash("2000")}>Rs. 2000</Button>
-                    <Button type="button" variant="outline" className="flex-1 h-14 text-base font-bold" onClick={() => setTenderedCash("5000")}>Rs. 5000</Button>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-bold text-gray-700">Tendered Cash (Rs.)</Label>
-                    <Input type="number" step="0.01" value={tenderedCash} onChange={e => setTenderedCash(e.target.value)} placeholder="0.00" className="h-14 font-black text-2xl" required />
-                  </div>
-                  {parseFloat(tenderedCash) >= grandTotal && (
-                    <div className="text-sm font-black text-green-600 text-right">
-                      Change: <span className="text-xl">Rs. {(parseFloat(tenderedCash) - grandTotal).toFixed(2)}</span>
-                    </div>
-                  )}
+              {/* Right Side: Numpad */}
+              <div className="flex-1 bg-white p-4 rounded-xl border flex items-center justify-center">
+                <div className="grid grid-cols-3 gap-2 w-full max-w-[280px]">
+                  {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', 'X'].map(key => (
+                    <button 
+                      key={key} type="button"
+                      onClick={() => handleNumpadClick(key)}
+                      className={`h-12 rounded-xl font-bold text-xl transition-colors shadow-sm ${
+                        key === 'C' ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-100' :
+                        key === 'X' ? 'bg-gray-200 text-gray-700 hover:bg-gray-300 border border-gray-300' :
+                        'bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-200'
+                      }`}
+                    >
+                      {key === 'X' ? <Delete className="w-6 h-6 mx-auto" /> : key}
+                    </button>
+                  ))}
                 </div>
-              )}
-
-              {paymentMethod === "Split" && (
-                <div className="bg-white p-4 rounded-xl border space-y-4">
-                  <div className="space-y-2">
-                    <Label className="font-bold text-gray-700">Cash Amount (Rs.)</Label>
-                    <Input type="number" step="0.01" value={splitCash} onChange={e => setSplitCash(e.target.value)} placeholder="0.00" className="h-14 font-black text-2xl" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-bold text-gray-700">Card Amount (Rs.)</Label>
-                    <Input type="number" step="0.01" value={splitCard} onChange={e => setSplitCard(e.target.value)} placeholder="0.00" className="h-14 font-black text-2xl" required />
-                  </div>
-                  <div className="text-sm font-bold text-gray-500 text-right">
-                    Total Entered: <span className="text-gray-900">Rs. {((parseFloat(splitCash)||0) + (parseFloat(splitCard)||0)).toFixed(2)}</span>
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
-            <div className="p-6 bg-white border-t flex gap-3">
-              <Button type="button" variant="outline" className="flex-1 h-14 text-lg font-black rounded-xl" onClick={() => setIsPaymentModalOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={isProcessing} className="flex-1 h-14 text-lg font-black rounded-xl bg-orange-500 hover:bg-orange-600 text-white shadow-lg disabled:opacity-70">
-                {isProcessing ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Processing...</> : 'Confirm Payment'}
+            <div className="p-4 bg-white border-t flex gap-3">
+              <Button type="button" variant="outline" className="flex-1 h-12 text-base font-bold rounded-xl" onClick={() => setIsPaymentModalOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={isProcessing} className="flex-1 h-12 text-base font-bold rounded-xl bg-orange-500 hover:bg-orange-600 text-white shadow-lg disabled:opacity-70">
+                {isProcessing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</> : 'Confirm Payment'}
               </Button>
             </div>
           </form>

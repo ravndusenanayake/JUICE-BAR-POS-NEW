@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { PackageOpen, Search, Filter, Eye, Banknote, Calendar, ArrowRight } from "lucide-react"
+import { PackageOpen, Search, Filter, Eye, Banknote, Calendar as CalendarIcon, ArrowRight, LayoutList, ChevronLeft, ChevronRight } from "lucide-react"
 
 export default function AllGRNPage() {
   const { user, role } = useAuth()
@@ -30,8 +30,15 @@ export default function AllGRNPage() {
   const [isViewOpen, setIsViewOpen] = useState(false)
   const [viewGrn, setViewGrn] = useState<any>(null)
 
+  const [filterBranch, setFilterBranch] = useState("All")
+  const [branches, setBranches] = useState<any[]>([])
+  
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list")
+  const [currentMonth, setCurrentMonth] = useState(new Date())
+
   useEffect(() => {
     fetchGRNs()
+    fetchBranches()
   }, [])
 
   const fetchGRNs = async () => {
@@ -48,12 +55,31 @@ export default function AllGRNPage() {
     }
   }
 
+  const fetchBranches = async () => {
+    try {
+      const res = await fetch('/api/branches')
+      if (res.ok) setBranches(await res.json())
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   const filteredGRNs = grns.filter(grn => {
     const search = searchQuery.toLowerCase()
-    return grn.grnNumber.toLowerCase().includes(search) || 
+    const matchesSearch = grn.grnNumber.toLowerCase().includes(search) || 
            grn.poNumber.toLowerCase().includes(search) || 
            grn.supplierName.toLowerCase().includes(search)
+           
+    const matchesBranch = filterBranch === "All" || grn.branch === filterBranch;
+    
+    return matchesSearch && matchesBranch;
   })
+
+  const getDaysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  const getFirstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  const prevMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+  const nextMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
   const openPaymentModal = (grn: any) => {
     setSelectedGRN(grn)
@@ -107,11 +133,31 @@ export default function AllGRNPage() {
 
   return (
     <div className="space-y-6 pb-12 max-w-7xl mx-auto">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
-          <PackageOpen className="text-orange-500 w-6 h-6" /> GRN Directory
-        </h2>
-        <p className="text-gray-500 mt-1">Manage and track all Goods Receipt Notes and Payments.</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
+            <PackageOpen className="text-orange-500 w-6 h-6" /> GRN Directory
+          </h2>
+          <p className="text-gray-500 mt-1">Manage and track all Goods Receipt Notes and Payments.</p>
+        </div>
+        <div className="flex bg-gray-100 p-1 rounded-lg border">
+          <Button 
+            variant={viewMode === "list" ? "default" : "ghost"} 
+            size="sm" 
+            className={`shadow-none ${viewMode === "list" ? "bg-white text-gray-900" : "text-gray-500 hover:text-gray-900"}`}
+            onClick={() => setViewMode("list")}
+          >
+            <LayoutList className="w-4 h-4 mr-2" /> List
+          </Button>
+          <Button 
+            variant={viewMode === "calendar" ? "default" : "ghost"} 
+            size="sm" 
+            className={`shadow-none ${viewMode === "calendar" ? "bg-white text-gray-900" : "text-gray-500 hover:text-gray-900"}`}
+            onClick={() => setViewMode("calendar")}
+          >
+            <CalendarIcon className="w-4 h-4 mr-2" /> Calendar
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-4 gap-4">
@@ -134,8 +180,8 @@ export default function AllGRNPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <div className="p-4 border-b bg-gray-50/50 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="relative w-full sm:w-96">
+        <div className="p-4 border-b bg-gray-50/50 flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input 
               type="search" placeholder="Search by GRN No, PO No, or Supplier..." 
@@ -143,9 +189,23 @@ export default function AllGRNPage() {
               value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          <div className="w-full md:w-48">
+            <Select value={filterBranch} onValueChange={v => setFilterBranch(v || 'All')}>
+              <SelectTrigger className="bg-white border-gray-200 h-10">
+                <SelectValue placeholder="Branch" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Branches</SelectItem>
+                {branches.map(b => (
+                  <SelectItem key={b._id} value={b.name}>{b.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <Table>
+        {viewMode === "list" ? (
+          <Table>
           <TableHeader>
             <TableRow className="bg-gray-50 text-gray-500 text-xs font-bold uppercase tracking-wider">
               <TableHead className="py-4 px-4">Date</TableHead>
@@ -176,7 +236,7 @@ export default function AllGRNPage() {
                   <TableRow key={grn._id} className="border-b last:border-0 hover:bg-gray-50/50 transition-colors">
                     <TableCell className="py-4 px-4">
                       <div className="text-sm font-medium flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-gray-400" />
+                        <CalendarIcon className="w-4 h-4 text-gray-400" />
                         {new Date(grn.receivedDate).toLocaleDateString()}
                       </div>
                     </TableCell>
@@ -223,7 +283,58 @@ export default function AllGRNPage() {
               })
             )}
           </TableBody>
-        </Table>
+          </Table>
+        ) : (
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-800">
+                {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+              </h3>
+              <div className="flex gap-2">
+                <Button variant="outline" size="icon" onClick={prevMonth}><ChevronLeft className="w-5 h-5" /></Button>
+                <Button variant="outline" size="icon" onClick={nextMonth}><ChevronRight className="w-5 h-5" /></Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-7 gap-px bg-gray-200 border rounded-xl overflow-hidden">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                <div key={day} className="bg-gray-50 py-2 text-center text-xs font-bold text-gray-500 uppercase">{day}</div>
+              ))}
+              {Array.from({ length: getFirstDayOfMonth(currentMonth) }).map((_, i) => (
+                <div key={`empty-${i}`} className="bg-white min-h-[120px] opacity-50 p-2"></div>
+              ))}
+              {Array.from({ length: getDaysInMonth(currentMonth) }).map((_, i) => {
+                const day = i + 1;
+                const dateStr = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toDateString();
+                const dayGrns = filteredGRNs.filter(g => new Date(g.receivedDate).toDateString() === dateStr);
+                
+                return (
+                  <div key={day} className="bg-white min-h-[120px] p-2 hover:bg-gray-50 transition-colors border-t border-l border-gray-100 first:border-l-0">
+                    <div className="text-sm font-bold text-gray-400 mb-2">{day}</div>
+                    <div className="space-y-2">
+                      {dayGrns.map(grn => {
+                        let statusColor = "bg-red-50 text-red-700 border-red-200";
+                        if (grn.paymentStatus === "Fully Paid") statusColor = "bg-green-50 text-green-700 border-green-200";
+                        if (grn.paymentStatus === "Partially Paid") statusColor = "bg-amber-50 text-amber-700 border-amber-200";
+
+                        return (
+                          <div 
+                            key={grn._id} 
+                            onClick={() => openViewModal(grn)}
+                            className={`border rounded-md p-1.5 cursor-pointer hover:opacity-80 transition-colors ${statusColor}`}
+                          >
+                            <div className="text-[10px] font-bold truncate">{grn.grnNumber}</div>
+                            <div className="text-[10px] truncate opacity-80">{grn.supplierName}</div>
+                            <div className="text-[10px] font-black mt-0.5">Rs. {(grn.totalAmount || 0).toFixed(2)}</div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* --- PAYMENT MODAL --- */}
