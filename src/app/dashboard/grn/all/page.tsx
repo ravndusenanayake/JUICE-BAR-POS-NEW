@@ -216,7 +216,7 @@ export default function AllGRNPage() {
             />
           </div>
           <div className="flex gap-3 flex-wrap">
-            <Select value={filterDate} onValueChange={setFilterDate}>
+            <Select value={filterDate} onValueChange={(v) => setFilterDate(v || 'All')}>
               <SelectTrigger className="w-full sm:w-[150px] bg-white border-gray-200 h-10 font-medium text-gray-700">
                 <SelectValue placeholder="Date Range" />
               </SelectTrigger>
@@ -229,7 +229,7 @@ export default function AllGRNPage() {
               </SelectContent>
             </Select>
 
-            <Select value={filterSupplier} onValueChange={setFilterSupplier}>
+            <Select value={filterSupplier} onValueChange={(v) => setFilterSupplier(v || 'All')}>
               <SelectTrigger className="w-full sm:w-[160px] bg-white border-gray-200 h-10 font-medium text-gray-700">
                 <SelectValue placeholder="All Suppliers" />
               </SelectTrigger>
@@ -253,7 +253,7 @@ export default function AllGRNPage() {
               </SelectContent>
             </Select>
 
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v || 'All')}>
               <SelectTrigger className="w-full sm:w-[150px] bg-white border-gray-200 h-10 font-medium text-gray-700">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
