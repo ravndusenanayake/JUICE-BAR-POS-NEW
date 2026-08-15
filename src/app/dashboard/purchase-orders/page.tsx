@@ -52,7 +52,8 @@ export default function PurchaseOrdersPage() {
   const [branches, setBranches] = useState<any[]>([])
   
   const [searchQuery, setSearchQuery] = useState("")
-  const [activeTab, setActiveTab] = useState<"ALL" | "AWAITING_APPROVAL" | "PENDING">("ALL")
+  const [filterStatus, setFilterStatus] = useState("All Statuses")
+  const [filterBranch, setFilterBranch] = useState("All Branches")
   const [isLoading, setIsLoading] = useState(true)
 
   // Create PO Modal State
@@ -114,9 +115,17 @@ export default function PurchaseOrdersPage() {
 
   const filteredPOs = pos.filter(po => {
     const matchSearch = po.poNumber.toLowerCase().includes(searchQuery.toLowerCase()) || po.supplierName.toLowerCase().includes(searchQuery.toLowerCase())
-    if (activeTab === "AWAITING_APPROVAL") return matchSearch && po.status === "Awaiting Approval"
-    if (activeTab === "PENDING") return matchSearch && ["Approved", "Pending", "Partially Received"].includes(po.status)
-    return matchSearch
+    
+    let matchStatus = true;
+    if (filterStatus === "Awaiting Approval") matchStatus = po.status === "Awaiting Approval";
+    else if (filterStatus === "Pending Arrival") matchStatus = ["Approved", "Pending", "Partially Received"].includes(po.status);
+    else if (filterStatus === "Fully Received") matchStatus = po.status === "Fully Received";
+    else if (filterStatus === "Cancelled") matchStatus = po.status === "Cancelled";
+
+    let matchBranch = true;
+    if (filterBranch !== "All Branches") matchBranch = po.branch === filterBranch;
+
+    return matchSearch && matchStatus && matchBranch;
   })
 
   const confirmApprove = (id: string) => {
@@ -248,31 +257,8 @@ export default function PurchaseOrdersPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <div className="border-b">
-          <div className="flex px-4 pt-4">
-            <button
-              className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${activeTab === "ALL" ? "border-orange-500 text-orange-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}`}
-              onClick={() => setActiveTab("ALL")}
-            >
-              All Orders
-            </button>
-            <button
-              className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${activeTab === "AWAITING_APPROVAL" ? "border-orange-500 text-orange-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}`}
-              onClick={() => setActiveTab("AWAITING_APPROVAL")}
-            >
-              Awaiting Approval
-            </button>
-            <button
-              className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${activeTab === "PENDING" ? "border-orange-500 text-orange-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}`}
-              onClick={() => setActiveTab("PENDING")}
-            >
-              Pending Arrival
-            </button>
-          </div>
-        </div>
-        
         <div className="p-4 border-b bg-gray-50/50 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="relative w-full sm:w-96">
+          <div className="relative w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input 
               type="search" placeholder="Search PO number or supplier..." 
@@ -280,12 +266,39 @@ export default function PurchaseOrdersPage() {
               value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          <div className="flex gap-3 w-full sm:w-auto">
+            <Select value={filterBranch} onValueChange={setFilterBranch}>
+              <SelectTrigger className="w-full sm:w-[180px] h-10 bg-white border-gray-200 font-medium text-gray-700">
+                <SelectValue placeholder="All Branches" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All Branches">All Branches</SelectItem>
+                {branches.map(b => (
+                  <SelectItem key={b._id || b.id} value={b.name}>{b.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-full sm:w-[180px] h-10 bg-white border-gray-200 font-medium text-gray-700">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All Statuses">All Statuses</SelectItem>
+                <SelectItem value="Awaiting Approval">Awaiting Approval</SelectItem>
+                <SelectItem value="Pending Arrival">Pending Arrival</SelectItem>
+                <SelectItem value="Fully Received">Fully Received</SelectItem>
+                <SelectItem value="Cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50 text-gray-500 text-xs font-bold uppercase tracking-wider">
               <TableHead className="py-4">PO Number & Supplier</TableHead>
+              <TableHead>Branch</TableHead>
               <TableHead>Dates</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead>Status</TableHead>
@@ -295,11 +308,11 @@ export default function PurchaseOrdersPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-12 text-gray-400">Loading POs...</TableCell>
+                <TableCell colSpan={6} className="text-center py-12 text-gray-400">Loading POs...</TableCell>
               </TableRow>
             ) : filteredPOs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-12 text-gray-400">No Purchase Orders found.</TableCell>
+                <TableCell colSpan={6} className="text-center py-12 text-gray-400">No Purchase Orders found.</TableCell>
               </TableRow>
             ) : (
               filteredPOs.map((po) => {
@@ -315,9 +328,12 @@ export default function PurchaseOrdersPage() {
                       <div className="font-black text-gray-900">{po.poNumber}</div>
                       <div className="text-sm font-medium text-gray-500 mt-1 flex items-center gap-1.5">
                         <Truck className="w-3.5 h-3.5" /> {po.supplierName}
-                        <span className="text-gray-300 ml-1">•</span>
-                        <span className="text-xs text-gray-400">{po.branch}</span>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                        {po.branch}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <div className="text-xs font-medium text-gray-500">Ord: {new Date(po.createdAt).toLocaleDateString()}</div>

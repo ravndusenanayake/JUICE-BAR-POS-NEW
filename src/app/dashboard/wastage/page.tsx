@@ -15,7 +15,7 @@ const REASONS = ["Expired", "Rotten", "Damaged", "Spillage"]
 
 export default function WastagePage() {
   const { user, role } = useAuth()
-  const defaultBranch = user?.branch === "All Branches" ? "Colombo 07" : (user?.branch || "Colombo 07")
+  const defaultBranch = user?.branch === "All Branches" ? "All Branches" : (user?.branch || "Colombo 07")
   const canSelectBranch = role === "Super Admin" || role === "Admin"
   
   const [wastages, setWastages] = useState<any[]>([])
@@ -120,9 +120,11 @@ export default function WastagePage() {
           </h2>
           <p className="text-gray-500">Log spoiled, expired, or damaged stock.</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} className="bg-red-600 hover:bg-red-700 text-white font-bold h-10 px-4">
-          <Plus className="w-4 h-4 mr-2" /> Record Wastage
-        </Button>
+        {selectedBranch !== "All Branches" && (
+          <Button onClick={() => setIsModalOpen(true)} className="bg-red-600 hover:bg-red-700 text-white font-bold h-10 px-4">
+            <Plus className="w-4 h-4 mr-2" /> Record Wastage
+          </Button>
+        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
@@ -141,6 +143,7 @@ export default function WastagePage() {
                 <SelectValue placeholder="Select Branch" />
               </SelectTrigger>
               <SelectContent>
+                {canSelectBranch && <SelectItem value="All Branches">All Branches</SelectItem>}
                 <SelectItem value="Colombo 07">Colombo 07</SelectItem>
                 <SelectItem value="Kandy Branch">Kandy Branch</SelectItem>
                 <SelectItem value="Galle Branch">Galle Branch</SelectItem>
@@ -153,6 +156,7 @@ export default function WastagePage() {
           <TableHeader>
             <TableRow className="bg-gray-50 text-gray-500 text-xs font-bold uppercase tracking-wider">
               <TableHead className="py-4">Item Details</TableHead>
+              {selectedBranch === "All Branches" && <TableHead>Branch</TableHead>}
               <TableHead>Reason</TableHead>
               <TableHead className="text-right">Quantity</TableHead>
               <TableHead className="text-right">Date</TableHead>
@@ -173,6 +177,13 @@ export default function WastagePage() {
                     <div className="font-bold text-gray-900">{w.item?.name}</div>
                     <div className="text-xs text-gray-500 font-mono mt-0.5">{w.item?.sku}</div>
                   </TableCell>
+                  {selectedBranch === "All Branches" && (
+                    <TableCell>
+                      <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                        {w.branch}
+                      </span>
+                    </TableCell>
+                  )}
                   <TableCell>
                     <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-bold bg-red-50 text-red-700 border border-red-100">
                       {w.reason}
@@ -219,11 +230,16 @@ export default function WastagePage() {
             <div className="space-y-2">
               <Label>Select Item *</Label>
               <Select value={selectedItemName} onValueChange={(v) => setSelectedItemName(v || "")} required>
-                <SelectTrigger><SelectValue placeholder="Choose inventory item..." /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="h-12"><SelectValue placeholder="Choose inventory item..." /></SelectTrigger>
+                <SelectContent className="max-h-[300px]">
                   {inventory.map(i => (
-                    <SelectItem key={i._id || i.sku} value={i.name}>
-                      {i.name} <span className="text-gray-400 text-xs ml-2">(Max: {i.quantity} {i.unit})</span>
+                    <SelectItem key={i._id || i.sku} value={i.name} className="cursor-pointer">
+                      <div className="flex justify-between items-center w-full min-w-[320px]">
+                        <span className="font-medium text-gray-900 truncate pr-4">{i.name}</span>
+                        <span className="text-gray-600 font-mono text-xs bg-gray-100/80 px-2 py-1 rounded-md shrink-0 border border-gray-200">
+                          Stock: <span className="font-bold text-gray-900">{i.quantity}</span> {i.unit}
+                        </span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -31,6 +31,9 @@ export default function AllGRNPage() {
   const [viewGrn, setViewGrn] = useState<any>(null)
 
   const [filterBranch, setFilterBranch] = useState("All")
+  const [filterSupplier, setFilterSupplier] = useState("All")
+  const [filterStatus, setFilterStatus] = useState("All")
+  const [filterDate, setFilterDate] = useState("All")
   const [branches, setBranches] = useState<any[]>([])
   
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list")
@@ -71,9 +74,32 @@ export default function AllGRNPage() {
            grn.supplierName.toLowerCase().includes(search)
            
     const matchesBranch = filterBranch === "All" || grn.branch === filterBranch;
+    const matchesSupplier = filterSupplier === "All" || grn.supplierName === filterSupplier;
+    const matchesStatus = filterStatus === "All" || grn.paymentStatus === filterStatus;
     
-    return matchesSearch && matchesBranch;
+    let matchesDate = true;
+    if (filterDate !== "All") {
+      const gDate = new Date(grn.receivedDate || grn.createdAt);
+      const today = new Date();
+      if (filterDate === "Today") {
+        matchesDate = gDate.toDateString() === today.toDateString();
+      } else if (filterDate === "Yesterday") {
+        const y = new Date(today);
+        y.setDate(y.getDate() - 1);
+        matchesDate = gDate.toDateString() === y.toDateString();
+      } else if (filterDate === "Last 7 Days") {
+        const last7 = new Date(today);
+        last7.setDate(last7.getDate() - 7);
+        matchesDate = gDate >= last7;
+      } else if (filterDate === "This Month") {
+        matchesDate = gDate.getMonth() === today.getMonth() && gDate.getFullYear() === today.getFullYear();
+      }
+    }
+    
+    return matchesSearch && matchesBranch && matchesSupplier && matchesStatus && matchesDate;
   })
+
+  const uniqueSuppliers = Array.from(new Set(grns.map(g => g.supplierName))).filter(Boolean).sort();
 
   const getDaysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   const getFirstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
@@ -180,8 +206,8 @@ export default function AllGRNPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <div className="p-4 border-b bg-gray-50/50 flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
+        <div className="p-4 border-b bg-gray-50/50 flex flex-col xl:flex-row gap-4 flex-wrap">
+          <div className="relative flex-1 min-w-[250px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input 
               type="search" placeholder="Search by GRN No, PO No, or Supplier..." 
@@ -189,16 +215,53 @@ export default function AllGRNPage() {
               value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <div className="w-full md:w-48">
+          <div className="flex gap-3 flex-wrap">
+            <Select value={filterDate} onValueChange={setFilterDate}>
+              <SelectTrigger className="w-full sm:w-[150px] bg-white border-gray-200 h-10 font-medium text-gray-700">
+                <SelectValue placeholder="Date Range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Dates</SelectItem>
+                <SelectItem value="Today">Today</SelectItem>
+                <SelectItem value="Yesterday">Yesterday</SelectItem>
+                <SelectItem value="Last 7 Days">Last 7 Days</SelectItem>
+                <SelectItem value="This Month">This Month</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={filterSupplier} onValueChange={setFilterSupplier}>
+              <SelectTrigger className="w-full sm:w-[160px] bg-white border-gray-200 h-10 font-medium text-gray-700">
+                <SelectValue placeholder="All Suppliers" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Suppliers</SelectItem>
+                {uniqueSuppliers.map((s: string) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             <Select value={filterBranch} onValueChange={v => setFilterBranch(v || 'All')}>
-              <SelectTrigger className="bg-white border-gray-200 h-10">
-                <SelectValue placeholder="Branch" />
+              <SelectTrigger className="w-full sm:w-[150px] bg-white border-gray-200 h-10 font-medium text-gray-700">
+                <SelectValue placeholder="All Branches" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All Branches</SelectItem>
                 {branches.map(b => (
                   <SelectItem key={b._id} value={b.name}>{b.name}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-full sm:w-[150px] bg-white border-gray-200 h-10 font-medium text-gray-700">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Statuses</SelectItem>
+                <SelectItem value="Fully Paid">Fully Paid</SelectItem>
+                <SelectItem value="Partially Paid">Partially Paid</SelectItem>
+                <SelectItem value="Unpaid">Unpaid</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -210,7 +273,8 @@ export default function AllGRNPage() {
             <TableRow className="bg-gray-50 text-gray-500 text-xs font-bold uppercase tracking-wider">
               <TableHead className="py-4 px-4">Date</TableHead>
               <TableHead>GRN Details</TableHead>
-              <TableHead>Supplier & Branch</TableHead>
+              <TableHead>Supplier</TableHead>
+              <TableHead>Branch</TableHead>
               <TableHead className="text-right">Total Amount</TableHead>
               <TableHead className="text-center">Payment Status</TableHead>
               <TableHead>Created By</TableHead>
@@ -220,11 +284,11 @@ export default function AllGRNPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12 text-gray-400">Loading GRNs...</TableCell>
+                <TableCell colSpan={8} className="text-center py-12 text-gray-400">Loading GRNs...</TableCell>
               </TableRow>
             ) : filteredGRNs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12 text-gray-400">No GRNs found.</TableCell>
+                <TableCell colSpan={8} className="text-center py-12 text-gray-400">No GRNs found.</TableCell>
               </TableRow>
             ) : (
               filteredGRNs.map((grn) => {
@@ -246,7 +310,11 @@ export default function AllGRNPage() {
                     </TableCell>
                     <TableCell>
                       <div className="font-bold text-gray-800">{grn.supplierName}</div>
-                      <div className="text-xs text-gray-500 mt-1">{grn.branch}</div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                        {grn.branch}
+                      </span>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="font-bold text-gray-900">Rs. {(grn.totalAmount || 0).toFixed(2)}</div>

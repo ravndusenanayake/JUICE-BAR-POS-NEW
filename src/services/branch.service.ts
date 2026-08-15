@@ -1,5 +1,6 @@
 import connectToDatabase from '@/database/mongoose';
 import Branch, { IBranch } from '@/database/models/Branch';
+import Settings from '@/database/models/Settings';
 
 export const branchService = {
   /**
@@ -23,6 +24,16 @@ export const branchService = {
     const existing = await Branch.findOne({ code: data.code?.toUpperCase() });
     if (existing) {
       throw new Error(`Branch with code "${data.code}" already exists.`);
+    }
+
+    const isActivating = data.status === undefined || data.status === 'Active';
+    if (isActivating) {
+      const activeCount = await Branch.countDocuments({ status: 'Active' });
+      const settings = await Settings.findOne();
+      const maxBranches = settings ? settings.maxBranches : 3;
+      if (activeCount >= maxBranches) {
+        throw new Error(`License Limit Reached! You can only have up to ${maxBranches} ACTIVE branches.`);
+      }
     }
 
     const newBranch = new Branch({
@@ -49,6 +60,18 @@ export const branchService = {
         throw new Error(`Branch with code "${data.code}" already exists.`);
       }
       data.code = data.code.toUpperCase();
+    }
+
+    if (data.status === 'Active') {
+      const branchToUpdate = await Branch.findById(id);
+      if (branchToUpdate && branchToUpdate.status !== 'Active') {
+        const activeCount = await Branch.countDocuments({ status: 'Active' });
+        const settings = await Settings.findOne();
+        const maxBranches = settings ? settings.maxBranches : 3;
+        if (activeCount >= maxBranches) {
+          throw new Error(`License Limit Reached! You can only have up to ${maxBranches} ACTIVE branches.`);
+        }
+      }
     }
 
     const branch = await Branch.findByIdAndUpdate(id, data, { new: true }).lean();

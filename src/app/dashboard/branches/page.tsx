@@ -90,9 +90,13 @@ export default function BranchesPage() {
   const handleAddBranch = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!editingId && branches.length >= maxBranchesLimit) {
-      toast.error(`License Limit Reached! You can only create up to ${maxBranchesLimit} branches. Please contact the Super Admin to upgrade your plan.`)
-      return
+    const activeBranchesCount = branches.filter(b => b.status === 'Active').length;
+    
+    if (status === 'Active' && activeBranchesCount >= maxBranchesLimit) {
+      if (!editingId || (editingId && branches.find(b => (b._id || b.id) === editingId)?.status !== 'Active')) {
+        toast.error(`License Limit Reached! You can only have up to ${maxBranchesLimit} ACTIVE branches. Please set status to Inactive.`);
+        return
+      }
     }
 
     if (branches.some(b => b.code.toLowerCase() === code.toLowerCase() && b._id !== editingId && b.id !== editingId)) {
@@ -143,6 +147,15 @@ export default function BranchesPage() {
 
   const toggleStatus = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active'
+    
+    if (newStatus === 'Active') {
+      const activeBranchesCount = branches.filter(b => b.status === 'Active').length;
+      if (activeBranchesCount >= maxBranchesLimit) {
+        toast.error(`License Limit Reached! You can only have up to ${maxBranchesLimit} ACTIVE branches.`);
+        return;
+      }
+    }
+    
     try {
       const res = await fetch(`/api/branches/${id}`, {
         method: 'PUT',
