@@ -31,12 +31,26 @@ export default function SalesHistoryPage() {
   const [dateFilter, setDateFilter] = useState("")
   const [statusFilter, setStatusFilter] = useState("All")
   const [orderTypeFilter, setOrderTypeFilter] = useState("All")
+  const [filterBranch, setFilterBranch] = useState("All")
+  const [branches, setBranches] = useState<any[]>([])
 
   useEffect(() => {
     if (user) {
       fetchSales()
+      if (user?.role === "Super Admin" || user?.role === "Admin") {
+        fetchBranches()
+      }
     }
   }, [user])
+
+  const fetchBranches = async () => {
+    try {
+      const res = await fetch('/api/branches')
+      if (res.ok) setBranches(await res.json())
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   const fetchSales = async () => {
     setIsLoading(true)
@@ -61,7 +75,8 @@ export default function SalesHistoryPage() {
     const matchesDate = dateFilter ? new Date(s.createdAt).toISOString().split('T')[0] === dateFilter : true
     const matchesStatus = statusFilter === "All" || s.status === statusFilter
     const matchesOrderType = orderTypeFilter === "All" || (s.orderType || 'Takeaway') === orderTypeFilter
-    return matchesSearch && matchesDate && matchesStatus && matchesOrderType
+    const matchesBranch = filterBranch === "All" || s.branch === filterBranch
+    return matchesSearch && matchesDate && matchesStatus && matchesOrderType && matchesBranch
   })
 
   const handleExportCSV = () => {
@@ -69,15 +84,17 @@ export default function SalesHistoryPage() {
       toast.error("No sales to export");
       return;
     }
-    const headers = ["Invoice", "Date", "Time", "Cashier", "Customer", "Order Type", "Items", "Total Amount", "Status"];
+    const headers = ["Invoice", "Created At", "Updated At", "Branch", "Cashier", "Customer", "Order Type", "Items", "Total Amount", "Status"];
     const csvContent = [
       headers.join(","),
       ...filteredSales.map(sale => {
         const dateObj = new Date(sale.createdAt);
+        const updatedObj = sale.updatedAt ? new Date(sale.updatedAt) : dateObj;
         return [
           sale.invoiceNo,
-          dateObj.toLocaleDateString(),
-          dateObj.toLocaleTimeString(),
+          `${dateObj.toLocaleDateString()} ${dateObj.toLocaleTimeString()}`,
+          `${updatedObj.toLocaleDateString()} ${updatedObj.toLocaleTimeString()}`,
+          sale.branch || "Unknown",
           sale.cashier || "System",
           sale.customer,
           sale.orderType || 'Takeaway',
@@ -257,6 +274,21 @@ export default function SalesHistoryPage() {
             </SelectContent>
           </Select>
         </div>
+        {branches.length > 0 && (
+          <div className="w-full sm:w-[160px]">
+            <Select value={filterBranch} onValueChange={(v) => setFilterBranch(v || "All")}>
+              <SelectTrigger className="bg-white border-gray-200 h-10 rounded-lg shadow-sm">
+                <SelectValue placeholder="Branch" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Branches</SelectItem>
+                {branches.map(b => (
+                  <SelectItem key={b._id} value={b.name}>{b.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
@@ -264,9 +296,9 @@ export default function SalesHistoryPage() {
           <TableHeader>
             <TableRow className="bg-gray-50/80 border-b-gray-200">
               <TableHead className="font-bold text-gray-700 py-4">Invoice</TableHead>
-              <TableHead className="font-bold text-gray-700 py-4">Date</TableHead>
-              <TableHead className="font-bold text-gray-700 py-4">Time</TableHead>
-              <TableHead className="font-bold text-gray-700 py-4">Cashier</TableHead>
+              <TableHead className="font-bold text-gray-700 py-4">Dates & Times</TableHead>
+              <TableHead className="font-bold text-gray-700 py-4">Branch</TableHead>
+              <TableHead className="font-bold text-gray-700 py-4">Cashier / Staff</TableHead>
               <TableHead className="font-bold text-gray-700 py-4">Customer</TableHead>
               <TableHead className="font-bold text-gray-700 py-4">Order Type</TableHead>
               <TableHead className="font-bold text-gray-700 py-4 text-center">Items</TableHead>
@@ -287,11 +319,29 @@ export default function SalesHistoryPage() {
             ) : (
               filteredSales.map((sale) => {
                 const dateObj = new Date(sale.createdAt);
+                const updatedObj = sale.updatedAt ? new Date(sale.updatedAt) : dateObj;
+                const isUpdated = sale.updatedAt && (updatedObj.getTime() - dateObj.getTime() > 1000);
+                
                 return (
                 <TableRow key={sale._id} className="hover:bg-orange-50/30 transition-colors">
                   <TableCell className="font-black text-gray-900 py-4">{sale.invoiceNo}</TableCell>
-                  <TableCell className="text-gray-600 font-medium py-4">{dateObj.toLocaleDateString()}</TableCell>
-                  <TableCell className="text-gray-500 py-4">{dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</TableCell>
+                  <TableCell className="py-4">
+                    <div className="text-xs font-medium text-gray-600">
+                      <span className="text-gray-400 mr-1">Created:</span>
+                      {dateObj.toLocaleDateString()} {dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </div>
+                    {isUpdated && (
+                      <div className="text-xs font-medium text-orange-600 mt-1">
+                        <span className="text-orange-400 mr-1">Updated:</span>
+                        {updatedObj.toLocaleDateString()} {updatedObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="py-4">
+                    <span className="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                      {sale.branch || "Unknown"}
+                    </span>
+                  </TableCell>
                   <TableCell className="py-4">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-black text-[10px]">

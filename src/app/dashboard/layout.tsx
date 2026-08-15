@@ -6,19 +6,10 @@ import { useEffect, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { PERMISSIONS } from "@/lib/permissions"
 import { 
-  LayoutDashboard, ShoppingCart, Package, Users, Settings, LogOut, Store,
-  Droplets, Tags, ShieldCheck, UserCog, Box,  ListOrdered,
-  History,
-  Truck,
-  Building2,
-  FileText, 
-  ArrowRightLeft,
-  Wallet,
-  PlusCircle,
-  BarChart3,
-  Activity,
-  ChevronDown,
-  ChevronUp
+  LayoutDashboard, Users, Settings, Tags, Box, Droplets, 
+  ListOrdered, PlusCircle, FileText, Building2, Package, 
+  History, Truck, ArrowRightLeft, Activity, ShoppingCart, 
+  ChevronDown, ChevronUp, ClipboardList, Store, ShieldCheck, UserCog, BarChart3, LogOut
 } from "lucide-react"
 
 export default function DashboardLayout({
@@ -168,6 +159,9 @@ export default function DashboardLayout({
                   </Link>
                   <Link href="/dashboard/stock-adjustments" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/stock-adjustments') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
                     <History className="h-4 w-4" /> Stock Adjustment
+                  </Link>
+                  <Link href="/dashboard/stock-ledger" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive('/dashboard/stock-ledger') ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:bg-muted'}`}>
+                    <ClipboardList className="h-4 w-4" /> Stock Ledger
                   </Link>
                 </>
               )}
