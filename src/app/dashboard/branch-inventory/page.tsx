@@ -22,6 +22,7 @@ export default function BranchInventoryPage() {
   const [inventory, setInventory] = useState<any[]>([])
   const [branches, setBranches] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
+  const [filterCategory, setFilterCategory] = useState("All Categories")
   
   // Adjustment Modal State
   const [isAdjustmentOpen, setIsAdjustmentOpen] = useState(false)
@@ -69,10 +70,13 @@ export default function BranchInventoryPage() {
     }
   }
 
-  const filteredInventory = inventory.filter(item => 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.sku.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredInventory = inventory.filter(item => {
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.sku.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesCategory = filterCategory === "All Categories" || (item.category || "General") === filterCategory
+    return matchesSearch && matchesCategory
+  })
+
+  const uniqueCategories = ["All Categories", ...Array.from(new Set(inventory.map(i => i.category || "General")))]
 
   const handleOpenAdjustment = (item: any) => {
     setAdjustmentItem(item)
@@ -157,9 +161,20 @@ export default function BranchInventoryPage() {
               value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger className="w-full sm:w-[200px] bg-white border-gray-200 h-10 shadow-sm">
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                {uniqueCategories.map(c => (
+                  <SelectItem key={c as string} value={c as string}>{c as string}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             <Link href="/dashboard/stock-ledger" passHref>
-              <Button variant="outline" className="h-10 text-gray-700 bg-white shadow-sm hover:bg-gray-50">
+              <Button variant="outline" className="h-10 text-gray-700 bg-white shadow-sm hover:bg-gray-50 w-full sm:w-auto">
                 <History className="w-4 h-4 mr-2" /> View Stock Ledger
               </Button>
             </Link>

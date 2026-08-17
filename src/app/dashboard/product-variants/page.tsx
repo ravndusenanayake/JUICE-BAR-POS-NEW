@@ -303,10 +303,10 @@ export default function ProductVariantsPage() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon" title="Edit" onClick={() => handleEdit(v)}>
+                    <Button variant="ghost" size="icon" className="text-blue-500 hover:text-blue-700 hover:bg-blue-50" title="Edit" onClick={() => handleEdit(v)}>
                       <Edit className="h-4 w-4 text-blue-500" />
                     </Button>
-                      <Button variant="ghost" size="icon" title="Archive" onClick={() => confirmArchive(v.id)} disabled={v.status === 'Inactive'}>
+                      <Button variant="ghost" size="icon" className="text-orange-500 hover:text-orange-700 hover:bg-orange-50" title="Archive" onClick={() => confirmArchive(v.id)} disabled={v.status === 'Inactive'}>
                         <Archive className="h-4 w-4 text-orange-500 hover:text-orange-600" />
                       </Button>
                   </div>

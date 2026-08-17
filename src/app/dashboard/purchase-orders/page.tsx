@@ -353,7 +353,7 @@ export default function PurchaseOrdersPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="icon" title="View Details" onClick={() => openViewModal(po)}>
+                        <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-700 hover:bg-gray-100" title="View Details" onClick={() => openViewModal(po)}>
                           <Eye className="w-4 h-4 text-gray-500 hover:text-blue-500" />
                         </Button>
                         {po.status === "Awaiting Approval" && canApprove && (

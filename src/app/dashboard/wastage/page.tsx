@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, Trash2, AlertTriangle, AlertCircle } from "lucide-react"
+import { Search, Plus, AlertTriangle, AlertCircle, Eye, FileText } from "lucide-react"
 
 const REASONS = ["Expired", "Rotten", "Damaged", "Spillage"]
 
@@ -24,6 +24,8 @@ export default function WastagePage() {
   const [selectedBranch, setSelectedBranch] = useState(defaultBranch)
 
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isViewOpen, setIsViewOpen] = useState(false)
+  const [viewWastage, setViewWastage] = useState<any>(null)
   const [selectedItemName, setSelectedItemName] = useState("")
   const [quantity, setQuantity] = useState("")
   const [reason, setReason] = useState("Expired")
@@ -160,12 +162,13 @@ export default function WastagePage() {
               <TableHead>Reason</TableHead>
               <TableHead className="text-right">Quantity</TableHead>
               <TableHead className="text-right">Date</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredWastages.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-12 text-gray-400">
+                <TableCell colSpan={selectedBranch === "All Branches" ? 6 : 5} className="text-center py-12 text-gray-400">
                   <AlertCircle className="w-8 h-8 mx-auto mb-3 opacity-20" />
                   <p className="font-medium">No wastage records found.</p>
                 </TableCell>
@@ -208,6 +211,19 @@ export default function WastagePage() {
                   <TableCell className="text-right">
                     <div className="text-sm font-medium text-gray-700">{new Date(w.createdAt).toLocaleDateString()}</div>
                     <div className="text-xs text-gray-400">{new Date(w.createdAt).toLocaleTimeString()}</div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                      onClick={() => {
+                        setViewWastage(w)
+                        setIsViewOpen(true)
+                      }}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))
@@ -267,6 +283,56 @@ export default function WastagePage() {
               <Button type="submit" className="bg-red-600 hover:bg-red-700">Confirm Wastage</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Modal */}
+      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="text-gray-500 w-5 h-5" /> Wastage Details
+            </DialogTitle>
+          </DialogHeader>
+          {viewWastage && (
+            <div className="space-y-4 px-6 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs text-gray-500 uppercase">Item</Label>
+                  <div className="font-bold text-gray-900">{viewWastage.item?.name}</div>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500 uppercase">Quantity</Label>
+                  <div className="font-black text-red-600">{viewWastage.quantity} {viewWastage.item?.unit}</div>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500 uppercase">Branch</Label>
+                  <div className="font-medium">{viewWastage.branch}</div>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500 uppercase">Date</Label>
+                  <div className="font-medium">{new Date(viewWastage.createdAt).toLocaleString()}</div>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500 uppercase">Logged By</Label>
+                  <div className="font-medium">{viewWastage.loggedBy || "System"}</div>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500 uppercase">Reason</Label>
+                  <div className="font-medium">{viewWastage.reason}</div>
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs text-gray-500 uppercase">Notes</Label>
+                <div className="p-3 bg-gray-50 rounded-md text-sm text-gray-700 mt-1 whitespace-pre-wrap">
+                  {viewWastage.notes || "No notes provided."}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="p-4 border-t">
+            <Button variant="outline" onClick={() => setIsViewOpen(false)} className="w-full">Close</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

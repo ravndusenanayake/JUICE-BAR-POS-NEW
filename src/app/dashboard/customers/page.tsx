@@ -7,7 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Search, Download, UserPlus, MoreHorizontal, Users } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Search, Download, UserPlus, Users, Edit, Trash2 } from "lucide-react"
 
 export interface Customer {
   id: string
@@ -29,6 +30,7 @@ const INITIAL_CUSTOMERS: Customer[] = [
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [searchQuery, setSearchQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState("All")
 
   // Modal state
   const [isOpen, setIsOpen] = useState(false)
@@ -53,10 +55,11 @@ export default function CustomersPage() {
     fetchCustomers()
   }, [])
 
-  const filteredCustomers = customers.filter(c => 
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    c.mobile.includes(searchQuery)
-  )
+  const filteredCustomers = customers.filter(c => {
+    const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.mobile.includes(searchQuery);
+    const matchesStatus = statusFilter === "All" || c.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -114,7 +117,7 @@ export default function CustomersPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <div className="p-4 border-b bg-gray-50/50 flex items-center">
+        <div className="p-4 border-b bg-gray-50/50 flex flex-col sm:flex-row gap-4">
           <div className="relative w-full max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input 
@@ -122,6 +125,18 @@ export default function CustomersPage() {
               className="pl-9 bg-white border-gray-200 h-10 shadow-sm"
               value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
             />
+          </div>
+          <div className="w-full sm:w-48">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="bg-white h-10 border-gray-200 shadow-sm">
+                <SelectValue placeholder="Filter by Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Statuses</SelectItem>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="VIP">VIP</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -164,9 +179,14 @@ export default function CustomersPage() {
                   </span>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-900">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" className="text-blue-500 hover:text-blue-700 hover:bg-blue-50">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

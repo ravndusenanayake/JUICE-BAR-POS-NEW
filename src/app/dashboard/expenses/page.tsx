@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, FileText, Calendar, Wallet, UploadCloud, Image as ImageIcon, Trash2 } from "lucide-react"
+import { Search, Plus, FileText, Calendar, Wallet, UploadCloud, Image as ImageIcon, Trash2, Edit } from "lucide-react"
 
 export interface Expense {
   id: string
@@ -49,6 +49,7 @@ export default function ExpensesPage() {
 
   // Modal State
   const [isOpen, setIsOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0])
   const [branch, setBranch] = useState(defaultBranch)
   const [category, setCategory] = useState("Rent")
@@ -95,6 +96,28 @@ export default function ExpensesPage() {
     return matchSearch && matchBranch && securityCheck
   })
 
+  const handleEdit = (exp: Expense) => {
+    setEditingId(exp.id || (exp as any)._id)
+    setExpenseDate(exp.expenseDate.split('T')[0])
+    setBranch(exp.branch)
+    setCategory(exp.category)
+    setAmount(exp.amount.toString())
+    setNote(exp.note)
+    setFileName(exp.attachmentUrl ? "attached_file" : "")
+    setIsOpen(true)
+  }
+
+  const handleOpenModal = () => {
+    setEditingId(null)
+    setExpenseDate(new Date().toISOString().split('T')[0])
+    setBranch(defaultBranch)
+    setCategory("Rent")
+    setAmount("")
+    setNote("")
+    setFileName("")
+    setIsOpen(true)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!amount || parseFloat(amount) <= 0) {
@@ -103,28 +126,38 @@ export default function ExpensesPage() {
     }
 
     try {
-      const res = await fetch('/api/expenses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          branch,
-          date: expenseDate,
-          category,
-          amount: parseFloat(amount),
-          note,
-          attachment: fileName ? `mock-url-for-${fileName}` : undefined
+      const payload = {
+        branch,
+        expenseDate,
+        category,
+        amount: parseFloat(amount),
+        note,
+        createdBy: user?.name || "System"
+      }
+
+      let res;
+      if (editingId) {
+        res = await fetch('/api/expenses', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingId, ...payload })
         })
-      })
+      } else {
+        res = await fetch('/api/expenses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+      }
 
       if (res.ok) {
-        fetchExpenses()
-        // Reset
+        toast.success(`Expense ${editingId ? 'updated' : 'recorded'} successfully!`)
         setIsOpen(false)
-        setExpenseDate(new Date().toISOString().split('T')[0])
-        setCategory("Rent")
         setAmount("")
         setNote("")
         setFileName("")
+        setEditingId(null)
+        await fetchExpenses()
       } else {
         toast.error("Failed to save expense")
       }
@@ -179,7 +212,7 @@ export default function ExpensesPage() {
           </h2>
           <p className="text-gray-500">Track and manage operational costs for your branches.</p>
         </div>
-        <Button onClick={() => setIsOpen(true)} className="bg-red-500 hover:bg-red-600 text-white font-bold h-10 px-4 shadow-sm">
+        <Button onClick={handleOpenModal} className="bg-red-500 hover:bg-red-600 text-white font-bold h-10 px-4 shadow-sm">
           <Plus className="w-4 h-4 mr-2" /> Record Expense
         </Button>
       </div>
@@ -261,9 +294,14 @@ export default function ExpensesPage() {
                   <div className="font-black text-red-600 text-base">Rs. {exp.amount.toFixed(2)}</div>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="icon" onClick={() => confirmDelete(exp.id)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" className="text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleEdit(exp)}>
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => confirmDelete(exp.id || (exp as any)._id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -276,7 +314,7 @@ export default function ExpensesPage() {
           <form onSubmit={handleSubmit}>
             <div className="p-6 border-b bg-red-50">
               <DialogTitle className="text-xl font-black text-gray-900 flex items-center gap-2">
-                <Wallet className="text-red-600" /> Record New Expense
+                <Wallet className="text-red-600" /> {editingId ? "Edit Expense" : "Record New Expense"}
               </DialogTitle>
               <DialogDescription className="text-gray-600 mt-2 font-medium">
                 Log branch operational costs. These will be deducted from your Net Profit.
@@ -341,7 +379,7 @@ export default function ExpensesPage() {
             
             <DialogFooter className="p-6 border-t bg-gray-50 flex gap-3 justify-end">
               <Button type="button" variant="outline" className="h-11 px-6 font-bold" onClick={() => setIsOpen(false)}>Cancel</Button>
-              <Button type="submit" className="h-11 px-6 font-bold bg-red-600 text-white hover:bg-red-700 shadow-lg">Save Expense</Button>
+              <Button type="submit" className="h-11 px-6 font-bold bg-red-600 text-white hover:bg-red-700 shadow-lg">{editingId ? "Update Expense" : "Save Expense"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

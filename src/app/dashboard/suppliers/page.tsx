@@ -211,7 +211,7 @@ export default function SuppliersPage() {
                       <Button variant="ghost" size="icon" onClick={() => handleOpenModal(sup)}>
                         <Edit className="w-4 h-4 text-gray-400 hover:text-blue-600" />
                       </Button>
-                      <Button variant="ghost" size="icon" title="Delete" onClick={() => confirmDelete(sup.id)}>
+                      <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50" title="Delete" onClick={() => confirmDelete(sup.id)}>
                         <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-500" />
                       </Button>
                     </div>

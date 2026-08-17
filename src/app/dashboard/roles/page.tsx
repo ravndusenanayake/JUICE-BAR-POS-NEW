@@ -352,11 +352,11 @@ export default function RolesPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" className="hover:bg-blue-50 hover:text-blue-600 text-gray-400" title="Edit" onClick={() => openEditDialog(role)}>
+                      <Button variant="ghost" size="icon" className="text-blue-500 hover:text-blue-700 hover:bg-blue-50" title="Edit" onClick={() => openEditDialog(role)}>
                         <Edit className="h-4 w-4" />
                       </Button>
                       {!isSuperAdmin && (
-                        <Button variant="ghost" size="icon" title="Delete" onClick={() => confirmDelete(roleId)}>
+                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50" title="Delete" onClick={() => confirmDelete(roleId)}>
                           <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
                         </Button>
                       )}

@@ -180,24 +180,94 @@ export default function SettingsPage() {
         </TabsContent>
         
         <TabsContent value="receipt">
-          <Card className="mt-6 border shadow-sm">
-            <CardHeader className="bg-gray-50/50 border-b pb-4">
-              <CardTitle>Receipt Settings</CardTitle>
-              <CardDescription>Customize messages printed on customer receipts.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-6">
-              <div className="space-y-2">
-                <Label htmlFor="footerText">Footer Message</Label>
-                <textarea 
-                  id="footerText" 
-                  value={receiptFooter} 
-                  onChange={e => setReceiptFooter(e.target.value)} 
-                  className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="Thank you for your purchase!"
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <Card className="border shadow-sm">
+              <CardHeader className="bg-gray-50/50 border-b pb-4">
+                <CardTitle>Receipt Settings</CardTitle>
+                <CardDescription>Customize messages printed on customer receipts.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-6">
+                <div className="space-y-2">
+                  <Label htmlFor="footerText">Footer Message</Label>
+                  <textarea 
+                    id="footerText" 
+                    value={receiptFooter} 
+                    onChange={e => setReceiptFooter(e.target.value)} 
+                    className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="Thank you for your purchase!"
+                  />
+                  <p className="text-xs text-gray-500">This message will appear at the very bottom of the printed receipt.</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border shadow-sm bg-gray-50/50">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-center">Live Preview</CardTitle>
+              </CardHeader>
+              <CardContent className="flex justify-center pt-2 pb-8">
+                {/* Simulated Thermal Receipt */}
+                <div className="w-[300px] bg-white p-6 shadow-md border-t-4 border-t-gray-900 border-x border-b border-gray-200 font-mono text-sm relative">
+                   {/* Jagged Bottom Edge Effect */}
+                   <div className="absolute bottom-[-6px] left-0 right-0 h-2 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxwb2x5Z29uIGZpbGw9IiNmZmYiIHBvaW50cz0iMCA4IDQgMCA4IDgiLz48L3N2Zz4=')] bg-repeat-x shadow-[0_4px_4px_rgba(0,0,0,0.05)]"></div>
+                   
+                   <div className="text-center space-y-1 mb-6">
+                     {logoUrl && (
+                        <div className="flex justify-center mb-3">
+                           {/* eslint-disable-next-line @next/next/no-img-element */}
+                           <img src={logoUrl} alt="Logo" className="max-h-12 object-contain grayscale" />
+                        </div>
+                     )}
+                     <h3 className="font-bold text-lg uppercase tracking-wider">{storeName || "JUICE BAR POS"}</h3>
+                     {address && <p className="text-xs whitespace-pre-wrap">{address}</p>}
+                     {phone && <p className="text-xs">Tel: {phone}</p>}
+                     <p className="text-xs mt-2">--------------------------------</p>
+                     <p className="text-xs">TAX INVOICE</p>
+                     <p className="text-xs">--------------------------------</p>
+                   </div>
+                   
+                   <div className="space-y-2 mb-4 text-xs">
+                     <div className="flex justify-between"><span>Date: {new Date().toLocaleDateString()}</span><span>Time: {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
+                     <div>Receipt #: INV-0001</div>
+                     <div>Cashier: Super Admin</div>
+                     <p>--------------------------------</p>
+                   </div>
+                   
+                   <div className="space-y-2 text-xs mb-4">
+                     <div className="flex justify-between font-bold">
+                       <span className="w-8">Qty</span>
+                       <span className="flex-1">Item</span>
+                       <span className="text-right">Amount</span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="w-8">1x</span>
+                       <span className="flex-1">Mango Juice (L)</span>
+                       <span className="text-right">500.00</span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="w-8">2x</span>
+                       <span className="flex-1">Chicken Sub</span>
+                       <span className="text-right">1200.00</span>
+                     </div>
+                   </div>
+                   
+                   <div className="space-y-1 text-xs mb-6 border-t border-dashed border-gray-400 pt-2">
+                     <div className="flex justify-between"><span>Subtotal</span><span>1700.00</span></div>
+                     {(parseFloat(packagingCharge) > 0) && <div className="flex justify-between"><span>Packaging</span><span>{parseFloat(packagingCharge).toFixed(2)}</span></div>}
+                     {(parseFloat(taxRate) > 0) && <div className="flex justify-between"><span>{taxName || "Tax"} ({taxRate}%)</span><span>{((1700 * parseFloat(taxRate)) / 100).toFixed(2)}</span></div>}
+                     <div className="flex justify-between font-bold text-base mt-2"><span>TOTAL</span><span>Rs. {(1700 + (parseFloat(packagingCharge) || 0) + ((1700 * (parseFloat(taxRate) || 0)) / 100)).toFixed(2)}</span></div>
+                   </div>
+                   
+                   <div className="text-center text-xs space-y-2">
+                     <p>--------------------------------</p>
+                     <p className="whitespace-pre-wrap">{receiptFooter || "Thank you for your purchase!"}</p>
+                     <p>--------------------------------</p>
+                     <p className="text-[10px] text-gray-500 mt-4">Powered by Antigravity</p>
+                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

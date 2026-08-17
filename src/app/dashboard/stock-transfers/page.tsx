@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, ArrowRightLeft, Plus, CheckCircle, PackageOpen, Download, AlertTriangle } from "lucide-react"
+import { Search, Plus, ArrowRightRight, ArrowRight, CheckCircle, Clock, Check, X, Download, Package, Eye } from "lucide-react"
 import { formatStockDisplay, toBaseUnit, BaseUnit, UNIT_CONFIGS } from "@/lib/units"
 
 export interface TransferItem {
@@ -48,6 +48,10 @@ export default function StockTransfersPage() {
   // Confirm Modal State
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [confirmTransfer, setConfirmTransfer] = useState<StockTransfer | null>(null)
+  
+  // View Modal
+  const [isViewOpen, setIsViewOpen] = useState(false)
+  const [viewTransfer, setViewTransfer] = useState<StockTransfer | null>(null)
 
   // Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -339,7 +343,18 @@ export default function StockTransfersPage() {
                   {getStatusBadge(trf.status)}
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
+                  <div className="flex justify-end gap-2 items-center">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 h-8 w-8"
+                      onClick={() => {
+                        setViewTransfer(trf)
+                        setIsViewOpen(true)
+                      }}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
                     {trf.status === "Pending Approval" && canApprove && (
                       <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-8" onClick={() => handleApprove(trf)}>
                         <CheckCircle className="w-4 h-4 mr-1.5" /> Approve
@@ -497,6 +512,65 @@ export default function StockTransfersPage() {
             <Button type="button" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleReceive}>
               Yes, Receive Items
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* VIEW TRANSFER MODAL */}
+      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+        <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-0 shadow-2xl rounded-2xl">
+          <div className="p-6 border-b bg-gray-50 flex items-center justify-between">
+            <div>
+              <DialogTitle className="text-xl font-black text-gray-900 flex items-center gap-2">
+                <Package className="text-gray-600 w-5 h-5" /> Transfer Details
+              </DialogTitle>
+              <DialogDescription className="text-gray-600 mt-1 font-medium">
+                {viewTransfer?.transferNumber} • {viewTransfer ? new Date(viewTransfer.createdDate).toLocaleDateString() : ""}
+              </DialogDescription>
+            </div>
+            {viewTransfer && getStatusBadge(viewTransfer.status)}
+          </div>
+          
+          <div className="p-6 space-y-6 bg-white">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+              <div className="text-center">
+                <p className="text-xs font-bold text-gray-500 uppercase">From</p>
+                <p className="font-bold text-red-600 mt-1">{viewTransfer?.sourceBranch}</p>
+              </div>
+              <ArrowRightRight className="w-5 h-5 text-gray-400" />
+              <div className="text-center">
+                <p className="text-xs font-bold text-gray-500 uppercase">To</p>
+                <p className="font-bold text-green-600 mt-1">{viewTransfer?.destinationBranch}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="font-bold text-gray-900">Transferred Items</Label>
+              <div className="border rounded-xl overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-gray-50">
+                    <TableRow>
+                      <TableHead>Raw Material</TableHead>
+                      <TableHead className="text-right">Quantity</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {viewTransfer?.items.map((item, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="font-semibold">{item.rawMaterialName}</TableCell>
+                        <TableCell className="text-right font-bold text-orange-600">
+                          {item.quantity} {item.unit}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter className="p-6 border-t bg-gray-50">
+            <Button variant="outline" className="h-11 px-6 font-bold w-full" onClick={() => setIsViewOpen(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

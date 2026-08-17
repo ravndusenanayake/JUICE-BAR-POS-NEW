@@ -738,16 +738,16 @@ export default function ProductsPage() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon" title="View" onClick={() => setViewingProduct(p)}>
+                    <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-700 hover:bg-gray-100" title="View" onClick={() => setViewingProduct(p)}>
                       <Eye className="h-4 w-4 text-gray-500 hover:text-gray-700" />
                     </Button>
-                    <Button variant="ghost" size="icon" title="Edit" onClick={() => handleEdit(p)}>
+                    <Button variant="ghost" size="icon" className="text-blue-500 hover:text-blue-700 hover:bg-blue-50" title="Edit" onClick={() => handleEdit(p)}>
                       <Edit className="h-4 w-4 text-blue-500" />
                     </Button>
-                    <Button variant="ghost" size="icon" title="Archive" onClick={() => confirmArchive(p.id)} disabled={p.status === 'Inactive'}>
+                    <Button variant="ghost" size="icon" className="text-orange-500 hover:text-orange-700 hover:bg-orange-50" title="Archive" onClick={() => confirmArchive(p.id)} disabled={p.status === 'Inactive'}>
                       <Archive className="h-4 w-4 text-orange-500 hover:text-orange-600" />
                     </Button>
-                    <Button variant="ghost" size="icon" title="Delete" onClick={() => confirmDelete(p.id)}>
+                    <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50" title="Delete" onClick={() => confirmDelete(p.id)}>
                       <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
                     </Button>
                   </div>

@@ -37,6 +37,7 @@ export async function GET(req: Request) {
            ...invRecord,
            itemId: item._id,
            name: item.name,
+           category: item.category || 'General',
            minStockLevel: minLevel
         };
       }
