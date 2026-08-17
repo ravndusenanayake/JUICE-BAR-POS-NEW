@@ -10,10 +10,11 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { FileText, PackageOpen, CheckCircle, Package } from "lucide-react"
+import { FullPageLoading } from "@/components/ui/loading-screen"
 
 export default function CreateGRNPage() {
   return (
-    <Suspense fallback={<div className="p-6">Loading...</div>}>
+    <Suspense fallback={<FullPageLoading />}>
       <CreateGRNContent />
     </Suspense>
   )

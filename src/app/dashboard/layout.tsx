@@ -11,6 +11,7 @@ import {
   History, Truck, ArrowRightLeft, Activity, ShoppingCart, 
   ChevronDown, ChevronUp, ClipboardList, Store, ShieldCheck, UserCog, BarChart3, LogOut, Menu
 } from "lucide-react"
+import { FullPageLoading } from "@/components/ui/loading-screen"
 
 export default function DashboardLayout({
   children,
@@ -40,7 +41,7 @@ export default function DashboardLayout({
 
   // RBAC Access Control per Route is now handled Server-Side by middleware.ts
 
-  if (!isMounted || isLoading || !isAuthenticated) return <div className="h-screen flex items-center justify-center">Loading...</div>
+  if (!isMounted || isLoading || !isAuthenticated) return <FullPageLoading />
 
   // Helper to check if link is active
   const isActive = (path: string) => pathname === path
