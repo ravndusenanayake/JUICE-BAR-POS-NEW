@@ -187,7 +187,7 @@ export default function AddOnsPage() {
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="grid gap-6 py-4">
+              <div className="grid gap-6 py-4 px-6">
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-sm font-semibold text-gray-700">Add-On Name <span className="text-red-500">*</span></Label>
                   <Input id="name" placeholder="e.g. Ice Cream Scoop" value={name} onChange={(e) => setName(e.target.value)} required className="border-gray-200 shadow-sm h-11 focus-visible:ring-orange-500" />

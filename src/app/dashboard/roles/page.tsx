@@ -335,7 +335,7 @@ export default function RolesPage() {
               const roleId = role._id || role.id;
               return (
                 <TableRow key={roleId} className="hover:bg-gray-50/50 transition-colors">
-                  <TableCell className="font-bold text-gray-900 flex items-center gap-2 py-4">
+                  <TableCell className="font-bold text-gray-900 flex items-center gap-2 py-4 px-6">
                     {isSuperAdmin && <ShieldAlert className="h-4 w-4 text-orange-500" />}
                     {role.name}
                   </TableCell>
