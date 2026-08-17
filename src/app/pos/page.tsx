@@ -1192,7 +1192,7 @@ export default function POSPage() {
               <button className="text-gray-500">
                 <Bell className="w-5 h-5" />
               </button>
-              <div className="w-8 h-8 rounded-full bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-700">
+              <div className="w-8 h-8 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600">
                 <User className="w-5 h-5" />
               </div>
             </div>
@@ -1218,7 +1218,7 @@ export default function POSPage() {
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`px-4 md:px-6 py-1.5 md:py-3 rounded-full md:rounded-2xl text-sm md:text-base font-bold whitespace-nowrap transition-all duration-200 border ${activeCategory === cat ? "bg-teal-700 text-white border-teal-700 shadow-md" : "bg-white text-gray-600 hover:bg-gray-50 border-gray-200"}`}
+                className={`px-4 md:px-6 py-1.5 md:py-3 rounded-full md:rounded-2xl text-sm md:text-base font-bold whitespace-nowrap transition-all duration-200 border ${activeCategory === cat ? "bg-orange-500 text-white border-orange-500 shadow-md" : "bg-white text-gray-600 hover:bg-gray-50 border-gray-200"}`}
               >
                 {cat === '⭐ Quick Picks' ? 'All' : cat}
               </button>
@@ -1280,13 +1280,13 @@ export default function POSPage() {
 
         {/* Bottom Navigation Bar (Mobile) */}
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] pb-[env(safe-area-inset-bottom)] flex items-center justify-around px-2 py-2">
-          <button onClick={() => setMobileTab("items")} className={`flex flex-col items-center gap-1 p-2 ${mobileTab === 'items' ? 'text-teal-700' : 'text-gray-400 hover:text-gray-600'}`}>
-            <ShoppingBag className={`w-5 h-5 ${mobileTab === 'items' ? 'fill-teal-700/20' : ''}`} />
+          <button onClick={() => setMobileTab("items")} className={`flex flex-col items-center gap-1 p-2 ${mobileTab === 'items' ? 'text-orange-600' : 'text-gray-400 hover:text-gray-600'}`}>
+            <ShoppingBag className={`w-5 h-5 ${mobileTab === 'items' ? 'fill-orange-500/20' : ''}`} />
             <span className="text-[10px] font-bold">Items</span>
           </button>
-          <button onClick={() => setMobileTab("cart")} className={`flex flex-col items-center gap-1 p-2 relative ${mobileTab === 'cart' ? 'text-teal-700' : 'text-gray-400 hover:text-gray-600'}`}>
-            <ShoppingCart className={`w-5 h-5 ${mobileTab === 'cart' ? 'fill-teal-700/20' : ''}`} />
-            {cart.length > 0 && <span className="absolute top-1 right-2 w-4 h-4 bg-teal-700 text-white rounded-full text-[9px] font-black flex items-center justify-center border border-white">{cart.reduce((s, i) => s + i.quantity, 0)}</span>}
+          <button onClick={() => setMobileTab("cart")} className={`flex flex-col items-center gap-1 p-2 relative ${mobileTab === 'cart' ? 'text-orange-600' : 'text-gray-400 hover:text-gray-600'}`}>
+            <ShoppingCart className={`w-5 h-5 ${mobileTab === 'cart' ? 'fill-orange-500/20' : ''}`} />
+            {cart.length > 0 && <span className="absolute top-1 right-2 w-4 h-4 bg-orange-500 text-white rounded-full text-[9px] font-black flex items-center justify-center border border-white">{cart.reduce((s, i) => s + i.quantity, 0)}</span>}
             <span className="text-[10px] font-bold">Cart</span>
           </button>
           <button onClick={() => setIsHoldOpen(true)} className={`flex flex-col items-center gap-1 p-2 text-gray-400 hover:text-gray-600 relative`}>
