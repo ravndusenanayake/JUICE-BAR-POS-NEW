@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from "@/components/ui/label"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { 
-  Search, User, ShoppingCart, Power, Minus, Plus, Trash2, Printer, CheckCircle2, ChevronRight, X, Percent, DollarSign, Store, Tag, Coffee, Filter, CalendarClock, Phone, ArrowLeft, Loader2, RotateCcw, Wallet, PauseCircle, PlayCircle, CreditCard, MoreVertical, History, WifiOff, CloudLightning, Edit, Star, Delete, LayoutDashboard, Menu
+  Search, User, ShoppingCart, Power, Minus, Plus, Trash2, Printer, CheckCircle2, ChevronRight, X, Percent, DollarSign, Store, Tag, Coffee, Filter, CalendarClock, Phone, ArrowLeft, Loader2, RotateCcw, Wallet, PauseCircle, PlayCircle, CreditCard, MoreVertical, History, WifiOff, CloudLightning, Edit, Star, Delete, LayoutDashboard, Menu, Bell, RefreshCw, ShoppingBag, Receipt
 } from "lucide-react"
 import { logAudit } from "@/lib/auditLogger"
 import { toast } from "sonner"
@@ -55,6 +55,7 @@ export default function POSPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false)
+  const [mobileTab, setMobileTab] = useState<"items" | "cart">("items")
   const [isClearCartOpen, setIsClearCartOpen] = useState(false)
   
   // -- Cart State --
@@ -1138,8 +1139,9 @@ export default function POSPage() {
       </aside>
 
       {/* CENTER: Products Area */}
-      <div className="flex-1 flex flex-col h-full bg-slate-50 z-10 relative overflow-hidden">
-        <header className="pt-3 md:pt-6 px-3 md:px-8 shrink-0 flex items-center justify-between gap-2 md:gap-6">
+      <div className={`flex-1 flex-col h-full bg-slate-50 z-10 relative overflow-hidden ${mobileTab !== 'items' ? 'hidden lg:flex' : 'flex'}`}>
+        {/* Desktop Header */}
+        <header className="hidden lg:flex pt-3 md:pt-6 px-3 md:px-8 shrink-0 items-center justify-between gap-2 md:gap-6">
            <div className="flex items-center gap-2 md:gap-3 shrink-0">
              <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 bg-white rounded-xl shadow-sm border border-gray-100">
                <Menu className="w-5 h-5 text-gray-700" />
@@ -1180,16 +1182,45 @@ export default function POSPage() {
            </div>
         </header>
 
+        {/* Mobile App Header */}
+        <div className="lg:hidden shrink-0 bg-white">
+          <div className="flex items-center justify-between px-4 py-3">
+            <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 -ml-2 text-gray-700">
+              <Menu className="w-6 h-6" />
+            </button>
+            <div className="flex items-center gap-4">
+              <button className="text-gray-500">
+                <Bell className="w-5 h-5" />
+              </button>
+              <div className="w-8 h-8 rounded-full bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-700">
+                <User className="w-5 h-5" />
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between px-4 pb-2">
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight">Point of Sale</h1>
+            <div className="flex items-center gap-2">
+              <button className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 bg-white shadow-sm">
+                <Search className="w-4 h-4" />
+              </button>
+              <button onClick={syncOfflineQueue} className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 bg-white shadow-sm relative">
+                <RefreshCw className={`w-4 h-4 ${offlineQueue.length > 0 ? 'animate-spin text-orange-500' : ''}`} />
+                {offlineQueue.length > 0 && <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Categories (Pills) */}
-        <div className="px-3 md:px-8 py-3 md:py-6 shrink-0 border-b border-gray-100">
-          <div className="flex gap-2 md:gap-3 overflow-x-auto pb-1 md:pb-2 scrollbar-hide">
+        <div className="px-3 md:px-8 py-3 md:py-6 shrink-0 lg:border-b lg:border-gray-100 bg-white lg:bg-transparent">
+          <div className="flex gap-2 md:gap-3 overflow-x-auto pb-1 md:pb-2 scrollbar-hide items-center">
             {categories.map(cat => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`px-4 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl text-sm md:text-base font-bold whitespace-nowrap transition-all duration-200 ${activeCategory === cat ? "bg-gray-900 text-white shadow-lg shadow-gray-900/20 scale-105" : "bg-white text-gray-600 hover:bg-gray-100 shadow-sm border border-gray-100"}`}
+                className={`px-4 md:px-6 py-1.5 md:py-3 rounded-full md:rounded-2xl text-sm md:text-base font-bold whitespace-nowrap transition-all duration-200 border ${activeCategory === cat ? "bg-teal-700 text-white border-teal-700 shadow-md" : "bg-white text-gray-600 hover:bg-gray-50 border-gray-200"}`}
               >
-                {cat}
+                {cat === '⭐ Quick Picks' ? 'All' : cat}
               </button>
             ))}
           </div>
@@ -1247,27 +1278,36 @@ export default function POSPage() {
         </div>
       </div>
 
-        {/* Mobile Cart Floating Action Button */}
-        {!isMobileCartOpen && (
-          <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-white via-white to-white/0">
-            <Button onClick={() => setIsMobileCartOpen(true)} className="w-full h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl shadow-[0_-4px_20px_rgba(249,115,22,0.3)] flex items-center justify-between px-5">
-               <div className="flex items-center gap-2">
-                 <ShoppingCart className="w-5 h-5" />
-                 <span className="font-bold text-sm">Cart ({cart.reduce((sum, item) => sum + item.quantity, 0)})</span>
-               </div>
-               <span className="font-black text-lg">Rs. {grandTotal.toFixed(2)}</span>
-            </Button>
-          </div>
-        )}
+        {/* Bottom Navigation Bar (Mobile) */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] pb-[env(safe-area-inset-bottom)] flex items-center justify-around px-2 py-2">
+          <button onClick={() => setMobileTab("items")} className={`flex flex-col items-center gap-1 p-2 ${mobileTab === 'items' ? 'text-teal-700' : 'text-gray-400 hover:text-gray-600'}`}>
+            <ShoppingBag className={`w-5 h-5 ${mobileTab === 'items' ? 'fill-teal-700/20' : ''}`} />
+            <span className="text-[10px] font-bold">Items</span>
+          </button>
+          <button onClick={() => setMobileTab("cart")} className={`flex flex-col items-center gap-1 p-2 relative ${mobileTab === 'cart' ? 'text-teal-700' : 'text-gray-400 hover:text-gray-600'}`}>
+            <ShoppingCart className={`w-5 h-5 ${mobileTab === 'cart' ? 'fill-teal-700/20' : ''}`} />
+            {cart.length > 0 && <span className="absolute top-1 right-2 w-4 h-4 bg-teal-700 text-white rounded-full text-[9px] font-black flex items-center justify-center border border-white">{cart.reduce((s, i) => s + i.quantity, 0)}</span>}
+            <span className="text-[10px] font-bold">Cart</span>
+          </button>
+          <button onClick={() => setIsHoldOpen(true)} className={`flex flex-col items-center gap-1 p-2 text-gray-400 hover:text-gray-600 relative`}>
+            <PauseCircle className="w-5 h-5" />
+            {heldBills.length > 0 && <span className="absolute top-1 right-2 w-4 h-4 bg-orange-500 text-white rounded-full text-[9px] font-black flex items-center justify-center border border-white">{heldBills.length}</span>}
+            <span className="text-[10px] font-bold">Hold orders</span>
+          </button>
+          <button onClick={handleOpenRecentSales} className={`flex flex-col items-center gap-1 p-2 text-gray-400 hover:text-gray-600`}>
+            <Receipt className="w-5 h-5" />
+            <span className="text-[10px] font-bold">Order history</span>
+          </button>
+        </div>
 
       {/* RIGHT: Modern Cart Sidebar */}
-      <div className={`${isMobileCartOpen ? "fixed inset-0 z-[100] flex w-full" : "hidden lg:flex"} lg:relative lg:w-[420px] bg-white flex-col h-full shrink-0 lg:z-20 shadow-2xl border-l border-gray-100`}>
+      <div className={`${mobileTab === 'cart' ? "fixed inset-0 pt-0 pb-[70px] z-40 flex w-full" : "hidden lg:flex"} lg:relative lg:w-[420px] lg:pb-0 bg-white flex-col h-full shrink-0 lg:z-20 shadow-2xl border-l border-gray-100`}>
         
         {/* Cart Header (Compact) */}
-        <div className="px-3 py-2 flex items-center justify-between border-b border-gray-100">
+        <div className="px-3 py-3 lg:py-2 flex items-center justify-between border-b border-gray-100 bg-white">
            <div className="flex items-center gap-2">
-             <button onClick={() => setIsMobileCartOpen(false)} className="lg:hidden p-1.5 mr-1 bg-gray-100 rounded-lg text-gray-600">
-               <X className="w-5 h-5" />
+             <button onClick={() => setMobileTab("items")} className="lg:hidden p-1.5 mr-1 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200">
+               <ArrowLeft className="w-5 h-5" />
              </button>
              <h2 className="text-lg font-black text-gray-900 tracking-tight leading-none">Current Order</h2>
              <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-widest">{lastOrderRef ? lastOrderRef : 'New'}</span>
