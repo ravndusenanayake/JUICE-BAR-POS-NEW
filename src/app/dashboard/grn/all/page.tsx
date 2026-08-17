@@ -34,6 +34,7 @@ export default function AllGRNPage() {
   const [filterSupplier, setFilterSupplier] = useState("All")
   const [filterStatus, setFilterStatus] = useState("All")
   const [filterDate, setFilterDate] = useState("All")
+  const [filterAmount, setFilterAmount] = useState("All")
   const [branches, setBranches] = useState<any[]>([])
   
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list")
@@ -96,7 +97,15 @@ export default function AllGRNPage() {
       }
     }
     
-    return matchesSearch && matchesBranch && matchesSupplier && matchesStatus && matchesDate;
+    let matchesAmount = true;
+    if (filterAmount !== "All") {
+      const total = Number(grn.totalAmount) || 0;
+      if (filterAmount === "< 10,000") matchesAmount = total < 10000;
+      else if (filterAmount === "10,000 - 50,000") matchesAmount = total >= 10000 && total <= 50000;
+      else if (filterAmount === "> 50,000") matchesAmount = total > 50000;
+    }
+    
+    return matchesSearch && matchesBranch && matchesSupplier && matchesStatus && matchesDate && matchesAmount;
   })
 
   const uniqueSuppliers = Array.from(new Set(grns.map(g => g.supplierName))).filter(Boolean).sort();
@@ -250,6 +259,18 @@ export default function AllGRNPage() {
                 {branches.map(b => (
                   <SelectItem key={b._id} value={b.name}>{b.name}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterAmount} onValueChange={(v) => setFilterAmount(v || 'All')}>
+              <SelectTrigger className="w-full sm:w-[150px] bg-white border-gray-200 h-10 font-medium text-gray-700">
+                <SelectValue placeholder="All Prices" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Prices</SelectItem>
+                <SelectItem value="< 10,000">Below Rs.10,000</SelectItem>
+                <SelectItem value="10,000 - 50,000">Rs.10k - 50k</SelectItem>
+                <SelectItem value="> 50,000">Above Rs.50,000</SelectItem>
               </SelectContent>
             </Select>
 
