@@ -78,8 +78,8 @@ export default function LoginPage() {
       </div>
 
       {/* Right Panel - Login */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[#F8FAFC]">
-        <div className="w-full max-w-md space-y-8 bg-white p-10 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 md:p-8 bg-[#F8FAFC]">
+        <div className="w-full max-w-md space-y-8 bg-white p-6 md:p-10 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Sign in to your account</h2>
             <p className="text-sm text-slate-500 mt-2">Enter your credentials to access the dashboard</p>

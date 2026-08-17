@@ -148,7 +148,7 @@ export default function KitchenDisplay() {
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Filters - Desktop */}
         <div className="hidden md:flex bg-gray-900 rounded-lg p-1 border border-gray-800 absolute left-1/2 -translate-x-1/2">
           {["Active", "Pending", "Preparing", "Ready", "All"].map(filter => (
             <button
@@ -158,6 +158,22 @@ export default function KitchenDisplay() {
                 setStatusFilter(filter);
               }}
               className={`px-4 py-1.5 rounded-md text-sm font-bold transition-colors ${statusFilter === filter ? 'bg-gray-800 text-orange-500 shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
+
+        {/* Filters - Mobile */}
+        <div className="flex md:hidden gap-2 overflow-x-auto scrollbar-hide w-full">
+          {["Active", "Pending", "Preparing", "Ready", "All"].map(filter => (
+            <button
+              key={filter}
+              onClick={() => {
+                setLoading(true);
+                setStatusFilter(filter);
+              }}
+              className={`px-3 py-1.5 rounded-md text-xs font-bold whitespace-nowrap transition-colors ${statusFilter === filter ? 'bg-orange-500 text-white' : 'bg-gray-800 text-gray-400'}`}
             >
               {filter}
             </button>
@@ -186,7 +202,7 @@ export default function KitchenDisplay() {
       </header>
 
       {/* ORDERS GRID */}
-      <main className="p-6 h-[calc(100vh-4rem)] overflow-y-auto">
+      <main className="p-3 md:p-6 h-[calc(100vh-4rem)] overflow-y-auto">
         {orders.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-gray-500">
             <ChefHat className="w-20 h-20 mb-4 opacity-20" />

@@ -55,6 +55,7 @@ export default function POSPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false)
+  const [isClearCartOpen, setIsClearCartOpen] = useState(false)
   
   // -- Cart State --
   const [cart, setCart] = useState<CartItem[]>([])
@@ -1047,8 +1048,8 @@ export default function POSPage() {
               <X className="w-6 h-6" />
             </button>
             <div className="mb-8">
-              <Link href="/kitchen" className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 hover:scale-105 transition-transform cursor-pointer" title="Open Kitchen Display">
-                <Store className="text-white w-6 h-6" />
+              <Link href="/dashboard" className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 hover:scale-105 transition-transform cursor-pointer" title="Go to Dashboard">
+                <LayoutDashboard className="text-white w-6 h-6" />
               </Link>
             </div>
             
@@ -1079,14 +1080,6 @@ export default function POSPage() {
                    <div className="p-3 rounded-xl bg-gray-800 group-hover:bg-red-500/20"><Power className="w-5 h-5" /></div>
                    <span className="text-sm font-medium">Close Shift</span>
                 </button>
-                <Link href="/kitchen" className="flex items-center gap-4 text-gray-400 hover:text-blue-500 transition-colors group p-2">
-                   <div className="p-3 rounded-xl bg-gray-800 group-hover:bg-blue-500/20"><Coffee className="w-5 h-5" /></div>
-                   <span className="text-sm font-medium">Kitchen Display</span>
-                </Link>
-                <Link href="/dashboard" className="flex items-center gap-4 text-gray-400 hover:text-orange-500 transition-colors group p-2">
-                   <div className="p-3 rounded-xl bg-gray-800 group-hover:bg-orange-500/20"><LayoutDashboard className="w-5 h-5" /></div>
-                   <span className="text-sm font-medium">Dashboard</span>
-                </Link>
               </div>
             </div>
           </aside>
@@ -1094,10 +1087,10 @@ export default function POSPage() {
       )}
 
       {/* LEFT: Sleek Navigation Sidebar (Desktop) */}
-      <aside className="hidden lg:flex w-[100px] sm:w-[120px] flex-col items-center bg-gray-900 shadow-2xl py-6 z-30 shrink-0">
-        <div className="mb-8">
-          <Link href="/kitchen" className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 hover:scale-105 transition-transform cursor-pointer" title="Open Kitchen Display">
-            <Store className="text-white w-6 h-6" />
+      <aside className="hidden lg:flex w-[100px] sm:w-[120px] flex-col items-center bg-gray-900 shadow-2xl py-6 z-30 shrink-0 overflow-y-auto custom-scrollbar">
+        <div className="mb-8 shrink-0">
+          <Link href="/dashboard" className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 hover:scale-105 transition-transform cursor-pointer" title="Go to Dashboard">
+            <LayoutDashboard className="text-white w-6 h-6" />
           </Link>
         </div>
         
@@ -1137,43 +1130,35 @@ export default function POSPage() {
                <span className="text-xs mt-1 font-bold">{offlineQueue.length} SYNC</span>
              </button>
            )}
-          <button onClick={openShiftSummary} className="flex flex-col items-center gap-2 text-gray-400 hover:text-red-500 transition-colors group">
+          <button onClick={openShiftSummary} className="flex flex-col items-center gap-2 text-gray-400 hover:text-red-500 transition-colors group mt-auto">
              <div className="p-4 rounded-xl bg-gray-800 group-hover:bg-red-500/20"><Power className="w-6 h-6" /></div>
              <span className="text-xs font-medium text-center leading-tight">Close<br/>Shift</span>
           </button>
-          <Link href="/kitchen" className="flex flex-col items-center gap-2 text-gray-400 hover:text-blue-500 transition-colors group">
-             <div className="p-4 rounded-xl bg-gray-800 group-hover:bg-blue-500/20"><Coffee className="w-6 h-6" /></div>
-             <span className="text-xs font-medium text-center leading-tight">Kitchen<br/>Display</span>
-          </Link>
-          <Link href="/dashboard" className="flex flex-col items-center gap-2 text-gray-400 hover:text-orange-500 transition-colors group mt-auto">
-             <div className="p-4 rounded-xl bg-gray-800 group-hover:bg-orange-500/20"><LayoutDashboard className="w-6 h-6" /></div>
-             <span className="text-xs font-medium text-center leading-tight">Dashboard</span>
-          </Link>
         </div>
       </aside>
 
       {/* CENTER: Products Area */}
       <div className="flex-1 flex flex-col h-full bg-slate-50 z-10 relative overflow-hidden">
-        <header className="pt-4 md:pt-6 px-4 md:px-8 shrink-0 flex items-center justify-between gap-4 md:gap-6">
-           <div className="flex items-center gap-2 md:gap-3 shrink-0 min-w-[50px] md:min-w-[150px]">
-             <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2.5 bg-white rounded-xl shadow-sm border border-gray-100 mr-1">
-               <Menu className="w-6 h-6 text-gray-700" />
+        <header className="pt-3 md:pt-6 px-3 md:px-8 shrink-0 flex items-center justify-between gap-2 md:gap-6">
+           <div className="flex items-center gap-2 md:gap-3 shrink-0">
+             <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 bg-white rounded-xl shadow-sm border border-gray-100">
+               <Menu className="w-5 h-5 text-gray-700" />
              </button>
              <div className="hidden md:flex w-12 h-12 bg-orange-100 rounded-full items-center justify-center border-2 border-white shadow-sm">
                <User className="text-orange-600 w-6 h-6" />
              </div>
-             <div>
-               <h1 className="text-lg font-black text-gray-900 leading-tight">{user?.name}</h1>
-               <p className="text-xs text-gray-500 font-bold">{posBranch || "Select Branch"}</p>
+             <div className="hidden sm:block">
+               <h1 className="text-sm md:text-lg font-black text-gray-900 leading-tight">{user?.name}</h1>
+               <p className="text-[10px] md:text-xs text-gray-500 font-bold">{posBranch || "Select Branch"}</p>
              </div>
            </div>
            
-           <div className="flex-1 max-w-xl mx-auto relative group shrink-0">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-orange-500 transition-colors" />
+           <div className="flex-1 max-w-xl mx-auto relative group shrink min-w-0">
+              <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400 group-focus-within:text-orange-500 transition-colors" />
               <Input 
                 id="pos-search-input"
-                type="text" placeholder="Scan barcode or search products (F2)..." 
-                className="pl-12 bg-white border-transparent shadow-[0_4px_20px_rgba(0,0,0,0.03)] focus-visible:ring-2 focus-visible:ring-orange-500 rounded-2xl h-14 w-full text-base font-bold text-gray-700 transition-all"
+                type="text" placeholder="Search products..." 
+                className="pl-9 md:pl-12 bg-white border-transparent shadow-[0_4px_20px_rgba(0,0,0,0.03)] focus-visible:ring-2 focus-visible:ring-orange-500 rounded-2xl h-11 md:h-14 w-full text-sm md:text-base font-bold text-gray-700 transition-all"
                 value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && searchQuery.trim()) {
@@ -1188,17 +1173,21 @@ export default function POSPage() {
                 }}
               />
            </div>
-           <div className="shrink-0 min-w-[150px]"></div> {/* Spacer */}
+           <div className="flex items-center justify-end shrink-0">
+             <Link href="/kitchen" title="Kitchen Display" className="flex items-center justify-center w-10 h-10 md:w-[52px] md:h-[52px] bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl md:rounded-2xl transition-colors shadow-sm">
+               <Store className="w-5 h-5 md:w-6 md:h-6" />
+             </Link>
+           </div>
         </header>
 
         {/* Categories (Pills) */}
-        <div className="px-8 py-6 shrink-0 border-b border-gray-100">
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="px-3 md:px-8 py-3 md:py-6 shrink-0 border-b border-gray-100">
+          <div className="flex gap-2 md:gap-3 overflow-x-auto pb-1 md:pb-2 scrollbar-hide">
             {categories.map(cat => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`px-6 py-3 rounded-2xl text-base font-bold whitespace-nowrap transition-all duration-200 ${activeCategory === cat ? "bg-gray-900 text-white shadow-lg shadow-gray-900/20 scale-105" : "bg-white text-gray-600 hover:bg-gray-100 shadow-sm border border-gray-100"}`}
+                className={`px-4 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl text-sm md:text-base font-bold whitespace-nowrap transition-all duration-200 ${activeCategory === cat ? "bg-gray-900 text-white shadow-lg shadow-gray-900/20 scale-105" : "bg-white text-gray-600 hover:bg-gray-100 shadow-sm border border-gray-100"}`}
               >
                 {cat}
               </button>
@@ -1207,8 +1196,8 @@ export default function POSPage() {
         </div>
 
         {/* Product Grid */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 pb-20">
+        <div className="flex-1 overflow-y-auto px-3 md:px-6 py-4 md:py-6 custom-scrollbar">
+          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-3 pb-24 lg:pb-6">
             {filteredProducts.map(product => {
               // Better background colors for premium look
               const premiumColorMap: Record<string, string> = {
@@ -1234,14 +1223,14 @@ export default function POSPage() {
                       <span className="bg-red-600/90 text-white font-black text-xs px-4 py-1.5 rounded-xl uppercase tracking-widest shadow-xl rotate-[-8deg] border border-red-400/50">Sold Out</span>
                     </div>
                   )}
-                  <div className={`h-[100px] w-full shrink-0 flex items-center justify-center bg-gradient-to-br ${bgGradient} relative overflow-hidden`}>
+                  <div className={`h-[70px] md:h-[100px] w-full shrink-0 flex items-center justify-center bg-gradient-to-br ${bgGradient} relative overflow-hidden`}>
                     <div className="absolute inset-0 bg-black/10 mix-blend-overlay group-hover:bg-black/0 transition-colors duration-500"></div>
-                    <span className="text-4xl font-black text-white drop-shadow-md relative z-10 tracking-tighter group-hover:scale-110 transition-transform duration-500">
+                    <span className="text-2xl md:text-4xl font-black text-white drop-shadow-md relative z-10 tracking-tighter group-hover:scale-110 transition-transform duration-500">
                       {product.name.substring(0,2).toUpperCase()}
                     </span>
                   </div>
-                  <div className="p-3 flex-1 flex flex-col items-center justify-center w-full bg-white rounded-b-3xl">
-                    <h3 className={`font-black text-sm uppercase leading-tight transition-colors line-clamp-3 w-full flex items-center justify-center ${product.isOutOfStock ? 'text-gray-500' : 'text-gray-800 group-hover:text-black'} ${product.hasVariants ? 'mb-2' : ''}`}>
+                  <div className="p-2 md:p-3 flex-1 flex flex-col items-center justify-center w-full bg-white rounded-b-3xl">
+                    <h3 className={`font-black text-[11px] md:text-sm uppercase leading-tight transition-colors line-clamp-2 md:line-clamp-3 w-full flex items-center justify-center text-center ${product.isOutOfStock ? 'text-gray-500' : 'text-gray-800 group-hover:text-black'} ${product.hasVariants ? 'mb-1 md:mb-2' : ''}`}>
                       {product.name}
                     </h3>
                     {product.hasVariants && (
@@ -1260,10 +1249,13 @@ export default function POSPage() {
 
         {/* Mobile Cart Floating Action Button */}
         {!isMobileCartOpen && (
-          <div className="lg:hidden fixed bottom-4 left-4 right-4 z-40">
-            <Button onClick={() => setIsMobileCartOpen(true)} className="w-full h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl shadow-xl flex items-center justify-between px-6">
-               <span className="font-bold">View Cart ({cart.reduce((sum, item) => sum + item.quantity, 0)})</span>
-               <span className="font-black">Rs. {grandTotal.toFixed(2)}</span>
+          <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-white via-white to-white/0">
+            <Button onClick={() => setIsMobileCartOpen(true)} className="w-full h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl shadow-[0_-4px_20px_rgba(249,115,22,0.3)] flex items-center justify-between px-5">
+               <div className="flex items-center gap-2">
+                 <ShoppingCart className="w-5 h-5" />
+                 <span className="font-bold text-sm">Cart ({cart.reduce((sum, item) => sum + item.quantity, 0)})</span>
+               </div>
+               <span className="font-black text-lg">Rs. {grandTotal.toFixed(2)}</span>
             </Button>
           </div>
         )}
@@ -1425,14 +1417,19 @@ export default function POSPage() {
             )}
 
             <div className="flex justify-between items-end pt-2">
-              <span className="text-lg font-black text-gray-900">Total</span>
-              <span className="text-4xl font-black text-orange-500 tracking-tighter drop-shadow-sm">Rs. {grandTotal.toFixed(2)}</span>
+              <span className="text-base md:text-lg font-black text-gray-900">Total</span>
+              <span className="text-2xl md:text-4xl font-black text-orange-500 tracking-tighter drop-shadow-sm">Rs. {grandTotal.toFixed(2)}</span>
             </div>
           </div>
           
           <div className="flex gap-2">
-             <button onClick={() => setGlobalOrderNote(prompt("Enter global order note:") || "")} className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center transition-colors ${globalOrderNote ? 'border-orange-500 text-orange-500 bg-orange-50' : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'}`}>
-                <Edit className="w-5 h-5" />
+             <button 
+               onClick={() => setIsClearCartOpen(true)} 
+               className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center transition-colors ${cart.length > 0 ? 'border-red-100 bg-red-50 text-red-500 hover:bg-red-100 hover:border-red-200' : 'border-gray-200 text-gray-300 bg-gray-50'}`}
+               title="Clear Order"
+               disabled={cart.length === 0}
+             >
+                <Trash2 className="w-5 h-5" />
              </button>
              <Button 
                className="flex-1 h-14 text-xl font-black rounded-2xl shadow-[0_10px_20px_rgba(249,115,22,0.3)] bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white transition-all transform active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
@@ -1445,6 +1442,38 @@ export default function POSPage() {
       </div>
 
       {/* --- MODALS --- */}
+
+      {/* Clear Cart Modal */}
+      <Dialog open={isClearCartOpen} onOpenChange={setIsClearCartOpen}>
+        <DialogContent className="sm:max-w-md bg-white rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black text-gray-900 flex items-center gap-2">
+              <Trash2 className="w-6 h-6 text-red-500" />
+              Clear Order?
+            </DialogTitle>
+            <DialogDescription className="text-gray-500 font-medium">
+              Are you sure you want to clear the entire order? All items, discounts, and customer details will be removed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 gap-2 flex sm:justify-end">
+            <Button variant="outline" onClick={() => setIsClearCartOpen(false)} className="rounded-xl h-12 px-6 font-bold text-gray-600 border-gray-200 hover:bg-gray-50">Cancel</Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => {
+                setCart([]);
+                setDiscountValue(0);
+                setDiscountType("NONE");
+                setGlobalOrderNote("");
+                setSelectedCustomer(null);
+                setIsClearCartOpen(false);
+              }}
+              className="rounded-xl h-12 px-6 font-bold bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20"
+            >
+              Yes, Clear Order
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 0. Branch Selection Modal (For Admins) */}
       <Dialog open={isBranchSelectOpen} onOpenChange={() => {}}>

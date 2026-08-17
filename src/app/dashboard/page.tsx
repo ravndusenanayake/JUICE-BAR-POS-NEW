@@ -119,20 +119,20 @@ export default function DashboardPage() {
   const recentSalesList = relevantSales.slice().sort((a,b) => new Date(b.timestamp || b.createdAt).getTime() - new Date(a.timestamp || a.createdAt).getTime()).slice(0, 5)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div>
-        <h2 className="text-3xl font-black tracking-tight text-gray-900">Overview</h2>
-        <p className="text-gray-500 font-medium mt-1">Here&apos;s what&apos;s happening at your juice bar today.</p>
+        <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">Overview</h2>
+        <p className="text-sm md:text-base text-gray-500 font-medium mt-1">Here&apos;s what&apos;s happening at your juice bar today.</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 md:gap-6 grid-cols-2 lg:grid-cols-4">
         <Card className="rounded-2xl shadow-sm border-0 border-l-4 border-l-orange-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-bold text-gray-500 uppercase tracking-wider">Total Revenue</CardTitle>
             <div className="p-2 bg-orange-100 rounded-lg text-orange-600"><DollarSign className="h-5 w-5" /></div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-gray-900">Rs. {revenueToday.toFixed(2)}</div>
+            <div className="text-xl md:text-3xl font-black text-gray-900">Rs. {revenueToday.toFixed(2)}</div>
             <p className={`text-sm font-bold mt-1 ${revenueTrend >= 0 ? 'text-green-500' : 'text-red-500'}`}>
               {revenueTrend > 0 ? '+' : ''}{revenueTrend.toFixed(1)}% from yesterday
             </p>
@@ -145,7 +145,7 @@ export default function DashboardPage() {
             <div className="p-2 bg-blue-100 rounded-lg text-blue-600"><ShoppingBag className="h-5 w-5" /></div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-gray-900">{ordersToday}</div>
+            <div className="text-xl md:text-3xl font-black text-gray-900">{ordersToday}</div>
             <p className={`text-sm font-bold mt-1 ${ordersTrend >= 0 ? 'text-green-500' : 'text-red-500'}`}>
               {ordersTrend > 0 ? '+' : ''}{ordersTrend.toFixed(1)}% from yesterday
             </p>
@@ -158,7 +158,7 @@ export default function DashboardPage() {
             <div className="p-2 bg-purple-100 rounded-lg text-purple-600"><Users className="h-5 w-5" /></div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-gray-900">{customersToday}</div>
+            <div className="text-xl md:text-3xl font-black text-gray-900">{customersToday}</div>
             <p className={`text-sm font-bold mt-1 ${customersTrend >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                {customersTrend > 0 ? '+' : ''}{customersTrend.toFixed(1)}% from yesterday
             </p>
@@ -171,19 +171,19 @@ export default function DashboardPage() {
             <div className="p-2 bg-green-100 rounded-lg text-green-600"><TrendingUp className="h-5 w-5" /></div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black text-gray-900 truncate mt-1">{topItem ? topItem.name : 'N/A'}</div>
+            <div className="text-lg md:text-2xl font-black text-gray-900 truncate mt-1">{topItem ? topItem.name : 'N/A'}</div>
             <p className="text-sm font-bold text-gray-400 mt-1">{topItem ? `${topItem.qty} orders today` : 'No sales yet'}</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4 rounded-2xl shadow-sm border-0">
+      <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-7">
+        <Card className="lg:col-span-4 rounded-2xl shadow-sm border-0">
           <CardHeader>
-            <CardTitle className="text-xl font-bold">Revenue Overview (Last 7 Days)</CardTitle>
+            <CardTitle className="text-base md:text-xl font-bold">Revenue Overview (Last 7 Days)</CardTitle>
           </CardHeader>
-          <CardContent className="pl-0 pr-4">
-            <div className="h-[350px] w-full mt-4">
+          <CardContent className="pl-0 pr-2 md:pr-4">
+            <div className="h-[220px] md:h-[350px] w-full mt-2 md:mt-4">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <defs>
@@ -206,7 +206,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
         
-        <Card className="col-span-3 rounded-2xl shadow-sm border-0">
+        <Card className="lg:col-span-3 rounded-2xl shadow-sm border-0">
           <CardHeader>
             <CardTitle className="text-xl font-bold">Recent Sales</CardTitle>
           </CardHeader>

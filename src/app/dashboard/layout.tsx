@@ -33,6 +33,11 @@ export default function DashboardLayout({
     }
   }, [isAuthenticated, isLoading, router, isMounted])
 
+  // Auto-close mobile menu on navigation
+  useEffect(() => {
+    setIsMobileMenuOpen(false)
+  }, [pathname])
+
   // RBAC Access Control per Route is now handled Server-Side by middleware.ts
 
   if (!isMounted || isLoading || !isAuthenticated) return <div className="h-screen flex items-center justify-center">Loading...</div>
@@ -308,7 +313,7 @@ export default function DashboardLayout({
             </span>
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto bg-muted/10 p-6">
+        <main className="flex-1 overflow-y-auto bg-muted/10 p-3 md:p-6">
           {children}
         </main>
       </div>
