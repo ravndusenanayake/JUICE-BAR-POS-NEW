@@ -162,7 +162,7 @@ export default function BranchInventoryPage() {
             />
           </div>
           <div className="flex flex-col sm:flex-row gap-4">
-            <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <Select value={filterCategory} onValueChange={(val) => setFilterCategory(val || "All Categories")}>
               <SelectTrigger className="w-full sm:w-[200px] bg-white border-gray-200 h-10 shadow-sm">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
