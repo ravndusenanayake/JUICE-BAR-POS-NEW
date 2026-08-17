@@ -27,6 +27,16 @@ export default function KitchenDisplay() {
   useEffect(() => {
     if (!user) return;
     
+    // Check if branch was passed via URL (e.g. coming from POS)
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const queryBranch = params.get('branch');
+      if (queryBranch) {
+        setKitchenBranch(queryBranch);
+        return; // Skip normal prompt logic
+      }
+    }
+    
     if (user.branch === "All Branches") {
       if (!branchPrompted.current) {
         branchPrompted.current = true;

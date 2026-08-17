@@ -1174,7 +1174,7 @@ export default function POSPage() {
               />
            </div>
            <div className="flex items-center justify-end shrink-0">
-             <Link href="/kitchen" title="Kitchen Display" className="flex items-center justify-center w-10 h-10 md:w-[52px] md:h-[52px] bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl md:rounded-2xl transition-colors shadow-sm">
+             <Link href={`/kitchen?branch=${encodeURIComponent(posBranch || user?.branch || '')}`} title="Kitchen Display" className="flex items-center justify-center w-10 h-10 md:w-[52px] md:h-[52px] bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl md:rounded-2xl transition-colors shadow-sm">
                <Store className="w-5 h-5 md:w-6 md:h-6" />
              </Link>
            </div>
