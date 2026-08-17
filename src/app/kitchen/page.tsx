@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
-import { ArrowLeft, Clock, CheckCircle2, ChefHat, Timer, Filter } from "lucide-react"
+import { ArrowLeft, Clock, CheckCircle2, ChefHat, Timer, Filter, LayoutDashboard, Monitor } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 
@@ -137,14 +137,14 @@ export default function KitchenDisplay() {
     <div className="min-h-screen bg-gray-900 text-gray-100 font-sans selection:bg-orange-500/30">
       
       {/* HEADER */}
-      <header className="h-16 flex items-center justify-between px-6 bg-gray-950 border-b border-gray-800 shadow-sm shrink-0">
-        <div className="flex items-center gap-4">
+      <header className="h-auto py-3 md:py-0 md:h-16 flex flex-col md:flex-row items-center justify-between px-4 md:px-6 bg-gray-950 border-b border-gray-800 shadow-sm shrink-0 gap-3 md:gap-0">
+        <div className="flex items-center justify-between w-full md:w-auto gap-4">
           <Link href="/dashboard" className="text-gray-400 hover:text-white transition-colors">
             <ArrowLeft className="w-6 h-6" />
           </Link>
-          <div className="flex items-center gap-2 text-xl font-bold text-white">
+          <div className="flex items-center gap-2 text-lg md:text-xl font-bold text-white">
             <ChefHat className="w-6 h-6 text-orange-500" />
-            Kitchen Display <span className="text-gray-500 font-normal text-base ml-2">({kitchenBranch || "Select Branch"})</span>
+            Kitchen <span className="hidden md:inline">Display</span> <span className="text-gray-500 font-normal text-sm md:text-base ml-1 md:ml-2">({kitchenBranch || "Select Branch"})</span>
           </div>
         </div>
 
@@ -164,7 +164,16 @@ export default function KitchenDisplay() {
           ))}
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto justify-between md:justify-end overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
+          <div className="flex items-center gap-2 shrink-0">
+          <Link href="/pos" className="flex items-center gap-2 text-sm font-medium text-gray-400 hover:text-white transition-colors bg-gray-800/50 hover:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-700">
+            <Monitor className="w-4 h-4" />
+            POS
+          </Link>
+          <Link href="/dashboard" className="flex items-center gap-2 text-sm font-medium text-gray-400 hover:text-white transition-colors bg-gray-800/50 hover:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-700">
+            <LayoutDashboard className="w-4 h-4" />
+            Dashboard
+          </Link>
           <Badge variant="secondary" className="bg-gray-800 text-gray-300 font-medium">
             {orders.length} Active Orders
           </Badge>
@@ -172,6 +181,7 @@ export default function KitchenDisplay() {
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
             Live Sync
           </div>
+        </div>
         </div>
       </header>
 
@@ -184,7 +194,7 @@ export default function KitchenDisplay() {
             <p className="text-sm mt-2">Kitchen is clear!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start">
             {orders.map((order) => (
               <Card key={order._id} className={`border-2 shadow-lg overflow-hidden flex flex-col transition-all ${order.kitchenStatus === 'Preparing' ? 'border-orange-500 bg-gray-800' : 'border-gray-700 bg-gray-800'}`}>
                 

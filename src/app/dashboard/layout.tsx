@@ -9,7 +9,7 @@ import {
   LayoutDashboard, Users, Settings, Tags, Box, Droplets, 
   ListOrdered, PlusCircle, FileText, Building2, Package, 
   History, Truck, ArrowRightLeft, Activity, ShoppingCart, 
-  ChevronDown, ChevronUp, ClipboardList, Store, ShieldCheck, UserCog, BarChart3, LogOut
+  ChevronDown, ChevronUp, ClipboardList, Store, ShieldCheck, UserCog, BarChart3, LogOut, Menu
 } from "lucide-react"
 
 export default function DashboardLayout({
@@ -23,6 +23,7 @@ export default function DashboardLayout({
   const [isMounted, setIsMounted] = useState(false)
   const [isReportsOpen, setIsReportsOpen] = useState(false)
   const [isGrnOpen, setIsGrnOpen] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   // Protect Dashboard Routes
   useEffect(() => {
@@ -40,9 +41,14 @@ export default function DashboardLayout({
   const isActive = (path: string) => pathname === path
 
   return (
-    <div className="flex h-screen overflow-hidden bg-muted/30">
+    <div className="flex h-screen overflow-hidden bg-muted/30 relative">
+      {/* Mobile Backdrop */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setIsMobileMenuOpen(false)}></div>
+      )}
+
       {/* Sidebar */}
-      <aside className="hidden w-64 flex-col border-r bg-card md:flex">
+      <aside className={`${isMobileMenuOpen ? "fixed inset-y-0 left-0 z-50 flex w-64 shadow-2xl transform translate-x-0" : "hidden md:flex w-64"} flex-col border-r bg-card transition-transform duration-300 ease-in-out`}>
         <div className="flex h-16 items-center border-b px-6">
           <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
             <Droplets className="h-6 w-6 text-primary" />
@@ -289,8 +295,11 @@ export default function DashboardLayout({
       {/* Main Content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex h-16 items-center justify-between border-b bg-card px-6">
+        <header className="flex h-16 shrink-0 items-center justify-between border-b bg-card px-4 md:px-6">
           <div className="flex items-center gap-4">
+            <button className="md:hidden p-2 bg-muted/50 rounded-md" onClick={() => setIsMobileMenuOpen(true)}>
+              <Menu className="w-5 h-5" />
+            </button>
             <h1 className="text-lg font-semibold md:hidden">Juice Bar POS</h1>
           </div>
           <div className="flex items-center gap-4 ml-auto">

@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from "@/components/ui/label"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { 
-  Search, User, ShoppingCart, Power, Minus, Plus, Trash2, Printer, CheckCircle2, ChevronRight, X, Percent, DollarSign, Store, Tag, Coffee, Filter, CalendarClock, Phone, ArrowLeft, Loader2, RotateCcw, Wallet, PauseCircle, PlayCircle, CreditCard, MoreVertical, History, WifiOff, CloudLightning, Edit, Star, Delete
+  Search, User, ShoppingCart, Power, Minus, Plus, Trash2, Printer, CheckCircle2, ChevronRight, X, Percent, DollarSign, Store, Tag, Coffee, Filter, CalendarClock, Phone, ArrowLeft, Loader2, RotateCcw, Wallet, PauseCircle, PlayCircle, CreditCard, MoreVertical, History, WifiOff, CloudLightning, Edit, Star, Delete, LayoutDashboard, Menu
 } from "lucide-react"
 import { logAudit } from "@/lib/auditLogger"
 import { toast } from "sonner"
@@ -53,6 +53,8 @@ export default function POSPage() {
   // -- UI States --
   const [activeCategory, setActiveCategory] = useState("⭐ Quick Picks")
   const [searchQuery, setSearchQuery] = useState("")
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isMobileCartOpen, setIsMobileCartOpen] = useState(false)
   
   // -- Cart State --
   const [cart, setCart] = useState<CartItem[]>([])
@@ -1034,10 +1036,65 @@ export default function POSPage() {
     }
   }
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans selection:bg-orange-200">
+    <div className="flex h-screen flex-col lg:flex-row bg-gray-50 overflow-hidden font-sans selection:bg-orange-200 relative">
       
-      {/* LEFT: Sleek Navigation Sidebar */}
-      <aside className="w-[100px] sm:w-[120px] flex flex-col items-center bg-gray-900 shadow-2xl py-6 z-30 shrink-0">
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-[100] lg:hidden flex">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setIsMobileMenuOpen(false)}></div>
+          <aside className="w-[280px] bg-gray-900 shadow-2xl py-6 flex flex-col items-center relative z-10 h-full overflow-y-auto">
+            <button onClick={() => setIsMobileMenuOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-white">
+              <X className="w-6 h-6" />
+            </button>
+            <div className="mb-8">
+              <Link href="/kitchen" className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 hover:scale-105 transition-transform cursor-pointer" title="Open Kitchen Display">
+                <Store className="text-white w-6 h-6" />
+              </Link>
+            </div>
+            
+            <div className="flex flex-col gap-6 flex-1 w-full px-4">
+              <button onClick={() => { setIsMobileMenuOpen(false); document.getElementById('pos-search-input')?.focus() }} className="flex items-center gap-4 text-gray-400 hover:text-white transition-colors group p-2">
+                 <div className="p-3 rounded-xl bg-gray-800 group-hover:bg-gray-700"><Search className="w-5 h-5" /></div>
+                 <span className="text-sm font-medium">Search</span>
+              </button>
+              <button onClick={() => { setIsMobileMenuOpen(false); setIsExpenseOpen(true) }} className="flex items-center gap-4 text-gray-400 hover:text-green-400 transition-colors group p-2">
+                 <div className="p-3 rounded-xl bg-gray-800 group-hover:bg-green-400/20"><Wallet className="w-5 h-5" /></div>
+                 <span className="text-sm font-medium">Expense</span>
+              </button>
+              <button onClick={() => { setIsMobileMenuOpen(false); setIsReturnOpen(true) }} className="flex items-center gap-4 text-gray-400 hover:text-blue-400 transition-colors group p-2">
+                 <div className="p-3 rounded-xl bg-gray-800 group-hover:bg-blue-400/20"><RotateCcw className="w-5 h-5" /></div>
+                 <span className="text-sm font-medium">Return</span>
+              </button>
+              <button onClick={() => { setIsMobileMenuOpen(false); handleOpenRecentSales() }} className="flex items-center gap-4 text-gray-400 hover:text-indigo-400 transition-colors group p-2">
+                 <div className="p-3 rounded-xl bg-gray-800 group-hover:bg-indigo-400/20"><History className="w-5 h-5" /></div>
+                 <span className="text-sm font-medium">History</span>
+              </button>
+              <button onClick={() => { setIsMobileMenuOpen(false); openSlideOutSummary() }} className="flex items-center gap-4 text-gray-400 hover:text-purple-400 transition-colors group p-2">
+                 <div className="p-3 rounded-xl bg-gray-800 group-hover:bg-purple-400/20"><Printer className="w-5 h-5" /></div>
+                 <span className="text-sm font-medium">Z-Report</span>
+              </button>
+              
+              <div className="mt-8 pt-6 border-t border-gray-800 flex flex-col gap-4">
+                <button onClick={() => { setIsMobileMenuOpen(false); openShiftSummary() }} className="flex items-center gap-4 text-gray-400 hover:text-red-500 transition-colors group p-2">
+                   <div className="p-3 rounded-xl bg-gray-800 group-hover:bg-red-500/20"><Power className="w-5 h-5" /></div>
+                   <span className="text-sm font-medium">Close Shift</span>
+                </button>
+                <Link href="/kitchen" className="flex items-center gap-4 text-gray-400 hover:text-blue-500 transition-colors group p-2">
+                   <div className="p-3 rounded-xl bg-gray-800 group-hover:bg-blue-500/20"><Coffee className="w-5 h-5" /></div>
+                   <span className="text-sm font-medium">Kitchen Display</span>
+                </Link>
+                <Link href="/dashboard" className="flex items-center gap-4 text-gray-400 hover:text-orange-500 transition-colors group p-2">
+                   <div className="p-3 rounded-xl bg-gray-800 group-hover:bg-orange-500/20"><LayoutDashboard className="w-5 h-5" /></div>
+                   <span className="text-sm font-medium">Dashboard</span>
+                </Link>
+              </div>
+            </div>
+          </aside>
+        </div>
+      )}
+
+      {/* LEFT: Sleek Navigation Sidebar (Desktop) */}
+      <aside className="hidden lg:flex w-[100px] sm:w-[120px] flex-col items-center bg-gray-900 shadow-2xl py-6 z-30 shrink-0">
         <div className="mb-8">
           <Link href="/kitchen" className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 hover:scale-105 transition-transform cursor-pointer" title="Open Kitchen Display">
             <Store className="text-white w-6 h-6" />
@@ -1088,17 +1145,21 @@ export default function POSPage() {
              <div className="p-4 rounded-xl bg-gray-800 group-hover:bg-blue-500/20"><Coffee className="w-6 h-6" /></div>
              <span className="text-xs font-medium text-center leading-tight">Kitchen<br/>Display</span>
           </Link>
-          <Link href="/dashboard" className="p-4 rounded-xl bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
-            <ArrowLeft className="w-6 h-6" />
+          <Link href="/dashboard" className="flex flex-col items-center gap-2 text-gray-400 hover:text-orange-500 transition-colors group mt-auto">
+             <div className="p-4 rounded-xl bg-gray-800 group-hover:bg-orange-500/20"><LayoutDashboard className="w-6 h-6" /></div>
+             <span className="text-xs font-medium text-center leading-tight">Dashboard</span>
           </Link>
         </div>
       </aside>
 
       {/* CENTER: Products Area */}
       <div className="flex-1 flex flex-col h-full bg-slate-50 z-10 relative overflow-hidden">
-        <header className="pt-6 px-8 shrink-0 flex items-center justify-between gap-6">
-           <div className="flex items-center gap-3 shrink-0 min-w-[150px]">
-             <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+        <header className="pt-4 md:pt-6 px-4 md:px-8 shrink-0 flex items-center justify-between gap-4 md:gap-6">
+           <div className="flex items-center gap-2 md:gap-3 shrink-0 min-w-[50px] md:min-w-[150px]">
+             <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2.5 bg-white rounded-xl shadow-sm border border-gray-100 mr-1">
+               <Menu className="w-6 h-6 text-gray-700" />
+             </button>
+             <div className="hidden md:flex w-12 h-12 bg-orange-100 rounded-full items-center justify-center border-2 border-white shadow-sm">
                <User className="text-orange-600 w-6 h-6" />
              </div>
              <div>
@@ -1197,12 +1258,25 @@ export default function POSPage() {
         </div>
       </div>
 
+        {/* Mobile Cart Floating Action Button */}
+        {!isMobileCartOpen && (
+          <div className="lg:hidden fixed bottom-4 left-4 right-4 z-40">
+            <Button onClick={() => setIsMobileCartOpen(true)} className="w-full h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl shadow-xl flex items-center justify-between px-6">
+               <span className="font-bold">View Cart ({cart.reduce((sum, item) => sum + item.quantity, 0)})</span>
+               <span className="font-black">Rs. {grandTotal.toFixed(2)}</span>
+            </Button>
+          </div>
+        )}
+
       {/* RIGHT: Modern Cart Sidebar */}
-      <div className="w-[420px] bg-white flex flex-col h-full shrink-0 relative z-20 shadow-2xl border-l border-gray-100">
+      <div className={`${isMobileCartOpen ? "fixed inset-0 z-[100] flex w-full" : "hidden lg:flex"} lg:relative lg:w-[420px] bg-white flex-col h-full shrink-0 lg:z-20 shadow-2xl border-l border-gray-100`}>
         
         {/* Cart Header (Compact) */}
         <div className="px-3 py-2 flex items-center justify-between border-b border-gray-100">
            <div className="flex items-center gap-2">
+             <button onClick={() => setIsMobileCartOpen(false)} className="lg:hidden p-1.5 mr-1 bg-gray-100 rounded-lg text-gray-600">
+               <X className="w-5 h-5" />
+             </button>
              <h2 className="text-lg font-black text-gray-900 tracking-tight leading-none">Current Order</h2>
              <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-widest">{lastOrderRef ? lastOrderRef : 'New'}</span>
            </div>
