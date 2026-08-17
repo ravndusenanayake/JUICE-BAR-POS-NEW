@@ -127,7 +127,7 @@ export default function CustomersPage() {
             />
           </div>
           <div className="w-full sm:w-48">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || "All")}>
               <SelectTrigger className="bg-white h-10 border-gray-200 shadow-sm">
                 <SelectValue placeholder="Filter by Status" />
               </SelectTrigger>
