@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, ArrowRight, CheckCircle, Clock, Check, X, Download, Package, Eye } from "lucide-react"
+import { Search, Plus, ArrowRight, ArrowRightLeft, CheckCircle, Clock, Check, X, Download, Package, Eye } from "lucide-react"
 import { formatStockDisplay, toBaseUnit, BaseUnit, UNIT_CONFIGS } from "@/lib/units"
 
 export interface TransferItem {
