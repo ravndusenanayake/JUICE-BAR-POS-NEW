@@ -877,7 +877,9 @@ export default function POSPage() {
   const handleOpenRecentSales = async () => {
     setIsRecentSalesOpen(true);
     try {
-      const res = await fetch('/api/sales?limit=5');
+      const targetBranch = posBranch || user?.branch;
+      const branchQuery = targetBranch && targetBranch !== "All Branches" ? `&branch=${encodeURIComponent(targetBranch)}` : '';
+      const res = await fetch(`/api/sales?limit=5${branchQuery}`);
       if (res.ok) {
         const data = await res.json();
         // Since API doesn't actually support ?limit=5 efficiently right now based on our checks,
@@ -2249,7 +2251,14 @@ export default function POSPage() {
       <Dialog open={isRecentSalesOpen} onOpenChange={setIsRecentSalesOpen}>
         <DialogContent className="sm:max-w-4xl p-0 overflow-hidden rounded-2xl border-0 shadow-2xl bg-gray-50">
           <div className="p-6 bg-white border-b">
-            <DialogTitle className="text-xl font-black text-gray-900">Recent Sales</DialogTitle>
+            <DialogTitle className="text-xl font-black text-gray-900 flex items-center gap-2">
+              Recent Sales
+              {(posBranch || user?.branch) && (posBranch || user?.branch) !== "All Branches" && (
+                <span className="text-sm font-bold bg-orange-100 text-orange-700 px-3 py-1 rounded-full border border-orange-200">
+                  {posBranch || user?.branch}
+                </span>
+              )}
+            </DialogTitle>
             <DialogDescription>Click on any sale to view full bill details or print receipt</DialogDescription>
           </div>
           <div className="p-0 max-h-[60vh] overflow-y-auto">

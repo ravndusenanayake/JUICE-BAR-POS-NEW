@@ -19,6 +19,7 @@ export default function CategoriesPage() {
   
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [filterType, setFilterType] = useState("All")
   
   // Form State
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -46,9 +47,12 @@ export default function CategoriesPage() {
     }
   }
 
-  const filteredCategories = categories.filter(cat => 
-    cat.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredCategories = categories.filter(cat => {
+    const matchesSearch = cat.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const catType = cat.productType || "Both";
+    const matchesType = filterType === "All" || catType === filterType;
+    return matchesSearch && matchesType;
+  })
 
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -234,8 +238,8 @@ export default function CategoriesPage() {
         </Dialog>
       </div>
 
-      <div className="flex items-center gap-2 max-w-sm">
-        <div className="relative w-full">
+      <div className="flex items-center gap-4 max-w-2xl">
+        <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
           <Input 
             type="search" 
@@ -244,6 +248,19 @@ export default function CategoriesPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+        </div>
+        <div className="w-[200px]">
+          <Select value={filterType} onValueChange={(val) => setFilterType(val || "All")}>
+            <SelectTrigger className="bg-white">
+              <SelectValue placeholder="Filter by Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All Types</SelectItem>
+              <SelectItem value="Both">Both (Finished & Recipe)</SelectItem>
+              <SelectItem value="Finished Good">Finished Good Only</SelectItem>
+              <SelectItem value="Made to Order">Made to Order (Recipe) Only</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

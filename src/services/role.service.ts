@@ -80,6 +80,10 @@ export const roleService = {
         permissions: Object.values(PERMISSIONS)
       },
       {
+        name: "Admin",
+        permissions: Object.values(PERMISSIONS).filter(p => p !== PERMISSIONS.MANAGE_SYSTEM_SETTINGS)
+      },
+      {
         name: "Branch Manager",
         permissions: [
           PERMISSIONS.VIEW_DASHBOARD,

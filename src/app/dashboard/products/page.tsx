@@ -768,7 +768,7 @@ export default function ProductsPage() {
           </DialogHeader>
           
           {viewingProduct && (
-            <div className="space-y-6 mt-4">
+            <div className="space-y-6 pt-6 px-6 pb-6 max-h-[85vh] overflow-y-auto custom-scrollbar">
               <div className="border-b pb-5">
                 <h3 className="text-2xl font-extrabold text-gray-900 tracking-tight pr-8">{viewingProduct.name}</h3>
                 <div className="text-sm text-gray-500 mt-1.5 font-medium">SKU: {viewingProduct.sku}</div>
