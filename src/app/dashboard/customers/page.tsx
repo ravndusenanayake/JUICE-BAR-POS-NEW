@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Download, UserPlus, Users, Edit, Trash2 } from "lucide-react"
+import { Search, Download, UserPlus, Users, Edit, Trash2, Star } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 
 export interface Customer {
   id: string
@@ -54,6 +55,21 @@ export default function CustomersPage() {
   useEffect(() => {
     fetchCustomers()
   }, [])
+
+  const toggleStatus = async (id: string, currentStatus: string) => {
+    if (id.startsWith("CUST-")) return; // Cannot toggle local mock walk-in
+    const newStatus = (currentStatus === 'Active' || currentStatus === 'VIP') ? 'Inactive' : 'Active';
+    try {
+      const res = await fetch(`/api/customers/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      })
+      if (res.ok) fetchCustomers()
+    } catch (err) {
+      console.error("Failed to toggle status", err)
+    }
+  }
 
   const filteredCustomers = customers.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.mobile.includes(searchQuery);
@@ -165,18 +181,26 @@ export default function CustomersPage() {
             {filteredCustomers.map((customer: any) => (
               <TableRow key={customer._id || customer.id} className="border-b last:border-0 hover:bg-gray-50/50">
                 <TableCell className="py-4 font-bold text-gray-900">
-                  {customer.name}
-                  {customer.name === "Walk-In Customer" && <span className="ml-2 bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full font-bold">DEFAULT</span>}
+                  <div className="flex items-center gap-2">
+                    {customer.name}
+                    {customer.name === "Walk-In Customer" && <span className="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full font-bold">DEFAULT</span>}
+                    {(customer.loyaltyPoints >= 500 || customer.status === 'VIP') && <span className="bg-purple-100 text-purple-700 text-[10px] px-2 py-0.5 rounded-full font-bold border border-purple-200 flex items-center gap-1"><Star className="w-3 h-3 fill-purple-500" /> VIP</span>}
+                  </div>
                 </TableCell>
                 <TableCell className="font-mono text-gray-600">{customer.mobile}</TableCell>
                 <TableCell className="text-gray-500">{customer.email || "-"}</TableCell>
-                <TableCell className="text-gray-500">{customer.birthday || "-"}</TableCell>
+                <TableCell className="text-gray-500">{customer.birthday ? (customer.birthday.includes('T') ? new Date(customer.birthday).toLocaleDateString() : customer.birthday) : "-"}</TableCell>
                 <TableCell className="text-right font-black text-gray-900">{(customer.totalSpend || 0).toFixed(2)}</TableCell>
-                <TableCell className="text-right font-black text-orange-600">{customer.points}</TableCell>
+                <TableCell className="text-right font-black text-orange-600">{customer.loyaltyPoints || customer.points || 0}</TableCell>
                 <TableCell className="text-center">
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold shadow-sm ${customer.status === 'VIP' ? 'bg-purple-100 text-purple-700 border border-purple-200' : 'bg-blue-100 text-blue-700 border border-blue-200'}`}>
-                    {customer.status}
-                  </span>
+                  {customer.name === "Walk-In Customer" ? (
+                    <span className="text-gray-400 text-xs">-</span>
+                  ) : (
+                    <Switch 
+                      checked={customer.status === 'Active' || customer.status === 'VIP'} 
+                      onCheckedChange={() => toggleStatus(customer._id || customer.id, customer.status)} 
+                    />
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
