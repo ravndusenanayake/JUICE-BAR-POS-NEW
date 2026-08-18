@@ -25,6 +25,7 @@ export default function CategoriesPage() {
   const [newName, setNewName] = useState("")
   const [newDesc, setNewDesc] = useState("")
   const [newStatus, setNewStatus] = useState("Active")
+  const [newProductType, setNewProductType] = useState("Both")
 
   useEffect(() => {
     fetchCategories()
@@ -59,7 +60,7 @@ export default function CategoriesPage() {
         const res = await fetch(`/api/categories/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: newName, description: newDesc, status: newStatus })
+          body: JSON.stringify({ name: newName, description: newDesc, status: newStatus, productType: newProductType })
         })
         
         if (res.ok) {
@@ -74,7 +75,7 @@ export default function CategoriesPage() {
         const res = await fetch('/api/categories', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: newName, description: newDesc, status: newStatus })
+          body: JSON.stringify({ name: newName, description: newDesc, status: newStatus, productType: newProductType })
         })
         
         if (res.ok) {
@@ -99,6 +100,7 @@ export default function CategoriesPage() {
     setNewName("")
     setNewDesc("")
     setNewStatus("Active")
+    setNewProductType("Both")
   }
 
   const handleEdit = (cat: any) => {
@@ -106,6 +108,7 @@ export default function CategoriesPage() {
     setNewName(cat.name)
     setNewDesc(cat.description || "")
     setNewStatus(cat.status)
+    setNewProductType(cat.productType || "Both")
     setIsDialogOpen(true)
   }
 
@@ -197,6 +200,19 @@ export default function CategoriesPage() {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="productType">Category Type</Label>
+                  <Select value={newProductType} onValueChange={(val) => setNewProductType(val || "Both")} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Both">Both (Finished & Recipe)</SelectItem>
+                      <SelectItem value="Finished Good">Finished Good Only</SelectItem>
+                      <SelectItem value="Made to Order">Made to Order (Recipe) Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="status">Status <span className="text-red-500">*</span></Label>
                   <Select value={newStatus} onValueChange={(val) => setNewStatus(val || "")} required>
                     <SelectTrigger>
@@ -237,6 +253,7 @@ export default function CategoriesPage() {
             <TableRow>
               <TableHead>Category Name</TableHead>
               <TableHead>Description</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -244,11 +261,11 @@ export default function CategoriesPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Loading categories...</TableCell>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading categories...</TableCell>
               </TableRow>
             ) : filteredCategories.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                   No categories found.
                 </TableCell>
               </TableRow>
@@ -256,6 +273,11 @@ export default function CategoriesPage() {
               <TableRow key={cat.id}>
                 <TableCell className="font-bold">{cat.name}</TableCell>
                 <TableCell className="text-muted-foreground">{cat.description || "N/A"}</TableCell>
+                <TableCell>
+                  <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full font-medium">
+                    {cat.productType || "Both"}
+                  </span>
+                </TableCell>
                 <TableCell>
                   <Switch 
                     checked={cat.status === 'Active'} 

@@ -392,10 +392,12 @@ export default function ProductsPage() {
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
-                          {categoriesList.length === 0 ? (
+                          {categoriesList.filter(cat => cat.productType === 'Both' || !cat.productType || cat.productType === type).length === 0 ? (
                             <SelectItem value="none" disabled>No active categories found</SelectItem>
                           ) : (
-                            categoriesList.map(cat => (
+                            categoriesList
+                              .filter(cat => cat.productType === 'Both' || !cat.productType || cat.productType === type)
+                              .map(cat => (
                               <SelectItem key={cat._id} value={cat.name}>{cat.name}</SelectItem>
                             ))
                           )}

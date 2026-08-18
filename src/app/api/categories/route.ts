@@ -19,13 +19,13 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, description, status } = body;
+    const { name, description, status, productType } = body;
     
     if (!name) {
       return NextResponse.json({ error: 'Category name is required' }, { status: 400 });
     }
 
-    const newCategory = await categoryService.createCategory({ name, description, status });
+    const newCategory = await categoryService.createCategory({ name, description, status, productType });
     return NextResponse.json(newCategory, { status: 201 });
   } catch (error: any) {
     if (error.message.includes('already exists')) {

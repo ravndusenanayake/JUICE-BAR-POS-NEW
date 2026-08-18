@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface ICategory extends Document {
   name: string;
   description?: string;
+  productType: 'Made to Order' | 'Finished Good' | 'Both';
   status: 'Active' | 'Inactive';
 }
 
@@ -10,6 +11,7 @@ const CategorySchema = new Schema<ICategory>(
   {
     name: { type: String, required: true, unique: true },
     description: { type: String },
+    productType: { type: String, enum: ['Made to Order', 'Finished Good', 'Both'], default: 'Both' },
     status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
   },
   { timestamps: true }

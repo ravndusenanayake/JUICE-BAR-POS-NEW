@@ -25,7 +25,7 @@ export const categoryService = {
   /**
    * Create a new category
    */
-  async createCategory(data: { name: string; description?: string; status?: 'Active' | 'Inactive' }) {
+  async createCategory(data: { name: string; description?: string; status?: 'Active' | 'Inactive', productType?: 'Made to Order' | 'Finished Good' | 'Both' }) {
     await connectToDatabase();
     
     // Check if name already exists to prevent duplicate key errors throwing generic 500s
