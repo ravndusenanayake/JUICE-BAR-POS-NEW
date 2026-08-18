@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 import connectToDatabase from '@/database/mongoose';
 import Customer from '@/database/models/Customer';
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectToDatabase();
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
 
     const updatedCustomer = await Customer.findByIdAndUpdate(
@@ -24,10 +24,10 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectToDatabase();
-    const { id } = params;
+    const { id } = await params;
     
     const deletedCustomer = await Customer.findByIdAndDelete(id);
     if (!deletedCustomer) {
