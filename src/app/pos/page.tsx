@@ -917,7 +917,7 @@ export default function POSPage() {
       if (user?.role === 'Cashier') {
         logout(); // Automatically log out Cashiers when shift closes
       } else {
-        setIsShiftOpen(true) // Force them to open a new one
+        window.location.href = '/dashboard'; // Redirect admins back to dashboard instead of forcing a new shift
       }
     } catch (e) {
       console.error(e);
