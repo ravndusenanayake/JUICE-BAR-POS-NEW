@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Plus, ShieldAlert, Edit, Trash2, ShieldCheck, CheckCircle2, Circle } from "lucide-react"
+import { Plus, ShieldAlert, Edit, Trash2, ShieldCheck, CheckCircle2, Circle, Eye } from "lucide-react"
 import { PERMISSION_GROUPS, PERMISSIONS } from "@/lib/permissions"
 import Swal from 'sweetalert2'
 import { toast } from "sonner"
@@ -79,6 +79,9 @@ export default function RolesPage() {
   const [roles, setRoles] = useState<any[]>([])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingRole, setEditingRole] = useState<any>(null)
+  
+  const [isViewOpen, setIsViewOpen] = useState(false)
+  const [viewRole, setViewRole] = useState<any>(null)
   
   useEffect(() => {
     fetchRoles()
@@ -352,7 +355,13 @@ export default function RolesPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" className="text-blue-500 hover:text-blue-700 hover:bg-blue-50" title="Edit" onClick={() => openEditDialog(role)}>
+                      <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 h-8 w-8" title="View" onClick={() => {
+                        setViewRole(role)
+                        setIsViewOpen(true)
+                      }}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 h-8 w-8" title="Edit" onClick={() => openEditDialog(role)}>
                         <Edit className="h-4 w-4" />
                       </Button>
                       {!isSuperAdmin && (
@@ -368,6 +377,59 @@ export default function RolesPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* VIEW ROLE MODAL */}
+      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+        <DialogContent className="sm:max-w-2xl bg-white border-0 shadow-2xl rounded-2xl p-0 overflow-hidden">
+          <div className="p-6 border-b bg-gray-50 flex items-center gap-3">
+            <div className="bg-blue-100 p-2 rounded-full border border-blue-200">
+              <Eye className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <DialogTitle className="text-xl font-bold text-gray-900">
+                {viewRole?.name}
+              </DialogTitle>
+              <DialogDescription className="text-gray-500 mt-1 font-medium">
+                Assigned Permissions
+              </DialogDescription>
+            </div>
+          </div>
+          <div className="p-6 max-h-[60vh] overflow-y-auto bg-gray-50/50">
+            {(!viewRole?.permissions || viewRole.permissions.length === 0) ? (
+              <p className="text-sm text-gray-500 w-full text-center py-4 bg-white rounded-xl border border-dashed">No permissions assigned.</p>
+            ) : (
+              <div className="space-y-6">
+                {PERMISSION_GROUPS.map(group => {
+                  const assignedInGroup = group.permissions.filter(p => viewRole?.permissions?.includes(p));
+                  if (assignedInGroup.length === 0) return null;
+                  
+                  return (
+                    <div key={group.group} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                      <div className="bg-gray-100/80 px-4 py-2 border-b flex items-center justify-between">
+                        <h4 className="font-bold text-gray-800 text-sm">{group.group}</h4>
+                        <span className="text-xs font-semibold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">
+                          {assignedInGroup.length}
+                        </span>
+                      </div>
+                      <div className="p-4 flex flex-wrap gap-2">
+                        {assignedInGroup.map((perm: string) => (
+                          <div key={perm} className="bg-orange-50 border border-orange-200 px-3 py-1.5 rounded-lg text-xs font-bold text-orange-800 flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-orange-500" />
+                            {perm.replace(/_/g, ' ')}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="p-6 border-t bg-gray-50">
+            <Button variant="outline" className="font-bold w-full" onClick={() => setIsViewOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

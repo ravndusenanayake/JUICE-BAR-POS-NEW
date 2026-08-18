@@ -61,7 +61,7 @@ export default function StockTransfersPage() {
   // Item Selection State for Transfer
   const [selectedItemName, setSelectedItemName] = useState("")
   const [transferQty, setTransferQty] = useState("")
-  const [transferInputUnit, setTransferInputUnit] = useState("g")
+  const [transferInputUnit, setTransferInputUnit] = useState("")
   const [transferItems, setTransferItems] = useState<TransferItem[]>([])
 
   useEffect(() => {
@@ -434,8 +434,8 @@ export default function StockTransfersPage() {
                       <Label className="text-xs font-bold text-gray-700">Qty</Label>
                       <div className="flex items-center">
                         <Input type="number" step="0.01" value={transferQty} onChange={e => setTransferQty(e.target.value)} placeholder="0" className="h-9 bg-white rounded-r-none border-r-0 focus-visible:ring-0" />
-                        <Select value={transferInputUnit} onValueChange={(v) => setTransferInputUnit(v || "")}>
-                          <SelectTrigger className="w-16 h-9 rounded-l-none bg-gray-50 px-2 font-bold text-xs"><SelectValue /></SelectTrigger>
+                        <Select value={transferInputUnit} onValueChange={(v) => setTransferInputUnit(v || "")} disabled={!selectedItemName}>
+                          <SelectTrigger className="w-16 h-9 rounded-l-none bg-gray-50 px-2 font-bold text-xs"><SelectValue placeholder="Unit" /></SelectTrigger>
                           <SelectContent>
                             {selectedItemName && UNIT_CONFIGS[inventory.find(i => i.name === selectedItemName)?.unit as BaseUnit] ? (
                               <>
@@ -446,9 +446,11 @@ export default function StockTransfersPage() {
                                   {inventory.find(i => i.name === selectedItemName)?.unit}
                                 </SelectItem>
                               </>
-                            ) : (
-                              <SelectItem value={transferInputUnit || "g"}>{transferInputUnit || "g"}</SelectItem>
-                            )}
+                            ) : selectedItemName && inventory.find(i => i.name === selectedItemName) ? (
+                              <SelectItem value={inventory.find(i => i.name === selectedItemName)?.unit}>
+                                {inventory.find(i => i.name === selectedItemName)?.unit}
+                              </SelectItem>
+                            ) : null}
                           </SelectContent>
                         </Select>
                       </div>
