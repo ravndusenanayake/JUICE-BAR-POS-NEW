@@ -522,17 +522,24 @@ export default function PurchaseOrdersPage() {
 
       {/* View PO Modal */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[750px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex justify-between items-center mr-6">
+            <DialogTitle className="flex items-center gap-3 text-xl">
               <span>{viewPO?.poNumber}</span>
-              <span className={`text-xs px-2.5 py-1 rounded-full font-bold border ${viewPO?.status === 'Fully Received' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                {viewPO?.status}
-              </span>
+              {viewPO?.status && (
+                <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold border ${
+                  viewPO.status === 'Fully Received' ? 'bg-green-100 text-green-700 border-green-200' : 
+                  viewPO.status === 'Partially Received' ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                  viewPO.status === 'Approved' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                  'bg-gray-100 text-gray-700 border-gray-200'
+                }`}>
+                  {viewPO.status}
+                </span>
+              )}
             </DialogTitle>
-            <DialogDescription>
-              <span className="block mb-1">Supplier: <strong className="text-gray-900">{viewPO?.supplierName}</strong> | Expected: {viewPO ? new Date(viewPO.expectedDate).toLocaleDateString() : ''}</span>
-              <span className="block">Created By: <strong className="text-gray-900">{viewPO?.createdBy || 'Admin'}</strong> | Date: {viewPO ? new Date(viewPO.createdAt || viewPO.orderDate).toLocaleString() : ''}</span>
+            <DialogDescription className="mt-3 space-y-2 text-sm">
+              <span className="block">Supplier: <strong className="text-gray-900">{viewPO?.supplierName}</strong> <span className="text-gray-300 mx-2">|</span> Expected: {viewPO ? new Date(viewPO.expectedDate).toLocaleDateString() : ''}</span>
+              <span className="block">Created By: <strong className="text-gray-900">{viewPO?.createdBy || 'Admin'}</strong> <span className="text-gray-300 mx-2">|</span> Date: {viewPO ? new Date(viewPO.createdAt || viewPO.orderDate).toLocaleString() : ''}</span>
             </DialogDescription>
           </DialogHeader>
 
@@ -540,32 +547,33 @@ export default function PurchaseOrdersPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50 text-xs uppercase tracking-wider">
-                  <TableHead className="py-3">Item Name</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead className="text-right">Qty</TableHead>
-                  <TableHead className="text-right">Unit Price</TableHead>
-                  <TableHead className="text-right">Total Price</TableHead>
+                  <TableHead className="py-4 pl-5">Item Name</TableHead>
+                  <TableHead className="py-4">Category</TableHead>
+                  <TableHead className="py-4 text-right">Qty</TableHead>
+                  <TableHead className="py-4 text-right">Unit Price</TableHead>
+                  <TableHead className="py-4 text-right pr-5">Total Price</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {viewPO?.items.map((item, idx) => (
                   <TableRow key={idx}>
-                    <TableCell className="font-semibold text-gray-800">{item.name}</TableCell>
-                    <TableCell className="text-gray-500 text-sm">{item.category}</TableCell>
-                    <TableCell className="text-right font-medium">{item.quantity} {item.unit}</TableCell>
-                    <TableCell className="text-right">Rs. {item.unitPrice.toFixed(2)}</TableCell>
-                    <TableCell className="text-right font-bold text-gray-900">Rs. {item.totalPrice.toFixed(2)}</TableCell>
+                    <TableCell className="font-semibold text-gray-800 pl-5 py-3">{item.name}</TableCell>
+                    <TableCell className="text-gray-500 text-sm py-3">{item.category}</TableCell>
+                    <TableCell className="text-right font-medium py-3">{item.quantity} {item.unit}</TableCell>
+                    <TableCell className="text-right py-3">Rs. {item.unitPrice.toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-bold text-gray-900 pr-5 py-3">Rs. {item.totalPrice.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
-          <div className="flex justify-between items-center p-4 bg-gray-50 rounded-xl mt-4 border border-gray-100">
-            <div className="text-gray-500 text-sm font-medium">Total Purchase Amount:</div>
-            <div className="text-xl font-black text-gray-900">Rs. {viewPO?.totalAmount?.toFixed(2)}</div>
+          
+          <div className="flex justify-end items-center p-5 bg-gray-50 rounded-xl mt-4 border border-gray-200 gap-6">
+            <div className="text-gray-500 text-sm font-medium uppercase tracking-wider">Total Purchase Amount:</div>
+            <div className="text-2xl font-black text-gray-900">Rs. {viewPO?.totalAmount?.toFixed(2)}</div>
           </div>
 
-          <DialogFooter className="mt-2">
+          <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setIsViewOpen(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
