@@ -1280,8 +1280,8 @@ export default function POSPage() {
         </div>
       </div>
 
-        {/* Bottom Navigation Bar (Mobile) */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] pb-[env(safe-area-inset-bottom)] flex items-center justify-around px-2 py-2">
+        {/* Bottom Navigation Bar (Mobile) - Hidden when cart is active so payment button is fully visible */}
+        <div className={`lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] pb-[env(safe-area-inset-bottom)] flex items-center justify-around px-2 py-2 ${mobileTab === 'cart' ? 'hidden' : ''}`}>
           <button onClick={() => setMobileTab("items")} className={`flex flex-col items-center gap-1 p-2 ${mobileTab === 'items' ? 'text-orange-600' : 'text-gray-400 hover:text-gray-600'}`}>
             <ShoppingBag className={`w-5 h-5 ${mobileTab === 'items' ? 'fill-orange-500/20' : ''}`} />
             <span className="text-[10px] font-bold">Items</span>
@@ -1303,7 +1303,7 @@ export default function POSPage() {
         </div>
 
       {/* RIGHT: Modern Cart Sidebar */}
-      <div className={`${mobileTab === 'cart' ? "fixed inset-0 pt-0 pb-[70px] z-40 flex w-full" : "hidden lg:flex"} lg:relative lg:w-[420px] lg:pb-0 bg-white flex-col h-full shrink-0 lg:z-20 shadow-2xl border-l border-gray-100`}>
+      <div className={`${mobileTab === 'cart' ? "fixed inset-0 pt-0 pb-0 z-40 flex w-full" : "hidden lg:flex"} lg:relative lg:w-[420px] lg:pb-0 bg-white flex-col h-full shrink-0 lg:z-20 shadow-2xl border-l border-gray-100`}>
         
         {/* Cart Header (Compact) */}
         <div className="px-3 py-3 lg:py-2 flex items-center justify-between border-b border-gray-100 bg-white">
@@ -1421,7 +1421,7 @@ export default function POSPage() {
         </div>
 
         {/* Payment Footer (Ultra Compact) */}
-        <div className="px-3 py-2 bg-white shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.06)] z-30 rounded-t-xl border-t border-gray-100">
+        <div className="px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] lg:pb-2 bg-white shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.06)] z-30 rounded-t-xl border-t border-gray-100">
           
           {/* Quick Cash Buttons */}
           {cart.length > 0 && grandTotal > 0 && (
