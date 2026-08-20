@@ -1781,7 +1781,7 @@ export default function POSPage() {
               </div>
 
               {/* Right Side: Numpad */}
-              <div className="flex-1 bg-white p-4 rounded-xl border flex items-center justify-center">
+              <div className="hidden sm:flex flex-1 bg-white p-4 rounded-xl border items-center justify-center">
                 <div className="grid grid-cols-3 gap-2 w-full max-w-[280px]">
                   {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', 'X'].map(key => (
                     <button 
